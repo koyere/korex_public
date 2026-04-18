@@ -1,0 +1,36 @@
+# Dependencias
+node_modules/
+.npm/
+
+# Build
+dist/
+*.tsbuildinfo
+
+# Entorno — NUNCA subir
+.env
+.env.local
+.env.production
+.env.*.local
+yt-cookies.txt
+
+# Logs
+logs/
+*.log
+
+# Backups
+backups/
+
+# Runtime
+*.pid
+*.seed
+*.pid.lock
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

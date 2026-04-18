@@ -1,0 +1,3670 @@
+{
+  "common": {
+    "error": "Error",
+    "success": "Success",
+    "warning": "Warning",
+    "info": "Information",
+    "loading": "Loading...",
+    "yes": "Yes",
+    "no": "No",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "none": "None",
+    "unknown": "Unknown",
+    "user": "User",
+    "server": "Server",
+    "channel": "Channel",
+    "role": "Role",
+    "reason": "Reason",
+    "duration": "Duration",
+    "permanent": "Permanent",
+    "expires": "Expires",
+    "created": "Created",
+    "level": "Level",
+    "balance": "Balance",
+    "bank": "Bank",
+    "total": "Total",
+    "position": "Position",
+    "available": "Available",
+    "cooldown": "Cooldown",
+    "streak": "Streak",
+    "errors": {
+      "not_your_interaction": "This interaction is not for you.",
+      "rate_limit": "⏰ You're doing that too fast! Please wait **{retryAfter} seconds** ({remaining} minutes) before trying again.",
+      "command_not_found": "Command not found.",
+      "cannot_use_command": "You can't use this command.",
+      "command_cooldown": "⏳ Wait {time} before using this command again.",
+      "command_execution_failed": "❌ An error occurred while executing the command.",
+      "button_expired": "❌ This button is no longer available.",
+      "menu_expired": "❌ This menu is no longer available.",
+      "form_expired": "❌ This form is no longer available.",
+      "component_error": "❌ An error occurred while processing this component.",
+      "generic": "An unexpected error occurred.",
+      "service_unavailable": "The service is currently unavailable."
+    },
+    "cosmetics": "Cosmetics",
+    "consumables": "Consumables",
+    "roles": "Roles",
+    "guild_only": "This command can only be used in servers.",
+    "unknown_role": "Unknown role",
+    "next": "Next",
+    "previous": "Previous"
+  },
+  "errors": {
+    "system_disabled": "This system is disabled on this server.",
+    "no_permission": "You don't have permission to use this command.",
+    "user_not_found": "User not found.",
+    "user_not_in_server": "User is not in this server.",
+    "cannot_target_self": "You cannot target yourself.",
+    "cannot_target_bot": "You cannot target bots.",
+    "hierarchy_error": "You cannot target this user due to role hierarchy.",
+    "insufficient_funds": "You don't have enough {currency}.",
+    "max_balance_reached": "You cannot have more than {max} {currency}.",
+    "cooldown_active": "You must wait {time} before using this command again.",
+    "already_claimed": "You have already claimed your {type} reward.",
+    "database_error": "Database error occurred.",
+    "internal_error": "An internal error occurred.",
+    "invalid_subcommand": "Invalid subcommand."
+  },
+  "commands": {
+    "ping": {
+      "description": "Shows bot latency and status",
+      "response": "🏓 Pong! Latency: {latency}ms | API: {api}ms"
+    },
+    "help": {
+      "description": "Shows help information",
+      "title": "📚 Help Menu",
+      "select_category": "Select a category to view commands:",
+      "no_commands": "No commands found in this category.",
+      "command_info": "Command Information",
+      "usage": "Usage",
+      "cooldown": "Cooldown: {seconds}s",
+      "permissions": "Required Permissions"
+    },
+    "botinfo": {
+      "description": "Shows detailed bot information",
+      "title": "🤖 Bot Information",
+      "general": "📋 General Information",
+      "version": "Version",
+      "uptime": "Uptime",
+      "servers": "Servers",
+      "users": "Users",
+      "commands": "Commands",
+      "system": "💻 System",
+      "memory": "Memory Usage",
+      "cpu": "CPU Usage",
+      "platform": "Platform",
+      "node_version": "Node.js Version"
+    },
+    "8ball": {
+      "description": "Ask the magic 8-ball a question",
+      "options": {
+        "question": "The question you want to ask the magic 8-ball"
+      }
+    },
+    "dice": {
+      "description": "Roll one or more dice",
+      "options": {
+        "sides": "Number of sides on the dice (default: 6)",
+        "count": "Number of dice to roll (default: 1)"
+      }
+    },
+    "hug": {
+      "description": "Give someone a warm hug",
+      "options": {
+        "user": "The user you want to hug"
+      }
+    },
+    "joke": {
+      "description": "Get a random joke",
+      "options": {
+        "category": "Category of joke (general, programming, dark)"
+      }
+    },
+    "rps": {
+      "description": "Play Rock, Paper, Scissors",
+      "options": {
+        "choice": "Your choice: rock, paper, or scissors"
+      }
+    },
+    "suggestions": {
+      "description": "Manage server suggestions",
+      "setup": {
+        "description": "Configure the suggestions system",
+        "options": {
+          "channel": "Channel where suggestions will be posted"
+        }
+      },
+      "view": {
+        "description": "View suggestions",
+        "options": {
+          "status": "Filter by suggestion status"
+        }
+      }
+    },
+    "serverinfo": {
+      "description": "Shows detailed server information",
+      "title": "📊 Server Information - {server}",
+      "general": "🏷️ General Information",
+      "name": "Name",
+      "id": "ID",
+      "owner": "Owner",
+      "created": "Created",
+      "region": "Region",
+      "members": "👥 Members",
+      "humans": "Humans",
+      "bots": "Bots",
+      "online": "Online",
+      "max_members": "Maximum",
+      "channels": "📁 Channels ({count})",
+      "text": "Text",
+      "voice": "Voice",
+      "categories": "Categories",
+      "threads": "Threads",
+      "roles_emojis": "🎭 Roles and Emojis",
+      "roles": "Roles",
+      "emojis": "Emojis",
+      "stickers": "Stickers",
+      "invites": "Invitations",
+      "security": "🛡️ Security",
+      "verification": "Verification",
+      "content_filter": "Content Filter",
+      "notifications": "Notifications",
+      "mfa_required": "MFA Required",
+      "mfa_not_required": "MFA Not Required",
+      "boost": "💎 Server Boost",
+      "boost_level": "Level",
+      "boost_count": "Boosts",
+      "boosters": "Boosters",
+      "benefits": "Benefits",
+      "custom_url": "🔗 Custom URL",
+      "features": "✨ Special Features"
+    },
+    "userinfo": {
+      "description": "Shows detailed user information",
+      "title": "👤 User Information - {user}",
+      "general": "🏷️ General Information",
+      "username": "Username",
+      "global_name": "Global Name",
+      "nickname": "Nickname",
+      "id": "ID",
+      "bot": "Bot",
+      "dates": "📅 Dates",
+      "account_created": "Account Created",
+      "joined_server": "Joined Server",
+      "ago": "Ago",
+      "joined_ago": "Joined Ago",
+      "status_activity": "🟢 Status and Activity",
+      "status": "Status",
+      "custom_status": "Custom Status",
+      "roles": "🎭 Roles ({count})",
+      "key_permissions": "🔑 Key Permissions",
+      "server_info": "📊 Server Information",
+      "boosting_since": "Boosting Since",
+      "timeout_until": "Timeout Until",
+      "in_voice_channel": "In Voice Channel",
+      "muted": "Muted",
+      "deafened": "Deafened",
+      "moderation_history": "🛡️ Moderation History",
+      "warnings": "Warnings",
+      "mutes": "Mutes",
+      "kicks": "Kicks",
+      "bans": "Bans",
+      "server_avatar": "🖼️ Server Avatar",
+      "view_server_avatar": "View Server Avatar"
+    },
+    "setup": {
+      "description": "Initial bot configuration for the server",
+      "title": "⚙️ Server Configuration",
+      "select_module": "Select a module to configure:",
+      "moderation": {
+        "title": "🛡️ Moderation Configuration",
+        "configuring": "Configuring moderation system...",
+        "success": "✅ Moderation system configured successfully",
+        "configuration": "🔧 Applied Configuration",
+        "mute_role": "Mute Role",
+        "log_channel": "Log Channel",
+        "auto_mod": "Auto-moderation",
+        "max_warnings": "Maximum Warnings",
+        "warning_expiry": "Warnings Expire In",
+        "auto_actions": "⚡ Configured Auto-actions",
+        "action_3_warnings": "3 warnings: Mute for 1 hour",
+        "action_5_warnings": "5 warnings: Kick",
+        "action_7_warnings": "7 warnings: Temporary ban (24h)",
+        "error_mute_role": "Could not create mute role. Check bot permissions.",
+        "error_log_channel": "Could not create log channel. Check bot permissions."
+      },
+      "logging": {
+        "title": "📝 Logging Configuration",
+        "in_development": "🚧 In Development",
+        "description": "Automatic log channels will be implemented in the next update."
+      },
+      "autoroles": {
+        "title": "🎭 Auto-roles Configuration",
+        "in_development": "🚧 In Development",
+        "description": "Auto-roles will be implemented in the next update."
+      },
+      "welcome": {
+        "title": "👋 Welcome Configuration",
+        "in_development": "🚧 In Development",
+        "description": "Welcome messages will be implemented in the next update."
+      },
+      "check": {
+        "title": "🔍 Configuration Check",
+        "description": "Current configuration for **{server}**",
+        "bot_info": "🤖 Bot",
+        "uptime": "Uptime",
+        "latency": "Latency",
+        "server_stats": "📊 Server Statistics",
+        "members": "Members",
+        "channels": "Channels",
+        "roles": "Roles",
+        "emojis": "Emojis",
+        "boost_level": "Boost Level",
+        "missing_permissions": "⚠️ Missing Permissions",
+        "permissions_warning": "The bot needs these permissions to function correctly:"
+      }
+    },
+    "warn": {
+      "description": "Warn a user",
+      "user_option": "User to warn",
+      "reason_option": "Reason for the warning",
+      "title": "⚠️ User Warned",
+      "moderator": "Moderator",
+      "total_warnings": "Total Warnings",
+      "action_id": "Action ID"
+    },
+    "mute": {
+      "description": "Mute a user",
+      "user_option": "User to mute",
+      "reason_option": "Reason for the mute",
+      "duration_option": "Duration in minutes (optional)",
+      "title": "🔇 User Muted",
+      "expires_in": "Expires"
+    },
+    "modlogs": {
+      "description": "View user's moderation history",
+      "user_option": "User to view history for",
+      "limit_option": "Number of actions to show (max 20)",
+      "title": "📋 Moderation History",
+      "no_history": "{user} has no recorded moderation actions.",
+      "showing_actions": "Showing the last {count} actions for {user}",
+      "moderator": "Moderator",
+      "reason": "Reason",
+      "duration": "Duration",
+      "expires": "Expires",
+      "date": "Date",
+      "active": "(Active)",
+      "statistics": "📊 Statistics",
+      "total": "Total"
+    },
+    "license": {
+      "description": "Manage addon licenses",
+      "check": {
+        "description": "Check addon license",
+        "addon_option": "Addon ID to check"
+      },
+      "list": {
+        "description": "List all server licenses"
+      },
+      "create": {
+        "description": "Create a new license",
+        "addon_option": "Addon ID",
+        "type_option": "License type",
+        "features_option": "Features separated by commas",
+        "duration_option": "Duration in days (optional)"
+      },
+      "verification_title": "🔍 License Verification",
+      "addon": "Addon",
+      "status": "Status",
+      "valid": "✅ Valid",
+      "invalid": "❌ Invalid",
+      "type": "Type",
+      "features": "Features",
+      "expires": "Expires",
+      "remaining_days": "Remaining Days",
+      "reason": "Reason",
+      "server_licenses": "📋 Server Licenses",
+      "no_licenses": "This server has no registered licenses.",
+      "licenses_found": "Found {count} licenses:",
+      "license_created": "✅ License Created",
+      "license_exists": "❌ An active license already exists for addon `{addon}`.",
+      "showing_licenses": "Showing 10 of {total} licenses"
+    },
+    "stats": {
+      "description": "Shows system and service statistics",
+      "type_option": "Type of statistics to show",
+      "system": {
+        "title": "📊 System Statistics",
+        "bot": "🤖 Bot",
+        "uptime": "⏱️ Uptime",
+        "memory": "💾 Memory",
+        "rss": "RSS",
+        "heap_used": "Heap Used",
+        "heap_total": "Heap Total",
+        "external": "External",
+        "system": "🖥️ System",
+        "os": "OS",
+        "arch": "Architecture",
+        "cpus": "CPUs",
+        "load_avg": "Load Average",
+        "nodejs": "🔧 Node.js",
+        "version": "Version",
+        "platform": "Platform",
+        "pid": "PID",
+        "latency": "📡 Latency",
+        "websocket": "WebSocket",
+        "api": "API",
+        "calculating": "Calculating..."
+      },
+      "errors": {
+        "title": "🚨 Error Statistics",
+        "general": "📊 General",
+        "recent_24h": "Last 24h",
+        "resolved": "Resolved",
+        "pending": "Pending",
+        "by_type": "📝 By Type",
+        "by_severity": "⚠️ By Severity"
+      },
+      "licenses": {
+        "title": "🔑 License Statistics",
+        "general": "📊 General",
+        "active": "Active",
+        "expired": "Expired",
+        "inactive": "Inactive",
+        "by_type": "🏷️ By Type"
+      },
+      "moderation": {
+        "title": "🛡️ Moderation Statistics",
+        "description": "Statistics for **{server}**",
+        "general": "📊 General",
+        "total_actions": "Total Actions",
+        "active_actions": "Active Actions",
+        "unique_users": "Unique Users",
+        "by_type": "📝 By Type",
+        "top_moderators": "👮 Top Moderators"
+      }
+    },
+    "balance": {
+      "description": "Shows your balance or another user's balance",
+      "user_option": "User to view balance for (optional)",
+      "title": "{currency} Balance of {user}",
+      "wallet": "💰 Wallet",
+      "bank": "🏦 Bank",
+      "total": "💎 Total",
+      "streak_value": "{count} days",
+      "additional_info": "📋 Additional Information",
+      "daily_streak": "Daily Streak",
+      "daily_available_in": "Daily available in",
+      "work_available_in": "Work available in",
+      "limits": "📏 Limits",
+      "max_balance": "Maximum Balance",
+      "max_bank": "Maximum Bank"
+    },
+    "daily": {
+      "description": "Claim your daily reward",
+      "title": "🎉 Daily Reward Claimed!",
+      "new_balance": "💰 New Balance",
+      "base_reward": "🎁 Base Reward",
+      "daily_streak": "🔥 Daily Streak",
+      "consecutive_days": "{days} consecutive days",
+      "bonus": "+{bonus} {currency} bonus",
+      "tip": "💡 Tip",
+      "tip_message": "Claim your daily every day to maintain your streak and get more {currency}!",
+      "not_available": "❌ Not Available",
+      "next_daily": "⏰ Next Daily",
+      "current_streak": "🔥 Current Streak"
+    },
+    "rank": {
+      "description": "Shows your level and progress or another user's level",
+      "user_option": "User to view level for (optional)",
+      "title": "📊 Level of {user}",
+      "current_level": "🏆 Current Level",
+      "current_xp": "⭐ Current XP",
+      "position": "📈 Position",
+      "progress_next": "📊 Progress to Next Level",
+      "xp_needed": "XP needed",
+      "statistics": "📋 Statistics",
+      "total_xp": "Total XP",
+      "messages": "Messages",
+      "voice_time": "Voice Time",
+      "hours": "hours",
+      "configuration": "⚙️ Configuration",
+      "xp_per_message": "XP per message",
+      "xp_per_voice_minute": "XP per voice minute",
+      "multiplier": "Multiplier",
+      "xp_cooldown": "XP Cooldown",
+      "level_roles": "🎭 Level Roles",
+      "next_role": "🎯 Next Role"
+    },
+    "leaderboard": {
+      "description": "Shows server level ranking",
+      "type_option": "Type of leaderboard",
+      "levels_title": "🏆 Level Ranking",
+      "economy_title": "💰 Economy Ranking",
+      "page_info": "Page {current} of {total}",
+      "no_users": "No users in the ranking yet.",
+      "ranking": "📋 Ranking",
+      "your_position": "👤 Your Position",
+      "server_stats": "📊 Server Statistics",
+      "total_users": "Total Users",
+      "average_level": "Average Level",
+      "highest_level": "Highest Level",
+      "total_messages": "Total Messages",
+      "money_circulation": "Money in Circulation",
+      "money_in_banks": "Money in Banks",
+      "average_balance": "Average Balance",
+      "previous": "◀️ Previous",
+      "next": "Next ▶️",
+      "view_economy": "💰 View Economy",
+      "view_levels": "🏆 View Levels",
+      "showing_top": "Showing 10 of {total} users"
+    },
+    "giveaway": {
+      "description": "Manage server giveaways",
+      "create": {
+        "description": "Create a new giveaway",
+        "options": {
+          "prize": "The prize to give away",
+          "duration": "Duration in hours (1-168)",
+          "channel": "Channel to post the giveaway in",
+          "winners": "Number of winners (1-10)",
+          "title": "Custom title for the giveaway"
+        },
+        "wizard": {
+          "title": "🎉 Giveaway Setup Wizard",
+          "description": "Review your giveaway settings and customize requirements:",
+          "add_requirements": "Add Requirements",
+          "add_bonus": "Bonus Entries",
+          "create": "Create Giveaway"
+        },
+        "errors": {
+          "invalid_channel": "❌ Invalid channel. Please select a text channel.",
+          "no_permissions": "❌ I don't have permission to send messages in that channel.",
+          "limit_reached": "❌ You have reached the maximum number of active giveaways ({limit}).",
+          "failed": "❌ Failed to create giveaway. Please try again."
+        }
+      },
+      "end": {
+        "description": "End a giveaway early",
+        "options": {
+          "id": "Giveaway ID to end"
+        },
+        "success": "✅ Giveaway **{id}** has been ended successfully.",
+        "error": "❌ Failed to end giveaway. Make sure the ID is correct."
+      },
+      "reroll": {
+        "description": "Reroll winners for a giveaway",
+        "options": {
+          "id": "Giveaway ID to reroll"
+        },
+        "not_implemented": "🚧 Giveaway reroll feature is coming soon!"
+      },
+      "list": {
+        "description": "List all giveaways in this server",
+        "title": "🎉 Server Giveaways",
+        "no_giveaways": "No giveaways found in this server.",
+        "footer": "Total: {count} giveaway(s)"
+      },
+      "info": {
+        "description": "Get detailed information about a giveaway",
+        "options": {
+          "id": "Giveaway ID to get info for"
+        },
+        "not_implemented": "🚧 Giveaway info feature is coming soon!"
+      }
+    },
+    "poll": {
+      "description": "Create and manage polls",
+      "create": {
+        "description": "Create a new poll",
+        "options": {
+          "title": "Poll title",
+          "type": "Type of poll (simple, multiple, dropdown, ranking)",
+          "options": "Poll options (one per line, emoji optional)",
+          "channel": "Channel to post the poll in",
+          "duration": "Duration in hours (optional)",
+          "description": "Poll description (optional)",
+          "anonymous": "Make votes anonymous",
+          "allow_change": "Allow users to change their vote",
+          "max_choices": "Maximum choices for multiple choice polls"
+        },
+        "wizard": {
+          "title": "📊 Poll Setup Wizard",
+          "description": "Review your poll settings and customize options:",
+          "add_restrictions": "Add Restrictions",
+          "advanced_settings": "Advanced Settings",
+          "create": "Create Poll"
+        },
+        "errors": {
+          "invalid_channel": "❌ Invalid channel. Please select a text channel.",
+          "no_permissions": "❌ I don't have permission to send messages in that channel.",
+          "limit_reached": "❌ You have reached the maximum number of active polls ({limit}).",
+          "min_options": "❌ Polls must have at least 2 options.",
+          "max_options": "❌ Polls can have at most 25 options.",
+          "failed": "❌ Failed to create poll. Please try again."
+        }
+      },
+      "end": {
+        "description": "End a poll early",
+        "options": {
+          "id": "Poll ID to end"
+        },
+        "success": "✅ Poll **{id}** has been ended successfully.",
+        "error": "❌ Failed to end poll. Make sure the ID is correct."
+      },
+      "results": {
+        "description": "Export poll results",
+        "options": {
+          "id": "Poll ID to get results for",
+          "format": "Export format (json, csv, text)"
+        },
+        "exported": "📊 Poll results exported as {format}",
+        "not_found": "❌ Poll not found or no results available.",
+        "error": "❌ Failed to export poll results."
+      },
+      "list": {
+        "description": "List all polls in this server",
+        "title": "📊 Server Polls",
+        "no_polls": "No polls found in this server.",
+        "footer": "Total: {count} poll(s)"
+      },
+      "info": {
+        "description": "Get detailed information about a poll",
+        "options": {
+          "id": "Poll ID to get info for"
+        },
+        "not_implemented": "🚧 Poll info feature is coming soon!"
+      }
+    },
+    "invites": {
+      "description": "Manage and view invite statistics",
+      "me": {
+        "description": "View your invite statistics",
+        "no_invites": "You haven't invited anyone to this server yet.",
+        "error": "❌ Failed to get your invite statistics."
+      },
+      "user": {
+        "description": "View invite statistics for a user",
+        "options": {
+          "target": "User to view invite statistics for"
+        },
+        "no_invites": "**{user}** hasn't invited anyone to this server yet.",
+        "error": "❌ Failed to get invite statistics for that user."
+      },
+      "leaderboard": {
+        "description": "View the invite leaderboard",
+        "options": {
+          "page": "Page number to view"
+        },
+        "empty": "No invite statistics found for this server.",
+        "invalid_page": "❌ Invalid page number.",
+        "error": "❌ Failed to get invite leaderboard."
+      },
+      "add": {
+        "description": "Add bonus invites to a user",
+        "options": {
+          "user": "User to add invites to",
+          "amount": "Number of invites to add",
+          "reason": "Reason for adding invites"
+        },
+        "success": "✅ Added **{amount}** bonus invites to **{user}**.",
+        "error": "❌ Failed to add bonus invites."
+      },
+      "remove": {
+        "description": "Remove invites from a user",
+        "options": {
+          "user": "User to remove invites from",
+          "amount": "Number of invites to remove",
+          "reason": "Reason for removing invites"
+        },
+        "success": "✅ Removed **{amount}** invites from **{user}**.",
+        "error": "❌ Failed to remove invites."
+      },
+      "config": {
+        "description": "Configure invite tracking settings",
+        "not_implemented": "🚧 Invite configuration feature is coming soon!"
+      }
+    },
+    "avatar": {
+      "description": "View a user's avatar",
+      "user_option": "User to view avatar of",
+      "server_option": "Show server avatar",
+      "title": "{user}'s Avatar",
+      "global_avatar": "Global Avatar",
+      "server_avatar": "Server Avatar",
+      "global_button": "Global",
+      "server_button": "Server",
+      "download": "Download",
+      "requested_by": "Requested by {user}"
+    },
+    "invite": {
+      "description": "Get the bot invite link",
+      "title": "🤖 Invite {bot}",
+      "description_text": "Thanks for your interest in adding the bot to your server!",
+      "features_title": "✨ Features",
+      "features_list": "• Advanced moderation\n• Economy system\n• Levels and XP\n• Music\n• And much more...",
+      "permissions_title": "🔐 Permissions",
+      "permissions_text": "The bot needs certain permissions to work properly.",
+      "invite_button": "Invite Bot",
+      "support_button": "Support Server",
+      "website_button": "Website",
+      "github_button": "GitHub",
+      "vote_button": "Vote",
+      "footer": "Thanks for using {bot}!"
+    },
+    "purge": {
+      "description": "Bulk delete messages",
+      "success_title": "🗑️ Messages Deleted",
+      "success_desc": "Deleted {count} messages.",
+      "error_title": "❌ Error",
+      "error_desc": "Could not delete messages.",
+      "no_messages_title": "⚠️ No Messages",
+      "no_messages_desc": "No messages found to delete.",
+      "moderator": "Moderator",
+      "channel": "Channel",
+      "reason": "Reason",
+      "no_reason": "No reason specified",
+      "filters": "Applied filters",
+      "filter_user": "User: {user}",
+      "filter_bots": "Bots only",
+      "filter_humans": "Humans only",
+      "filter_contains": "Contains: {text}",
+      "filter_links": "Links only",
+      "filter_attachments": "Attachments only",
+      "filter_embeds": "Embeds only",
+      "filter_mentions": "Mentions only",
+      "invalid_channel": "Invalid channel.",
+      "old_messages_warning": "⚠️ Old Messages",
+      "old_messages_count": "{count} messages are older than 14 days and cannot be deleted."
+    },
+    "slowmode": {
+      "description": "Set slowmode in a channel",
+      "enabled_title": "🐌 Slowmode Enabled",
+      "enabled_desc": "Slowmode has been enabled.",
+      "disabled_title": "🐌 Slowmode Disabled",
+      "disabled_desc": "Slowmode has been disabled.",
+      "error_title": "❌ Error",
+      "error_desc": "Could not change slowmode.",
+      "channel": "Channel",
+      "duration": "Duration",
+      "duration_seconds": "{seconds} seconds",
+      "duration_minutes": "{minutes} minutes",
+      "duration_minutes_seconds": "{minutes}m {seconds}s",
+      "duration_hours": "{hours} hours",
+      "duration_hours_minutes": "{hours}h {minutes}m",
+      "moderator": "Moderator",
+      "reason": "Reason",
+      "no_reason": "No reason specified",
+      "invalid_channel": "Invalid channel."
+    },
+    "tempban": {
+      "description": "Temporarily ban a user",
+      "success_title": "🔨 User Temporarily Banned",
+      "success_desc": "{user} has been temporarily banned.",
+      "error_title": "❌ Error",
+      "error_desc": "Could not ban the user.",
+      "dm_title": "🔨 You have been banned",
+      "dm_desc": "You have been temporarily banned from {server}.",
+      "user": "User",
+      "moderator": "Moderator",
+      "reason": "Reason",
+      "no_reason": "No reason specified",
+      "duration": "Duration",
+      "unban_time": "Unban Time",
+      "deleted_messages": "Deleted Messages",
+      "deleted_days": "{days} days",
+      "format_seconds": "{n} seconds",
+      "format_minutes": "{n} minutes",
+      "format_hours": "{n} hours",
+      "format_days": "{n} days",
+      "invalid_duration": "Invalid duration.",
+      "already_banned": "This user is already banned.",
+      "hierarchy_error": "You cannot ban this user due to role hierarchy.",
+      "owner_error": "You cannot ban the server owner.",
+      "bot_error": "I cannot ban this user."
+    },
+    "massban": {
+      "description": "Ban multiple users at once",
+      "modal_title": "🔨 Mass Ban",
+      "user_ids_label": "User IDs",
+      "user_ids_placeholder": "Paste IDs separated by spaces or lines...",
+      "confirm_title": "⚠️ Confirm Mass Ban",
+      "confirm_desc": "Are you sure you want to ban {count} users?",
+      "confirm_button": "Confirm",
+      "cancel_button": "Cancel",
+      "processing": "Processing bans...",
+      "result_title": "🔨 Mass Ban Complete",
+      "result_desc": "Banned {success} of {total} users.",
+      "cancelled_title": "❌ Cancelled",
+      "cancelled_desc": "Mass ban was cancelled.",
+      "error_title": "❌ Error",
+      "no_valid_ids": "No valid IDs found.",
+      "too_many_users": "Too many users. Maximum: {max}",
+      "user_count": "Users",
+      "failed_bans": "Failed bans",
+      "moderator": "Moderator",
+      "reason": "Reason",
+      "no_reason": "No reason specified",
+      "delete_days": "Days of messages to delete"
+    },
+    "premium": {
+      "info": {
+        "premium_active": "⭐ Premium Active",
+        "premium_desc": "Your server has active premium.",
+        "no_premium_title": "💫 Premium",
+        "no_premium_desc": "Your server does not have premium.",
+        "subscription_details": "Subscription Details",
+        "subscription_value": "Plan: {plan}\nExpires: {expires}",
+        "active_features": "Active Features",
+        "manage_subscription": "Manage Subscription",
+        "view_plans": "View Plans",
+        "view_usage": "View Usage",
+        "upgrade_benefits": "Upgrade Benefits",
+        "try_demo": "Try Demo"
+      },
+      "plans": {
+        "title": "💎 Premium Plans",
+        "plans_description": "Choose the plan that best suits you.",
+        "duration": "Duration",
+        "comparison": "Comparison",
+        "comparison_value": "Free vs Premium"
+      },
+      "benefits": {
+        "title": "✨ Premium Benefits",
+        "benefits_description": "All the advantages of being premium.",
+        "all_benefits": "All Benefits",
+        "plan_comparison": "Plan Comparison",
+        "comparison_value": "See what you get with premium.",
+        "view_plans": "View Plans",
+        "start_trial": "Start Trial"
+      },
+      "usage": {
+        "title": "📊 Premium Usage",
+        "usage_description": "Your current premium feature usage.",
+        "no_premium": "No Premium",
+        "no_premium_desc": "You need premium to view usage.",
+        "premium_features": "Premium Features",
+        "usage_format": "{used}/{limit}",
+        "unlimited": "Unlimited",
+        "giveaways": "Giveaways",
+        "polls": "Polls",
+        "auto_responses": "Auto-responses",
+        "custom_branding": "Custom Branding",
+        "advanced_analytics": "Advanced Analytics",
+        "priority_support": "Priority Support"
+      },
+      "activate": {
+        "already_premium": "Already Premium",
+        "already_premium_desc": "Your server already has active premium.",
+        "invalid_plan": "Invalid Plan",
+        "invalid_plan_desc": "The selected plan does not exist.",
+        "payment_info": "Payment Information",
+        "payment_desc": "Complete payment to activate premium.",
+        "payment_methods": "Payment Methods",
+        "payment_methods_value": "PayPal, Credit Card",
+        "plan_features": "Plan Features",
+        "trial_details": "Trial Details",
+        "trial_value": "7 days free, no commitment.",
+        "demo_activated": "Demo Activated",
+        "demo_desc": "You have demo access for 24 hours.",
+        "manual_activate": "Manual Activation",
+        "contact_support": "Contact Support",
+        "contact_info": "Contact Information",
+        "contact_value": "Discord: {discord}\nEmail: {email}"
+      },
+      "cancel": {
+        "no_premium": "No Premium",
+        "no_premium_desc": "You do not have an active subscription.",
+        "confirm_title": "⚠️ Cancel Premium",
+        "confirm_desc": "Are you sure you want to cancel your subscription?",
+        "confirm_button": "Yes, Cancel",
+        "keep_button": "No, Keep",
+        "what_happens": "What will happen?",
+        "what_happens_value": "You will lose access to premium features at the end of the period."
+      }
+    }
+  },
+  "polls": {
+    "types": {
+      "simple": "Simple Poll",
+      "multiple": "Multiple Choice",
+      "dropdown": "Dropdown Menu",
+      "ranking": "Ranking Poll"
+    },
+    "status": {
+      "active": "Active",
+      "ended": "Ended"
+    },
+    "embed": {
+      "description": "Vote by clicking the buttons or selecting from the menu below!",
+      "title": "Title",
+      "type": "Type",
+      "options": "Options",
+      "options_count": "Options Count",
+      "total_votes": "Total Votes",
+      "participants": "Participants",
+      "duration": "Duration",
+      "ends": "⏰ Ends",
+      "status": "Status",
+      "channel": "📍 Channel",
+      "footer": "Poll ID: {id}",
+      "votes_label": "votes"
+    },
+    "buttons": {
+      "results": "View Results",
+      "info": "Poll Info"
+    },
+    "dropdown": {
+      "placeholder": "Select your choice(s)..."
+    },
+    "vote": {
+      "success": "Your vote has been recorded!",
+      "success_single": "Your vote has been recorded!",
+      "success_multiple": "Your {count} votes have been recorded!",
+      "ended": "This poll has already ended.",
+      "change_not_allowed": "Vote changes are not allowed for this poll.",
+      "multiple_not_allowed": "Multiple choices are not allowed for this poll.",
+      "missing_role": "You don't have the required role to vote in this poll.",
+      "requirements_not_met": "You don't meet the requirements to vote in this poll.",
+      "invalid_option": "Invalid vote option. Please try again."
+    },
+    "results": {
+      "description": "Here are the current poll results:",
+      "options": "📊 Results",
+      "total_votes": "Total Votes",
+      "participants": "Participants",
+      "winner": "🏆 Winner",
+      "tie": "🤝 Tie",
+      "status": "Status",
+      "not_found": "Poll not found or no results available."
+    },
+    "info": {
+      "not_implemented": "Poll info feature is coming soon!"
+    },
+    "setup": {
+      "expired": "Poll setup has expired. Please start over.",
+      "cancelled": "Poll setup cancelled.",
+      "created": "✅ Poll **{id}** created successfully in {channel}!",
+      "failed": "❌ Failed to create poll. Please try again.",
+      "error": "❌ An error occurred while creating the poll.",
+      "invalid_channel": "❌ Invalid channel selected.",
+      "restrictions_added": "✅ Added {count} restriction(s) to the poll.",
+      "settings_updated": "✅ Poll settings updated successfully."
+    },
+    "duration_hours": "{hours} hours",
+    "modals": {
+      "restrictions": {
+        "title": "Poll Restrictions",
+        "roles_label": "Required Roles",
+        "roles_placeholder": "@role1 @role2 or role IDs",
+        "level_label": "Minimum Level",
+        "level_placeholder": "e.g., 10",
+        "age_label": "Minimum Account Age (days)",
+        "age_placeholder": "e.g., 7",
+        "messages_label": "Minimum Messages",
+        "messages_placeholder": "e.g., 50"
+      },
+      "settings": {
+        "title": "Advanced Settings",
+        "show_results_label": "Show Results",
+        "show_results_placeholder": "always, after_vote, or after_end"
+      }
+    },
+    "wizard": {
+      "modal_title": "📊 Create Poll",
+      "title_label": "Title",
+      "title_placeholder": "What would you like to ask?",
+      "description_label": "Description (optional)",
+      "description_placeholder": "Add more context to your poll...",
+      "options_label": "Options (one per line, min 2)",
+      "options_placeholder": "Option 1\nOption 2\nOption 3",
+      "step2_title": "📊 Select Poll Type",
+      "step2_description": "Choose how users will vote:",
+      "type_placeholder": "Choose a type...",
+      "step3_title": "📊 Select Duration",
+      "step3_description": "How long should the poll run?",
+      "duration_placeholder": "Choose a duration...",
+      "step4_title": "📊 Review & Create",
+      "step4_description": "Review your poll before publishing:",
+      "field_options": "Options",
+      "field_type": "Type",
+      "field_duration": "Duration",
+      "field_channel": "Channel",
+      "field_settings": "Settings",
+      "no_expiry": "No expiry",
+      "anonymous_on": "🙈 Anonymous: ON",
+      "anonymous_off": "👁️ Anonymous: OFF",
+      "allow_change_on": "🔄 Vote Change: ON",
+      "allow_change_off": "🔒 Vote Change: OFF",
+      "create": "Create Poll",
+      "min_options": "You need at least **2 options** (one per line).",
+      "max_options": "Maximum **25 options** allowed.",
+      "errors": {
+        "min_options": "You need at least **2 options** (one per line).",
+        "max_options": "Maximum **25 options** allowed.",
+        "session_expired": "⏰ Your poll setup session has expired. Please run `/poll create` again."
+      }
+    },
+    "durations": {
+      "0": "No expiry",
+      "1": "1 hour",
+      "6": "6 hours",
+      "12": "12 hours",
+      "24": "24 hours (1 day)",
+      "48": "48 hours (2 days)",
+      "168": "1 week"
+    }
+  },
+  "moderation": {
+    "actions": {
+      "warn": "WARN",
+      "mute": "MUTE",
+      "unmute": "UNMUTE",
+      "kick": "KICK",
+      "ban": "BAN",
+      "unban": "UNBAN"
+    },
+    "auto_actions": {
+      "mute_1h": "Mute for 1 hour",
+      "kick": "Kick",
+      "ban_24h": "Temporary ban (24h)"
+    },
+    "automod": {
+      "spam_detected": "🚫 **Anti-Spam:** {user}, you are sending messages too fast.",
+      "caps_detected": "🔠 **Caps Filter:** {user}, avoid excessive use of capital letters.",
+      "word_filtered": "🚫 **Word Filter:** {user}, your message contains prohibited content.",
+      "link_blocked": "🔗 **Link Filter:** {user}, links are not allowed here.",
+      "ghost_ping": "👻 **Ghost Ping Detected:** {user} mentioned {mentioned} and deleted the message.",
+      "action_warn": "You have received an automatic warning.",
+      "action_timeout": "You have received a timeout of {duration}.",
+      "action_delete": "Your message has been deleted.",
+      "log_title": "🛡️ AutoMod",
+      "log_user": "User",
+      "log_channel": "Channel",
+      "log_reason": "Reason",
+      "log_action": "Action",
+      "log_content": "Content",
+      "reasons": {
+        "spam": "Spam detected",
+        "caps": "Excessive caps",
+        "word": "Prohibited word",
+        "link": "Link not allowed",
+        "ghost_ping": "Ghost ping"
+      }
+    }
+  },
+  "economy": {
+    "currency": {
+      "name": "coins",
+      "symbol": "🪙"
+    },
+    "actions": {
+      "daily_claimed": "You claimed {amount} {currency}! (Base: {base} + Streak: {bonus})",
+      "daily_streak": "Current streak: {days} days",
+      "daily_cooldown": "You must wait {hours} hours before claiming your daily reward again.",
+      "weekly_claimed": "You claimed {amount} {currency} weekly reward!",
+      "weekly_cooldown": "You must wait {days} days before claiming your weekly reward again.",
+      "work_success": "{message}",
+      "work_cooldown": "You must wait {minutes} minutes before working again.",
+      "transfer_success": "You transferred {amount} {currency} successfully.",
+      "deposit_success": "You deposited {amount} {currency} to the bank.",
+      "withdraw_success": "You withdrew {amount} {currency} from the bank."
+    },
+    "work_messages": [
+      "You worked as a programmer and earned {amount} {currency}",
+      "You did delivery and earned {amount} {currency}",
+      "You worked at a store and earned {amount} {currency}",
+      "You were a streamer for a day and earned {amount} {currency}",
+      "You worked as a designer and earned {amount} {currency}"
+    ],
+    "disabled": "The economy system is disabled on this server.",
+    "daily": {
+      "cooldown": "You already claimed your daily reward. Come back in {hours} hours.",
+      "success": "You claimed {amount} {symbol}! (Base: {base} + Streak: {bonus})\nCurrent streak: {streak} days",
+      "error": "Error claiming daily reward."
+    },
+    "weekly": {
+      "cooldown": "You already claimed your weekly reward. Come back in {days} days.",
+      "success": "You claimed {amount} {symbol} weekly reward!",
+      "error": "Error claiming weekly reward."
+    },
+    "work": {
+      "cooldown": "You must wait {minutes} minutes before working again.",
+      "success": "You earned {amount} {symbol} from working!",
+      "error": "Error processing work."
+    },
+    "insufficient_funds": "You don't have enough {currency}.",
+    "max_balance": "You can't have more than {max} {currency}.",
+    "transfer_success": "You transferred {amount} {symbol} successfully.",
+    "deposit_success": "You deposited {amount} {symbol} to the bank.",
+    "withdraw_success": "You withdrew {amount} {symbol} from the bank.",
+    "error": "Error processing transaction."
+  },
+  "pay": {
+    "success_title": "💸 Payment Sent!",
+    "success_description": "You successfully sent {amount} 🪙 to {user}",
+    "your_new_balance": "💰 Your New Balance",
+    "footer": "Transaction completed successfully",
+    "received_title": "💰 Money Received!",
+    "received_description": "You received {amount} 🪙 from {user} in {server}",
+    "cannot_pay_bot": "❌ You cannot send money to bots.",
+    "cannot_pay_self": "❌ You cannot send money to yourself.",
+    "invalid_amount": "❌ Please enter a valid amount greater than 0."
+  },
+  "deposit": {
+    "success_title": "🏦 Money Deposited!",
+    "success_description": "You successfully deposited {amount} 🪙 into your bank account",
+    "wallet_balance": "💰 Wallet Balance",
+    "bank_balance": "🏦 Bank Balance",
+    "total_balance": "💎 Total Balance",
+    "footer": "Your money is safe in the bank!",
+    "no_money": "❌ You don't have any money to deposit.",
+    "invalid_amount": "❌ Please enter a valid amount greater than 0."
+  },
+  "withdraw": {
+    "success_title": "🏦 Money Withdrawn!",
+    "success_description": "You successfully withdrew {amount} 🪙 from your bank account",
+    "wallet_balance": "💰 Wallet Balance",
+    "bank_balance": "🏦 Bank Balance",
+    "total_balance": "💎 Total Balance",
+    "footer": "Money withdrawn successfully!",
+    "no_money_in_bank": "❌ You don't have any money in your bank account.",
+    "invalid_amount": "❌ Please enter a valid amount greater than 0."
+  },
+  "weekly": {
+    "success_title": "🎉 Weekly Reward Claimed!",
+    "success_description": "You claimed {amount} {symbol} weekly reward!",
+    "new_balance": "💰 New Balance",
+    "next_claim": "⏰ Next Claim",
+    "next_claim_time": "Available in 7 days",
+    "footer": "Come back next week for another reward!"
+  },
+  "kick": {
+    "success_title": "👢 User Kicked",
+    "success_description": "**{user}** has been kicked from the server.\n**Reason:** {reason}",
+    "kicked_user": "👤 Kicked User",
+    "moderator": "👮 Moderator",
+    "reason": "📝 Reason",
+    "footer": "User has been removed from the server",
+    "no_reason": "No reason provided",
+    "user_not_found": "❌ User not found in this server.",
+    "cannot_kick_self": "❌ You cannot kick yourself.",
+    "cannot_kick_bot": "❌ You cannot kick the bot.",
+    "cannot_kick_owner": "❌ You cannot kick the server owner.",
+    "insufficient_permissions": "❌ You cannot kick this user due to role hierarchy.",
+    "cannot_kick_member": "❌ I cannot kick this member. Check my permissions and role hierarchy."
+  },
+  "ban": {
+    "success_title": "🔨 User Banned",
+    "success_description": "**{user}** has been banned from the server.\n**Reason:** {reason}",
+    "banned_user": "👤 Banned User",
+    "moderator": "👮 Moderator",
+    "reason": "📝 Reason",
+    "duration": "⏰ Duration",
+    "duration_value": "{minutes} minutes",
+    "permanent": "Permanent",
+    "deleted_messages": "🗑️ Deleted Messages",
+    "deleted_messages_value": "Last {days} days",
+    "footer": "User has been banned from the server",
+    "no_reason": "No reason provided",
+    "already_banned": "❌ This user is already banned.",
+    "cannot_ban_self": "❌ You cannot ban yourself.",
+    "cannot_ban_bot": "❌ You cannot ban the bot.",
+    "cannot_ban_owner": "❌ You cannot ban the server owner.",
+    "insufficient_permissions": "❌ You cannot ban this user due to role hierarchy.",
+    "cannot_ban_member": "❌ I cannot ban this member. Check my permissions and role hierarchy."
+  },
+  "unban": {
+    "success_title": "🔓 User Unbanned",
+    "success_description": "**{user}** has been unbanned from the server.\n**Reason:** {reason}",
+    "unbanned_user": "👤 Unbanned User",
+    "moderator": "👮 Moderator",
+    "reason": "📝 Reason",
+    "original_ban_reason": "📋 Original Ban Reason",
+    "no_original_reason": "No reason provided",
+    "footer": "User can now rejoin the server",
+    "no_reason": "No reason provided",
+    "invalid_user_id": "❌ Please provide a valid user ID.",
+    "user_not_found": "❌ User not found.",
+    "user_not_banned": "❌ **{user}** is not banned from this server."
+  },
+  "unmute": {
+    "success_title": "🔊 User Unmuted",
+    "success_description": "**{user}** has been unmuted.\n**Reason:** {reason}",
+    "unmuted_user": "👤 Unmuted User",
+    "moderator": "👮 Moderator",
+    "reason": "📝 Reason",
+    "footer": "User can now speak again",
+    "no_reason": "No reason provided",
+    "user_not_found": "❌ User not found in this server.",
+    "no_mute_role": "❌ No mute role configured. Use `/setup` to configure moderation.",
+    "mute_role_not_found": "❌ Mute role not found. Please reconfigure moderation settings.",
+    "user_not_muted": "❌ This user is not muted.",
+    "cannot_unmute_self": "❌ You cannot unmute yourself.",
+    "cannot_unmute_bot": "❌ You cannot unmute the bot.",
+    "insufficient_permissions": "❌ You cannot unmute this user due to role hierarchy."
+  },
+  "timeout": {
+    "success_title": "⏰ User Timed Out",
+    "success_description": "**{user}** has been timed out for {duration} minutes.\n**Reason:** {reason}",
+    "timed_out_user": "👤 Timed Out User",
+    "moderator": "👮 Moderator",
+    "duration": "⏰ Duration",
+    "duration_value": "{minutes} minutes",
+    "ends_at": "🕐 Ends At",
+    "reason": "📝 Reason",
+    "footer": "User has been timed out",
+    "dm_title": "⏰ You have been timed out",
+    "dm_description": "You have been timed out in **{server}** for {duration} minutes.\n**Reason:** {reason}",
+    "dm_ends_at": "🕐 Timeout ends at",
+    "no_reason": "No reason provided",
+    "user_not_found": "❌ User not found in this server.",
+    "cannot_timeout_self": "❌ You cannot timeout yourself.",
+    "cannot_timeout_bot": "❌ You cannot timeout the bot.",
+    "cannot_timeout_owner": "❌ You cannot timeout the server owner.",
+    "insufficient_permissions": "❌ You cannot timeout this user due to role hierarchy.",
+    "cannot_timeout_member": "❌ I cannot timeout this member. Check my permissions and role hierarchy.",
+    "already_timed_out": "❌ This user is already timed out."
+  },
+  "clear": {
+    "success_title": "🧹 Messages Cleared",
+    "success_description": "Successfully deleted {count} messages in {channel}",
+    "moderator": "👮 Moderator",
+    "channel": "📁 Channel",
+    "reason": "📝 Reason",
+    "target_user": "👤 Target User",
+    "old_messages_warning": "⚠️ Old Messages",
+    "old_messages_count": "{count} messages were too old to delete (older than 14 days)",
+    "footer": "Messages cleared successfully",
+    "no_reason": "No reason provided",
+    "no_messages": "❌ No messages found to delete.",
+    "no_messages_from_user": "❌ No messages found from {user} in the specified range.",
+    "messages_too_old": "❌ All messages are older than 14 days and cannot be deleted.",
+    "no_permissions": "❌ I don't have permission to delete messages in this channel."
+  },
+  "levels": {
+    "level_up": "🎉 Level Up!",
+    "level_up_message": "🎉 {user} reached level {level}!",
+    "progress": "📊 Progress",
+    "total_xp": "Total XP",
+    "rank": {
+      "name": "rank",
+      "description": "Shows your rank or another user's rank",
+      "user_option": "User to show rank for",
+      "title": "📊 {user}'s Rank",
+      "level": "Level",
+      "xp": "XP",
+      "xp_progress": "XP Progress",
+      "messages": "Messages",
+      "voice_time": "Voice Time",
+      "server_rank": "Server Rank",
+      "minutes": "minutes"
+    },
+    "leaderboard": {
+      "name": "leaderboard",
+      "description": "Shows server leaderboard",
+      "type_option": "Type of leaderboard to show",
+      "title": "🏆 Level Ranking",
+      "no_data": "No level data available",
+      "page": "Page {current} of {total}",
+      "level_short": "Lv.",
+      "xp_short": "XP"
+    }
+  },
+  "logging": {
+    "message_deleted": "Message Deleted",
+    "message_edited": "Message Edited",
+    "member_joined": "Member Joined",
+    "member_left": "Member Left",
+    "voice_joined": "Voice Channel Joined",
+    "voice_left": "Voice Channel Left",
+    "author": "Author",
+    "channel": "Channel",
+    "content": "Content",
+    "no_content": "*No content*",
+    "attachments": "Attachments",
+    "before": "Before",
+    "after": "After",
+    "user": "User",
+    "account_created": "Account Created",
+    "account_age": "Account Age",
+    "member_count": "Member Count",
+    "warning": "Warning",
+    "new_account_warning": "This account is less than 7 days old.",
+    "joined_at": "Joined At",
+    "time_in_server": "Time in Server",
+    "roles": "Roles",
+    "days_old": "{days} days old"
+  },
+  "welcome": {
+    "default_message": "Welcome {mention} to {server}! We now have {memberCount} members!",
+    "default_title": "Welcome to {server}!",
+    "default_description": "Welcome {mention}! Please read the rules and enjoy your stay!",
+    "default_footer": "Member #{memberCount}",
+    "default_dm": "Welcome to {server}! We're glad to have you here. Please make sure to read the server rules and don't hesitate to ask if you have any questions!",
+    "dm_title": "Welcome to {server}!",
+    "role_added": "You have been given the {role} role!",
+    "role_removed": "The {role} role has been removed from you!",
+    "verified": "You have been verified! Welcome to the server!",
+    "rules_info": "Please make sure to read and follow all server rules. You can find them in the rules channel.",
+    "button_verify": "Verify",
+    "button_rules": "Rules",
+    "button_roles": "Get Roles"
+  },
+  "goodbye": {
+    "default_message": "Goodbye {username}! Thanks for being part of {server}.",
+    "default_title": "Goodbye {username}",
+    "default_description": "{username} has left {server}. We'll miss you!"
+  },
+  "autorole": {
+    "react_for_role": "React to get this role",
+    "role_assigned": "Role {role} has been assigned!",
+    "role_removed": "Role {role} has been removed!",
+    "max_uses_reached": "This reaction role has reached its maximum uses.",
+    "require_role_missing": "You need the {role} role to get this role.",
+    "single_role_only": "You can only have one role from this selection.",
+    "level_role_assigned": "Congratulations! You've been assigned the {role} role for reaching level {level}!",
+    "boost_role_assigned": "Thank you for boosting! You've been assigned the {role} role!",
+    "reaction_role_created": "Reaction role message created successfully!",
+    "reaction_role_deleted": "Reaction role message deleted successfully!"
+  },
+  "utility": {
+    "avatar": {
+      "description": "Shows user avatar",
+      "user_option": "User to show avatar for",
+      "server_option": "Show server-specific avatar",
+      "title": "{user}'s Avatar",
+      "requested_by": "Requested by {user}",
+      "server_avatar": "Server Avatar",
+      "global_avatar": "Global Avatar",
+      "global_button": "Global",
+      "server_button": "Server",
+      "download": "Download"
+    },
+    "invite": {
+      "description": "Get bot invite link and useful links",
+      "title": "Invite Korex to Your Server!",
+      "description_text": "Thank you for your interest in Korex! Click the button below to invite me to your server.",
+      "features_title": "🌟 Features",
+      "features_list": "• Advanced moderation system\n• Economy and leveling\n• Custom commands and automation\n• Multi-language support\n• Reaction roles and welcome messages\n• Music and entertainment\n• And much more!",
+      "permissions_title": "🔒 Permissions",
+      "permissions_text": "The invite link includes all necessary permissions for full functionality. You can adjust these after inviting if needed.",
+      "footer": "Korex - Your all-in-one Discord bot",
+      "invite_button": "Invite Bot",
+      "support_button": "Support Server",
+      "website_button": "Website",
+      "vote_button": "Vote for Us",
+      "github_button": "GitHub"
+    },
+    "suggest": {
+      "description": "Submit a suggestion for the server",
+      "suggestion_option": "Your suggestion",
+      "category_option": "Suggestion category",
+      "no_channel": "No suggestion channel configured. Please contact an administrator.",
+      "no_permissions": "I don't have permission to send messages in the suggestion channel.",
+      "embed_title": "💡 New Suggestion",
+      "author": "Author",
+      "category": "Category",
+      "status": "Status",
+      "pending": "Pending Review",
+      "footer": "React with 👍 👎 🤷 to vote",
+      "approve": "Approve",
+      "deny": "Deny",
+      "consider": "Consider",
+      "submitted_title": "✅ Suggestion Submitted!",
+      "submitted_description": "Your suggestion has been posted in {channel} for review.",
+      "your_suggestion": "Your Suggestion",
+      "categories": {
+        "general": "General",
+        "bot": "Bot Features",
+        "events": "Server Events",
+        "moderation": "Rules & Moderation",
+        "structure": "Channels & Roles"
+      }
+    },
+    "suggestions": {
+      "errors": {
+        "service_unavailable": "Suggestions service is not available.",
+        "disabled": "Suggestions are disabled on this server.",
+        "no_channel": "No suggestions channel configured. Please contact an administrator.",
+        "cooldown": "You must wait {time} seconds before submitting another suggestion.",
+        "not_found": "Suggestion not found.",
+        "no_permission_vote": "You don't have permission to vote on suggestions.",
+        "no_permission_staff": "You don't have permission to manage suggestions.",
+        "creation_failed": "Failed to create suggestion. Please try again.",
+        "internal_error": "An internal error occurred. Please try again later."
+      },
+      "modal": {
+        "title": "Submit Suggestion",
+        "title_label": "Suggestion Title",
+        "title_placeholder": "Brief title for your suggestion...",
+        "description_label": "Description",
+        "description_placeholder": "Detailed description of your suggestion...",
+        "category_label": "Category",
+        "category_placeholder": "feature, improvement, bug, or other",
+        "priority_label": "Priority",
+        "priority_placeholder": "low, medium, or high"
+      },
+      "success": {
+        "title": "Suggestion Submitted!",
+        "description": "Your suggestion **{title}** has been submitted successfully!\n\nSuggestion ID: `{id}`"
+      },
+      "embed": {
+        "category": "Category",
+        "priority": "Priority",
+        "status": "Status",
+        "staff_notes": "Staff Notes",
+        "footer": "Suggestion ID: {id}"
+      },
+      "categories": {
+        "feature": "Feature Request",
+        "improvement": "Improvement",
+        "bug": "Bug Report",
+        "other": "Other"
+      },
+      "priorities": {
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High"
+      },
+      "statuses": {
+        "new": "New",
+        "reviewing": "Under Review",
+        "approved": "Approved",
+        "rejected": "Rejected",
+        "considering": "Considering",
+        "in_progress": "In Progress",
+        "completed": "Completed"
+      },
+      "buttons": {
+        "approve": "Approve",
+        "reject": "Reject",
+        "consider": "Consider"
+      },
+      "modals": {
+        "approve": {
+          "title": "Approve Suggestion"
+        },
+        "reject": {
+          "title": "Reject Suggestion"
+        },
+        "consider": {
+          "title": "Consider Suggestion"
+        },
+        "reason_label": "Reason",
+        "reason_placeholder": "Explain your decision..."
+      },
+      "vote_recorded": "Your vote has been recorded!",
+      "staff_action_success": "Suggestion {action} successfully!",
+      "notification": {
+        "title": "Suggestion Update",
+        "description": "Your suggestion **{title}** in **{server}** has been updated to: **{status}**",
+        "reason": "Staff Response"
+      },
+      "config": {
+        "title": "Suggestions Configuration",
+        "description": "Manage suggestions settings for this server",
+        "enabled": "Status",
+        "channel": "Channel",
+        "cooldown": "Cooldown",
+        "auto_threads": "Auto Threads",
+        "vote_threshold": "Vote Threshold",
+        "notify_author": "Notify Authors"
+      },
+      "setup": {
+        "invalid_channel": "Invalid channel provided.",
+        "success": {
+          "title": "Suggestions Setup Complete!",
+          "description": "Suggestions have been enabled in {channel}."
+        },
+        "next_steps": "Next Steps",
+        "next_steps_description": "• Configure staff roles with `/suggestions config`\n• Set voting permissions\n• Customize settings as needed",
+        "error": "Failed to setup suggestions. Please try again."
+      },
+      "view": {
+        "title": "Suggestions List",
+        "description": "Showing {count} suggestions with status: **{status}**",
+        "no_suggestions": "No suggestions found with the specified criteria.",
+        "footer": "Showing {shown} of {total} suggestions"
+      },
+      "stats": {
+        "title": "Suggestions Statistics",
+        "description": "Overview of suggestions activity in this server",
+        "no_data": "No suggestions data available for this server.",
+        "overview": "Overview",
+        "by_status": "By Status"
+      }
+    },
+    "poll": {
+      "description": "Create a poll with multiple options",
+      "question_option": "The poll question",
+      "options_option": "Poll options separated by | or ;",
+      "duration_option": "Poll duration in minutes (optional)",
+      "anonymous_option": "Make the poll anonymous",
+      "channel_option": "Channel to post the poll in",
+      "min_options": "You must provide at least 2 options.",
+      "max_options": "You can only have up to 10 options.",
+      "invalid_channel": "Invalid channel specified.",
+      "no_permissions": "I don't have permission to send messages in that channel.",
+      "created_by": "Created by",
+      "anonymous_user": "Anonymous",
+      "ends_at": "Ends",
+      "footer": "React to vote!",
+      "created_here": "✅ Poll created!",
+      "created_in_channel": "✅ Poll created in {channel}!",
+      "results_title": "Poll Results",
+      "total_votes": "Total Votes",
+      "ended": "Poll Ended"
+    }
+  },
+  "music": {
+    "disabled": "🚫 Music is disabled on this server.",
+    "node_unavailable": "❌ Music node is unavailable. Verify Lavalink is running and reachable.",
+    "not_in_voice": "❌ You need to be in a voice channel to use music commands.",
+    "no_voice_permissions": "❌ I don't have permission to join or speak in that voice channel.",
+    "different_voice_channel": "❌ You need to be in the same voice channel as me.",
+    "restricted_channel": "❌ Music commands are restricted to specific channels.",
+    "dj_only": "❌ This command requires DJ permissions.",
+    "no_queue": "❌ There's no music queue for this server.",
+    "nothing_playing": "❌ Nothing is currently playing.",
+    "no_results": "❌ No results found for: **{query}**",
+    "song_too_long": "❌ Song is too long! Maximum duration is {duration} minutes.",
+    "queue_full": "❌ Queue is full! Maximum size is {maxSize} songs.",
+    "skip_failed": "❌ Failed to skip the current song.",
+    "stop_failed": "❌ Failed to stop the music.",
+    "volume_failed": "❌ Failed to change the volume.",
+    "now_playing": "Now Playing",
+    "added_to_queue": "Added to Queue",
+    "skipped": "Song Skipped",
+    "stopped": "Music Stopped",
+    "volume_changed": "Volume Changed",
+    "current_volume": "Current Volume",
+    "queue_title": "Music Queue",
+    "up_next": "Up Next",
+    "queue_empty": "The queue is empty. Use `/play` to add songs!",
+    "queue_ended": "Queue Ended",
+    "queue_ended_description": "No more songs in the queue.",
+    "last_track": "Last Track",
+    "cleared_tracks": "Cleared Tracks",
+    "stopped_description": "Music stopped and queue cleared.",
+    "duration": "Duration",
+    "source": "Source",
+    "requested_by": "Requested by {user}",
+    "queue_length": "Queue Length",
+    "position": "Position",
+    "volume": "Volume",
+    "loop": "Loop",
+    "status": "Status",
+    "progress": "Progress",
+    "volume_bar": "Volume",
+    "volume_level": "Current volume is **{volume}%**",
+    "volume_changed_description": "Volume changed from **{oldVolume}%** to **{newVolume}%**",
+    "loop_none": "Off",
+    "loop_track": "Track",
+    "loop_queue": "Queue",
+    "playing": "Playing",
+    "paused": "Paused",
+    "pause": "Pause",
+    "resume": "Resume",
+    "skip": "Skip",
+    "stop": "Stop",
+    "shuffle": "Shuffle",
+    "view_queue": "View Queue",
+    "skipped_by": "Skipped by {user}",
+    "stopped_by": "Stopped by {user}",
+    "changed_by": "Changed by {user}",
+    "queue_footer": "Page {page}/{totalPages} • {total} total songs"
+  },
+  "giveaways": {
+    "default_title": "🎉 Giveaway",
+    "duration_hours": "{hours} hours",
+    "status": {
+      "active": "Active",
+      "ended": "Ended"
+    },
+    "embed": {
+      "description": "Click the button below to participate!",
+      "prize": "🎁 Prize",
+      "winners": "🏆 Winners",
+      "entries": "🎫 Entries",
+      "duration": "⏰ Duration",
+      "ends": "⏰ Ends",
+      "channel": "📍 Channel",
+      "requirements": "📋 Requirements",
+      "footer": "Giveaway ID: {id}"
+    },
+    "requirements": {
+      "role": "Have role",
+      "level": "Minimum level {level}",
+      "messages": "Minimum {count} messages",
+      "balance": "Minimum {amount} coins",
+      "account_age": "Account must be {days} days old"
+    },
+    "buttons": {
+      "join": "Join Giveaway",
+      "leave": "Leave",
+      "info": "Info"
+    },
+    "join": {
+      "success_single": "You joined the giveaway with 1 entry!",
+      "success_multiple": "You joined the giveaway with {entries} entries!",
+      "already_participating": "You are already participating in this giveaway.",
+      "ended": "This giveaway has already ended.",
+      "missing_role": "You don't have the required role to join this giveaway.",
+      "requirements_not_met": "You don't meet the requirements to join this giveaway."
+    },
+    "leave": {
+      "success": "You left the giveaway successfully.",
+      "not_participating": "You are not participating in this giveaway.",
+      "ended": "This giveaway has already ended.",
+      "error": "Failed to leave the giveaway."
+    },
+    "info": {
+      "not_implemented": "Giveaway info feature is coming soon!"
+    },
+    "setup": {
+      "expired": "Giveaway setup has expired. Please start over.",
+      "cancelled": "Giveaway setup cancelled.",
+      "created": "✅ Giveaway **{id}** created successfully in {channel}!",
+      "failed": "❌ Failed to create giveaway. Please try again.",
+      "error": "❌ An error occurred while creating the giveaway.",
+      "invalid_channel": "❌ Invalid channel selected.",
+      "requirements_added": "✅ Added {count} requirement(s) to the giveaway.",
+      "bonus_added": "✅ Added {count} bonus entry rule(s) to the giveaway."
+    },
+    "modals": {
+      "requirements": {
+        "title": "Giveaway Requirements",
+        "roles_label": "Required Roles",
+        "roles_placeholder": "@role1 @role2 or role IDs",
+        "level_label": "Minimum Level",
+        "level_placeholder": "e.g., 10",
+        "messages_label": "Minimum Messages",
+        "messages_placeholder": "e.g., 100",
+        "balance_label": "Minimum Balance",
+        "balance_placeholder": "e.g., 1000"
+      },
+      "bonus": {
+        "title": "Bonus Entries",
+        "roles_label": "Bonus Entry Rules",
+        "roles_placeholder": "@VIP: 5\n@Premium: 3\nOne rule per line"
+      }
+    },
+    "reminder": {
+      "title": "Giveaway Reminder",
+      "description": "⏰ **{prize}** giveaway ends in **{time}**!\n\nDon't miss your chance to win!"
+    },
+    "alt_detection": {
+      "new_account": "Account too new ({days} days old)",
+      "new_member": "Just joined the server",
+      "default_avatar": "Using default avatar",
+      "low_activity": "Very low server activity"
+    },
+    "panel": {
+      "title": "Giveaway Management Panel",
+      "description": "Manage all giveaways for this server",
+      "stats": {
+        "total": "Total Giveaways",
+        "active": "Active Giveaways",
+        "participants": "Total Participants"
+      },
+      "active_list": "Active Giveaways",
+      "no_active": "No active giveaways",
+      "buttons": {
+        "create": "Create",
+        "list": "List All",
+        "stats": "Statistics",
+        "settings": "Settings"
+      }
+    },
+    "ended": {
+      "title": "Giveaway Ended!",
+      "description": "🎉 Congratulations {winners}!\n\nYou won: **{prize}**",
+      "total_entries": "Total Entries",
+      "participants": "Participants",
+      "no_winners": {
+        "title": "Giveaway Ended - No Winners",
+        "description": "The giveaway for **{prize}** has ended, but no one participated."
+      }
+    },
+    "winner_dm": {
+      "title": "You Won a Giveaway!",
+      "description": "🎉 Congratulations! You won **{prize}** in **{server}**!\n\nPlease contact the server administrators to claim your prize."
+    }
+  },
+  "invites": {
+    "stats": {
+      "title": "📊 Invite Statistics - {user}",
+      "total": "Total Invites",
+      "valid": "Valid Invites",
+      "bonus": "Bonus Invites",
+      "fake": "Fake Invites",
+      "left": "Left Server",
+      "rank": "Server Rank",
+      "unranked": "Unranked",
+      "next_reward": "Next Reward",
+      "next_reward_desc": "{remaining} more invites for: {reward}"
+    },
+    "leaderboard": {
+      "title": "🏆 Invite Leaderboard",
+      "description": "Top inviters in this server:",
+      "invites": "invites",
+      "unknown_user": "Unknown User",
+      "footer": "Page {page}/{totalPages} • {total} total users"
+    },
+    "reward": {
+      "title": "🎉 Invite Reward Earned!",
+      "description": "Congratulations {user}! You've earned a reward for reaching **{invites} invites**:\n\n🎁 **{reward}**"
+    }
+  },
+  "autoroles": {
+    "setup": {
+      "title": "🎭 Auto-Roles Setup",
+      "description": "Configure automatic role assignment for your server. Select an option below to get started.",
+      "select_placeholder": "Choose an auto-role feature to configure...",
+      "features": {
+        "join": {
+          "name": "👋 Join Roles",
+          "value": "Roles assigned when users join the server"
+        },
+        "reaction": {
+          "name": "⭐ Reaction Roles",
+          "value": "Roles assigned via message reactions"
+        },
+        "button": {
+          "name": "🔘 Button Roles",
+          "value": "Roles assigned via button interactions"
+        },
+        "level": {
+          "name": "📈 Level Roles",
+          "value": "Roles assigned based on user level"
+        },
+        "booster": {
+          "name": "💎 Booster Roles",
+          "value": "Roles assigned to server boosters"
+        },
+        "invite": {
+          "name": "📨 Invite Roles",
+          "value": "Roles assigned based on invite count"
+        }
+      },
+      "options": {
+        "join": {
+          "label": "Join Roles",
+          "description": "Configure roles given when users join"
+        },
+        "reaction": {
+          "label": "Reaction Roles",
+          "description": "Create reaction role messages"
+        },
+        "button": {
+          "label": "Button Roles",
+          "description": "Create button role messages"
+        },
+        "level": {
+          "label": "Level Roles",
+          "description": "Configure level-based role rewards"
+        },
+        "booster": {
+          "label": "Booster Roles",
+          "description": "Configure roles for server boosters"
+        }
+      },
+      "join_info": "Use `/autoroles join` to add or remove roles that are automatically assigned when users join the server.",
+      "reaction_info": "Use `/autoroles reaction` to create messages where users can react to get roles.",
+      "button_info": "Use `/autoroles button` to create messages with buttons for role assignment.",
+      "level_info": "Use `/autoroles level` to configure roles that are assigned when users reach certain levels.",
+      "booster_info": "Use `/autoroles booster` to configure roles that are assigned to server boosters."
+    },
+    "join": {
+      "added": "✅ Added **{role}** as a join role ({delay})",
+      "removed": "✅ Removed **{role}** from join roles",
+      "delay_minutes": "with {minutes} minute delay",
+      "immediate": "assigned immediately"
+    },
+    "level": {
+      "added": "✅ Added **{role}** as a level {level} reward ({removeOthers})",
+      "removed": "✅ Removed **{role}** from level {level} rewards",
+      "remove_others_yes": "removes other level roles",
+      "remove_others_no": "keeps other level roles"
+    },
+    "booster": {
+      "added": "✅ Added **{role}** as a booster role",
+      "removed": "✅ Removed **{role}** from booster roles"
+    },
+    "reaction": {
+      "wizard_coming_soon": "🚧 Reaction role wizard coming soon! Use the setup command for basic configuration."
+    },
+    "button": {
+      "wizard_coming_soon": "🚧 Button role wizard coming soon! Use the setup command for basic configuration."
+    },
+    "list": {
+      "title": "🎭 Auto-Roles Configuration",
+      "status": "Status: {status}",
+      "join_roles": "👋 Join Roles",
+      "level_roles": "📈 Level Roles",
+      "booster_roles": "💎 Booster Roles",
+      "reaction_roles": "⭐ Reaction Roles",
+      "level": "Level",
+      "reaction_count": "{count} reaction role messages configured"
+    },
+    "toggle": {
+      "success": "✅ Auto-roles system has been **{status}**"
+    }
+  },
+  "welcome_image": {
+    "setup": {
+      "title": "🖼️ Welcome Images Setup",
+      "description": "Configure custom welcome images with beautiful templates and dynamic variables.",
+      "select_placeholder": "Choose a welcome image feature to configure...",
+      "features": {
+        "templates": {
+          "name": "🎨 Templates",
+          "value": "10+ predefined templates available"
+        },
+        "variables": {
+          "name": "📝 Variables",
+          "value": "Dynamic user and server information"
+        },
+        "customization": {
+          "name": "⚙️ Customization",
+          "value": "Flexible configuration options"
+        }
+      },
+      "options": {
+        "view_templates": {
+          "label": "View Templates",
+          "description": "Browse all available image templates"
+        },
+        "preview": {
+          "label": "Preview Template",
+          "description": "Test templates with your profile"
+        },
+        "configure": {
+          "label": "Configure Settings",
+          "description": "Set up welcome image preferences"
+        }
+      },
+      "templates_info": "Use `/welcome-image templates` to view all available templates, then `/welcome-image preview` to test them.",
+      "preview_info": "Use `/welcome-image preview <template>` to see how a template looks with your profile.",
+      "configure_info": "Use `/welcome-image set <template>` to choose a template and `/welcome-image toggle` to enable/disable images."
+    },
+    "templates": {
+      "title": "🎨 Available Welcome Templates",
+      "description": "Choose from {count} professionally designed templates:",
+      "footer": "Use /welcome-image preview <template-id> to test any template"
+    },
+    "preview": {
+      "title": "👀 Template Preview",
+      "description": "Preview of **{template}** template with your profile:",
+      "footer": "Use /welcome-image set to apply this template",
+      "error": "❌ Failed to generate preview image. Please try again."
+    },
+    "set": {
+      "success": "✅ Welcome image template set to **{template}** and enabled!",
+      "error": "❌ Failed to set welcome image template. Please try again."
+    },
+    "toggle": {
+      "success": "✅ Welcome images have been **{status}**",
+      "error": "❌ Failed to toggle welcome images. Please try again."
+    },
+    "status": {
+      "title": "🖼️ Welcome Images Status",
+      "enabled": "Status",
+      "template": "Current Template",
+      "template_info": "Template Details",
+      "no_template": "No template selected",
+      "error": "❌ Failed to get welcome image status."
+    }
+  },
+  "user_stats": {
+    "report": {
+      "title": "📊 Statistics for {user}",
+      "messages": {
+        "title": "💬 Messages",
+        "value": "**Total:** {total}\n**Daily Avg:** {average}\n**Peak Hour:** {peak}:00"
+      },
+      "voice": {
+        "title": "🎤 Voice Activity",
+        "value": "**Total Time:** {total}\n**Channels:** {channels}"
+      },
+      "activity": {
+        "title": "🔥 Activity & Streaks",
+        "value": "**Current Streak:** {current} days\n**Longest Streak:** {longest} days\n**Days Active:** {days}"
+      },
+      "comparison": {
+        "title": "📈 Server Comparison",
+        "value": "**Rank:** #{rank} of {total}\n**Percentile:** {percentile}%\n**Status:** {status}"
+      },
+      "above_average": "Above Average",
+      "below_average": "Below Average",
+      "no_data": "No statistics available for this user yet.",
+      "error": "❌ Failed to generate user statistics report."
+    },
+    "guild_report": {
+      "title": "📊 Server Statistics - {server}",
+      "overview": {
+        "title": "📈 Overview",
+        "value": "**Messages:** {messages}\n**Voice Time:** {voice}\n**Active Users:** {users}\n**Growth:** +{growth}%"
+      },
+      "averages": {
+        "title": "📊 Averages",
+        "value": "**Msg/User:** {messages}\n**Voice/User:** {voice}\n**Peak Hour:** {peak}:00"
+      },
+      "top_messages": {
+        "title": "🏆 Top Chatters"
+      },
+      "no_data": "No server statistics available yet.",
+      "error": "❌ Failed to generate server statistics report."
+    },
+    "buttons": {
+      "activity": "Activity",
+      "channels": "Channels",
+      "compare": "Compare",
+      "detailed": "Detailed",
+      "growth": "Growth"
+    },
+    "periods": {
+      "7d": "Last 7 days",
+      "30d": "Last 30 days",
+      "90d": "Last 90 days",
+      "all": "All time"
+    }
+  },
+  "stats": {
+    "user": {
+      "not_found": "❌ User not found in this server.",
+      "error": "❌ Failed to retrieve user statistics."
+    },
+    "server": {
+      "error": "❌ Failed to retrieve server statistics."
+    },
+    "channel": {
+      "title": "📁 Channel Statistics - #{channel}",
+      "invalid": "❌ Please specify a valid text or voice channel.",
+      "messages": {
+        "title": "💬 Message Activity",
+        "value": "**Total:** {total}\n**Daily Avg:** {daily}\n**Unique Users:** {users}"
+      },
+      "activity": {
+        "title": "📊 Activity Info",
+        "value": "**Peak Hour:** {peak}:00\n**Created:** {created}"
+      },
+      "top_users": {
+        "title": "🏆 Most Active Users"
+      },
+      "no_data": "No statistics available for this channel yet.",
+      "error": "❌ Failed to retrieve channel statistics."
+    },
+    "leaderboard": {
+      "messages": {
+        "title": "🏆 Message Leaderboard",
+        "label": "messages"
+      },
+      "voice": {
+        "title": "🎤 Voice Time Leaderboard",
+        "label": ""
+      },
+      "streak": {
+        "title": "🔥 Activity Streak Leaderboard",
+        "label": "days"
+      },
+      "daily": {
+        "title": "📅 Daily Activity Leaderboard",
+        "label": "today"
+      },
+      "footer": "Showing top {count} users by {type}",
+      "no_data": "No leaderboard data available yet.",
+      "error": "❌ Failed to retrieve leaderboard data."
+    },
+    "compare": {
+      "title": "⚖️ Activity Comparison - {user}",
+      "user_not_found": "❌ User not found in this server.",
+      "ranking": {
+        "title": "📊 Server Ranking",
+        "value": "**Rank:** #{rank} of {total}\n**Percentile:** Top {percentile}%"
+      },
+      "messages": {
+        "title": "💬 Messages",
+        "value": "**You:** {user}\n**Average:** {average}\n**Difference:** {difference} ({status})"
+      },
+      "voice": {
+        "title": "🎤 Voice Time",
+        "value": "**You:** {user}\n**Average:** {average}\n**Status:** {status}"
+      },
+      "streak": {
+        "title": "🔥 Activity Streak",
+        "value": "**You:** {user} days\n**Average:** {average} days\n**Status:** {status}"
+      },
+      "above": "above average",
+      "below": "below average",
+      "overall": {
+        "above": "🎉 You're more active than most users in this server!",
+        "below": "📈 There's room for improvement in your server activity."
+      },
+      "no_data": "No comparison data available for this user yet.",
+      "error": "❌ Failed to generate activity comparison."
+    },
+    "activity": {
+      "title": "📊 Activity Breakdown - {user} ({period})",
+      "user_not_found": "❌ User not found in this server.",
+      "hourly": {
+        "title": "🕐 Peak Hours"
+      },
+      "daily": {
+        "title": "📅 Weekly Pattern"
+      },
+      "summary": {
+        "title": "📈 Summary",
+        "value": "**Peak Hour:** {peak}:00\n**Daily Average:** {average}\n**Current Streak:** {streak} days"
+      },
+      "no_data": "No activity data available.",
+      "error": "❌ Failed to retrieve activity breakdown."
+    },
+    "buttons": {
+      "detailed": "Detailed",
+      "growth": "Growth",
+      "activity": "Activity",
+      "channels": "Channels",
+      "compare": "Compare"
+    },
+    "periods": {
+      "7d": "7 days",
+      "30d": "30 days",
+      "90d": "90 days",
+      "all": "All time"
+    }
+  },
+  "nuke": {
+    "default_reason": "Channel nuked by administrator",
+    "invalid_channel": "❌ Invalid channel type for nuke operation.",
+    "no_permission": "❌ You don't have permission to manage this channel.",
+    "bot_no_permission": "❌ I don't have permission to manage this channel.",
+    "confirmation": {
+      "title": "⚠️ Channel Nuke Confirmation",
+      "description": "You are about to **permanently delete** and recreate the channel **{channel}** ({type}).\n\n**This action cannot be undone!**",
+      "channel": "Channel",
+      "reason": "Reason",
+      "warning": "⚠️ Warning",
+      "warning_text": "All messages, threads, and channel history will be permanently lost!",
+      "footer": "This confirmation expires in 30 seconds"
+    },
+    "buttons": {
+      "confirm": "Confirm Nuke",
+      "cancel": "Cancel"
+    },
+    "success": {
+      "title": "💥 Channel Nuked Successfully",
+      "description": "Channel **{channel}** has been successfully nuked and recreated by {user}.",
+      "reason": "Reason",
+      "timestamp": "Timestamp",
+      "footer": "All permissions and settings have been restored",
+      "brief": "✅ Channel {channel} has been successfully nuked and recreated."
+    },
+    "cancelled": "❌ Channel nuke operation cancelled.",
+    "timeout": "⏰ Channel nuke confirmation timed out.",
+    "error": "❌ Failed to nuke channel. Please try again.",
+    "channel_types": {
+      "text": "Text Channel",
+      "voice": "Voice Channel",
+      "announcement": "Announcement Channel",
+      "stage": "Stage Channel",
+      "forum": "Forum Channel",
+      "unknown": "Unknown"
+    }
+  },
+  "clone": {
+    "default_reason": "Cloned by administrator",
+    "channel": {
+      "no_access": "❌ I don't have access to view that channel.",
+      "unsupported_type": "❌ This channel type cannot be cloned.",
+      "success": {
+        "title": "📋 Channel Cloned Successfully",
+        "description": "Channel **{original}** has been successfully cloned as **{clone}**.",
+        "original": "Original Channel",
+        "clone": "Cloned Channel",
+        "type": "Channel Type",
+        "footer": "All permissions and settings have been copied"
+      },
+      "error": "❌ Failed to clone channel. Please try again."
+    },
+    "role": {
+      "managed_role": "❌ Cannot clone managed roles (bot roles, booster roles, etc.).",
+      "hierarchy_error": "❌ Cannot clone roles higher than my highest role.",
+      "success": {
+        "title": "📋 Role Cloned Successfully",
+        "description": "Role **{original}** has been successfully cloned as **{clone}**.",
+        "original": "Original Role",
+        "clone": "Cloned Role",
+        "properties": "Properties",
+        "properties_value": "Color: {color}\nHoisted: {hoist}\nMentionable: {mentionable}\nPermissions: {permissions}",
+        "footer": "All permissions and settings have been copied"
+      },
+      "error": "❌ Failed to clone role. Please try again."
+    },
+    "channel_types": {
+      "text": "Text Channel",
+      "voice": "Voice Channel",
+      "announcement": "Announcement Channel",
+      "stage": "Stage Channel",
+      "forum": "Forum Channel",
+      "category": "Category",
+      "unknown": "Unknown"
+    }
+  },
+  "timestamp": {
+    "now": {
+      "title": "🕐 Current Timestamp",
+      "timestamp": "Timestamp Code",
+      "preview": "Preview",
+      "unix": "Unix Timestamp",
+      "footer": "Copy the timestamp code to use in your messages"
+    },
+    "custom": {
+      "title": "🕐 Custom Timestamp",
+      "input": "Input",
+      "timestamp": "Timestamp Code",
+      "preview": "Preview",
+      "unix": "Unix Timestamp",
+      "footer": "Copy the timestamp code to use in your messages",
+      "error": "❌ Invalid date format: `{input}`\n\n**Examples:**\n{examples}",
+      "examples": "• `2024-12-25 15:30`\n• `12/25/2024 3:30 PM`\n• `25.12.2024 15:30`\n• `1735134600` (Unix)\n• `2 hours from now`\n• `30 minutes ago`"
+    },
+    "converter": {
+      "title": "🕐 Interactive Timestamp Converter",
+      "description": "**Input:** {input}\n\nAll Discord timestamp formats for your date:",
+      "unix": "Unix Timestamp",
+      "now": "Current time",
+      "select_placeholder": "Select a format to copy...",
+      "copy_all": "Copy All Formats",
+      "refresh": "Refresh (Now)",
+      "copied": "📋 Copied: `{timestamp}`",
+      "all_copied": "📋 All timestamp formats copied:",
+      "error": "❌ Failed to parse the provided date/time."
+    }
+  },
+  "sticky": {
+    "footer": "This is a sticky message",
+    "set": {
+      "invalid_color": "❌ Invalid color format. Use hex format like #FF0000",
+      "success": {
+        "title": "📌 Sticky Message Set",
+        "description": "Sticky message has been successfully set in this channel.",
+        "channel": "Channel",
+        "type": "Type",
+        "preview": "Preview",
+        "footer": "The message will reappear after new messages are sent"
+      },
+      "error": "❌ Failed to set sticky message. Please try again."
+    },
+    "remove": {
+      "not_found": "❌ No sticky message found in this channel.",
+      "success": {
+        "title": "📌 Sticky Message Removed",
+        "description": "Sticky message has been successfully removed from {channel}."
+      },
+      "error": "❌ Failed to remove sticky message. Please try again."
+    },
+    "list": {
+      "empty": "❌ No sticky messages found in this server.",
+      "title": "📌 Sticky Messages ({count})",
+      "description": "List of all sticky messages in this server:",
+      "footer_more": "And {more} more sticky messages..."
+    },
+    "edit": {
+      "not_found": "❌ No sticky message found in this channel to edit.",
+      "success": {
+        "title": "📌 Sticky Message Updated",
+        "description": "Sticky message has been successfully updated.",
+        "new_content": "New Content"
+      },
+      "error": "❌ Failed to edit sticky message. Please try again."
+    },
+    "info": {
+      "not_found": "❌ No sticky message found in this channel.",
+      "title": "📌 Sticky Message Information",
+      "channel": "Channel",
+      "type": "Type",
+      "status": "Status",
+      "content": "Content",
+      "refresh": "Refresh Status",
+      "error": "❌ Failed to get sticky message information."
+    },
+    "types": {
+      "embed": "Embed",
+      "text": "Text"
+    },
+    "status": {
+      "active": "✅ Active",
+      "missing": "❌ Message Missing"
+    }
+  },
+  "lockdown": {
+    "default_reason": "Emergency lockdown by administrator",
+    "channel": {
+      "invalid_channel": "❌ Invalid channel type for lockdown operation.",
+      "already_locked": "❌ This channel is already locked down.",
+      "not_locked": "❌ This channel is not currently locked down.",
+      "lock": {
+        "announcement": {
+          "title": "🔒 Channel Locked",
+          "description": "This channel has been locked by a moderator. Only staff members can send messages.",
+          "reason": "Reason",
+          "moderator": "Moderator",
+          "footer": "This lockdown will remain until manually removed"
+        },
+        "success": {
+          "title": "🔒 Channel Locked Successfully",
+          "description": "Channel {channel} has been successfully locked down.",
+          "reason": "Reason",
+          "timestamp": "Locked At"
+        }
+      },
+      "unlock": {
+        "announcement": {
+          "title": "🔓 Channel Unlocked",
+          "description": "This channel has been unlocked. Normal activity can resume.",
+          "reason": "Reason",
+          "moderator": "Moderator",
+          "footer": "Thank you for your patience"
+        },
+        "success": {
+          "title": "🔓 Channel Unlocked Successfully",
+          "description": "Channel {channel} has been successfully unlocked.",
+          "duration": "Locked Duration",
+          "reason": "Reason"
+        }
+      },
+      "error": "❌ Failed to perform channel lockdown operation."
+    },
+    "server": {
+      "lock": {
+        "confirm_title": "⚠️ Server Lockdown Confirmation",
+        "confirm_description": "You are about to lock down the **entire server**.\n\nThis will prevent all members from sending messages or joining voice channels.",
+        "success": {
+          "title": "🔒 Server Locked Down",
+          "description": "The entire server has been locked down successfully.",
+          "locked": "Channels Locked",
+          "failed": "Failed to Lock",
+          "reason": "Reason",
+          "footer": "Use `/lockdown server unlock` to restore normal activity"
+        }
+      },
+      "unlock": {
+        "confirm_title": "🔓 Server Unlock Confirmation",
+        "confirm_description": "You are about to unlock the **entire server**.\n\nThis will restore normal activity for all members.",
+        "success": {
+          "title": "🔓 Server Unlocked",
+          "description": "The server has been unlocked successfully.",
+          "unlocked": "Channels Unlocked",
+          "failed": "Failed to Unlock",
+          "reason": "Reason"
+        }
+      },
+      "confirm": {
+        "reason": "Reason",
+        "affected": "Affected",
+        "all_channels": "All server channels",
+        "warning": "This action affects the entire server"
+      },
+      "error": "❌ Failed to perform server lockdown operation."
+    },
+    "status": {
+      "no_lockdowns": "✅ No active lockdowns in this server.",
+      "title": "🔒 Active Lockdowns ({count})",
+      "description": "List of all active lockdowns in this server:",
+      "field_value": "**Type:** {type}\n**Duration:** {duration}\n**Moderator:** {moderator}\n**Reason:** {reason}",
+      "footer_more": "And {more} more active lockdowns..."
+    },
+    "buttons": {
+      "confirm": "Confirm Lockdown",
+      "cancel": "Cancel"
+    },
+    "cancelled": "❌ Lockdown operation cancelled.",
+    "timeout": "⏰ Lockdown confirmation timed out.",
+    "types": {
+      "channel": "Channel",
+      "server": "Server"
+    },
+    "duration": {
+      "days": "{days} days",
+      "hours": "{hours} hours",
+      "minutes": "{minutes} minutes",
+      "seconds": "{seconds} seconds"
+    }
+  },
+  "shop": {
+    "browse": {
+      "title": "🛒 Server Shop",
+      "description": "Welcome to the shop! Here you can buy amazing items with your {currency}.\n\n**Available items:** {count}",
+      "empty": "❌ The shop is currently empty. Come back later!",
+      "footer": "Use /shop buy <id> to purchase an item",
+      "select_placeholder": "Select an item to purchase...",
+      "refresh": "Refresh",
+      "inventory": "My Inventory"
+    },
+    "buy": {
+      "success_title": "✅ Purchase Successful!",
+      "error_title": "❌ Purchase Error",
+      "purchased_item": "Purchased Item",
+      "remaining_balance": "Remaining Balance"
+    },
+    "info": {
+      "not_found": "❌ Item not found in the shop.",
+      "price": "💰 Price",
+      "type": "📦 Type",
+      "stock": "📊 Stock",
+      "category": "🏷️ Category",
+      "status": "🔄 Status",
+      "id": "🆔 ID",
+      "unlimited": "Unlimited",
+      "available": "Available",
+      "unavailable": "Unavailable",
+      "requirements": "📋 Requirements",
+      "req_level": "Level {level} or higher",
+      "req_role": "Role: {role}",
+      "req_balance": "Additional balance: {amount} {currency}",
+      "buy_button": "Buy Now"
+    },
+    "categories": {
+      "cosmetics": "🎨 Cosmetics",
+      "boosts": "⚡ Boosts",
+      "reactions": "😀 Reactions",
+      "roles": "🎭 Roles"
+    },
+    "types": {
+      "cosmetic": "Cosmetic",
+      "consumable": "Consumable",
+      "reaction": "Reaction",
+      "role": "Role",
+      "sticker": "Sticker"
+    }
+  },
+  "inventory": {
+    "view": {
+      "title": "🎒 {user}'s Inventory",
+      "description": "You have {count} items in your inventory.",
+      "empty_own": "Your inventory is empty. Visit the shop to buy items!",
+      "empty_other": "{user} has no items in their inventory.",
+      "used": "(Used)",
+      "stats": "📊 Statistics",
+      "stats_value": "**Total:** {total} items\n**Active:** {active}\n**Used:** {used}",
+      "use_button": "Use Item",
+      "gift_button": "Gift Item",
+      "refresh": "Refresh"
+    },
+    "use": {
+      "not_found": "❌ Item not found or not available to use.",
+      "success_title": "⚡ Item Used!",
+      "error_title": "❌ Error Using Item",
+      "item_used": "Item Used",
+      "xp_boost_activated": "XP boost activated! You'll earn double XP for {duration}.",
+      "money_boost_activated": "Money boost activated! You'll earn 50% more money for {duration}.",
+      "item_activated": "{item} has been activated!",
+      "menu_placeholder": "🚧 Item usage menu coming soon."
+    },
+    "gift": {
+      "self_gift": "❌ You cannot gift items to yourself.",
+      "bot_gift": "❌ You cannot gift items to bots.",
+      "not_found": "❌ Item not found in your inventory.",
+      "success_title": "🎁 Gift Sent!",
+      "error_title": "❌ Error Sending Gift",
+      "gifted_item": "Gifted Item",
+      "recipient": "Recipient",
+      "transfer_success": "{item} has been successfully sent to {user}!",
+      "menu_placeholder": "🚧 Item gifting menu coming soon."
+    }
+  },
+  "work": {
+    "success_title": "💼 Work Completed!",
+    "job_message": "**{job}**\n{description}\n\nYou earned {earned} {currency}!",
+    "earnings": "💰 Earnings",
+    "new_balance": "💰 New Balance",
+    "next_work": "⏰ Next Work",
+    "cooldown_info": "Available in 5 minutes",
+    "footer": "Keep working to earn more money!",
+    "jobs": {
+      "programmer": {
+        "name": "Programmer",
+        "desc": "Today you programmed an amazing application"
+      },
+      "delivery": {
+        "name": "Delivery Driver",
+        "desc": "You delivered pizzas all around the city"
+      },
+      "chef": {
+        "name": "Chef",
+        "desc": "You cooked delicious dishes at a restaurant"
+      },
+      "streamer": {
+        "name": "Streamer",
+        "desc": "You streamed and entertained thousands of people"
+      },
+      "designer": {
+        "name": "Designer",
+        "desc": "You created impressive designs for a company"
+      },
+      "teacher": {
+        "name": "Teacher",
+        "desc": "You taught enthusiastic students"
+      },
+      "mechanic": {
+        "name": "Mechanic",
+        "desc": "You repaired several cars at the workshop"
+      },
+      "doctor": {
+        "name": "Doctor",
+        "desc": "You helped patients at the hospital"
+      },
+      "musician": {
+        "name": "Musician",
+        "desc": "You played music at an incredible concert"
+      },
+      "photographer": {
+        "name": "Photographer",
+        "desc": "You took spectacular photos at a session"
+      },
+      "barista": {
+        "name": "Barista",
+        "desc": "You prepared delicious coffees for customers"
+      },
+      "gardener": {
+        "name": "Gardener",
+        "desc": "You took care of beautiful gardens and plants"
+      },
+      "writer": {
+        "name": "Writer",
+        "desc": "You wrote a fascinating article"
+      },
+      "cleaner": {
+        "name": "Cleaner",
+        "desc": "You cleaned offices until they were spotless"
+      },
+      "security": {
+        "name": "Security Guard",
+        "desc": "You protected an important building all night"
+      }
+    }
+  },
+  "fun": {
+    "8ball": {
+      "title": "🎱 Magic 8 Ball",
+      "question": "Question",
+      "answer": "Answer",
+      "footer": "🎱 The magic ball has spoken",
+      "responses": {
+        "positive": {
+          "1": "Yes, definitely.",
+          "2": "Without a doubt.",
+          "3": "You can count on it.",
+          "4": "Signs point to yes.",
+          "5": "Absolutely!"
+        },
+        "neutral": {
+          "1": "Ask again later.",
+          "2": "Better not tell you now.",
+          "3": "Cannot predict now.",
+          "4": "Concentrate and ask again.",
+          "5": "Hard to say."
+        },
+        "negative": {
+          "1": "Don't count on it.",
+          "2": "My answer is no.",
+          "3": "Sources say no.",
+          "4": "Very doubtful.",
+          "5": "I don't think so."
+        }
+      }
+    },
+    "coinflip": {
+      "description": "Flip a coin",
+      "title": "🪙 Coin Flip",
+      "result": {
+        "heads": "It's Heads! 🪙",
+        "tails": "It's Tails! 🥈"
+      },
+      "footer": "🪙 Coin flip"
+    },
+    "dice": {
+      "description": "Roll a dice",
+      "sides_option": "Number of sides on the dice (default: 6)",
+      "title": "🎲 Dice Roll",
+      "result": "You rolled a **{result}** on a {sides}-sided dice!",
+      "sides": "Sides",
+      "results": "Results",
+      "configuration": "Configuration",
+      "config_value": "{count}d{sides}",
+      "statistics": "Statistics",
+      "stats_value": "Total: {total} | Average: {avg}",
+      "footer": "🎲 Dice rolled"
+    },
+    "rps": {
+      "description": "Play Rock, Paper, Scissors",
+      "choice_option": "Your choice",
+      "title": "✂️ Rock, Paper, Scissors",
+      "choices": {
+        "rock": "🪨 Rock",
+        "paper": "📄 Paper",
+        "scissors": "✂️ Scissors"
+      },
+      "your_choice": "Your Choice",
+      "bot_choice": "My Choice",
+      "result": "Result",
+      "results": {
+        "win": "🎉 You win!",
+        "lose": "😔 You lose!",
+        "tie": "🤝 It's a tie!"
+      },
+      "footer": "✊✋✌️ Rock, Paper, Scissors"
+    },
+    "joke": {
+      "description": "Get a random joke",
+      "title": "😂 Random Joke",
+      "footer": "Requested by {user}",
+      "categories": {
+        "programming": "💻 Programming",
+        "dad": "👨 Dad Jokes",
+        "puns": "🎭 Puns",
+        "random": "🎲 Random"
+      },
+      "programming": [
+        "Why do programmers prefer dark mode? Because light attracts bugs!",
+        "A SQL query walks into a bar, walks up to two tables and asks... 'Can I join you?'",
+        "Why do Java developers wear glasses? Because they don't C#!",
+        "There are only 10 types of people: those who understand binary and those who don't.",
+        "A programmer's wife: 'Buy bread. If they have eggs, buy a dozen.' He returns with 12 loaves.",
+        "Why did the developer go broke? Because he used up all his cache.",
+        "How many programmers does it take to change a light bulb? None, that's a hardware problem.",
+        "Why do programmers always mix up Halloween and Christmas? Because Oct 31 == Dec 25.",
+        "A good programmer looks both ways before crossing a one-way street.",
+        "I had a joke about recursion, but let me tell you a joke about recursion first."
+      ],
+      "dad": [
+        "I'm afraid for the calendar. Its days are numbered.",
+        "Why don't scientists trust atoms? Because they make up everything!",
+        "I used to hate facial hair, but then it grew on me.",
+        "What do you call a fake noodle? An impasta!",
+        "Why did the scarecrow win an award? He was outstanding in his field!",
+        "I only know 25 letters of the alphabet. I don't know y.",
+        "What do you call cheese that isn't yours? Nacho cheese!",
+        "Why can't you give Elsa a balloon? Because she'll let it go.",
+        "I'm on a seafood diet. I see food and I eat it.",
+        "Did you hear about the guy who invented Lifesavers? He made a mint!"
+      ],
+      "puns": [
+        "I used to be a banker, but I lost interest.",
+        "I'm reading a book about anti-gravity. It's impossible to put down!",
+        "Time flies like an arrow. Fruit flies like a banana.",
+        "I told my wife she was drawing her eyebrows too high. She looked surprised.",
+        "I wondered why the baseball was getting bigger. Then it hit me.",
+        "I'm on a whiskey diet. I've lost three days already.",
+        "I used to think I was indecisive, but now I'm not so sure.",
+        "I told my doctor that I broke my arm in two places. He told me to stop going to those places.",
+        "The shovel was a ground-breaking invention.",
+        "I would tell you a construction pun, but I'm still working on it."
+      ],
+      "jokes": [
+        "Why don't scientists trust atoms? Because they make up everything!",
+        "Why did the scarecrow win an award? He was outstanding in his field!",
+        "Why don't eggs tell jokes? They'd crack each other up!",
+        "What do you call a fake noodle? An impasta!",
+        "Why did the math book look so sad? Because it had too many problems!",
+        "What do you call a bear with no teeth? A gummy bear!",
+        "Why can't a bicycle stand up by itself? It's two tired!",
+        "What do you call a fish wearing a bowtie? Sofishticated!",
+        "Why did the cookie go to the doctor? Because it felt crumbly!",
+        "What's the best thing about Switzerland? I don't know, but the flag is a big plus!"
+      ]
+    },
+    "meme": {
+      "description": "Get a random meme",
+      "title": "😂 Random Meme",
+      "loading": "Getting a fresh meme for you...",
+      "error": "❌ Couldn't fetch a meme right now. Try again later!",
+      "footer": "👍 {upvotes} upvotes • r/{subreddit}",
+      "fallback_footer": "Powered by meme APIs"
+    },
+    "hug": {
+      "description": "Give someone a warm hug",
+      "user_option": "The user you want to hug",
+      "title": "🤗 Warm Hug",
+      "self_hug": "{user} hugs themselves! 🤗\n*Sometimes you need to love yourself first!*",
+      "bot_hug": "{user} tries to hug me! 🤖💙\n*Beep boop! Virtual hug received!*",
+      "user_hug": "{author} gives {target} a big warm hug! 🤗💕\n*Hugs make everything better!*",
+      "messages": {
+        "0": "*gives you the warmest hug ever*",
+        "1": "*wraps you in a cozy embrace*",
+        "2": "*squeezes you gently*",
+        "3": "*hugs you tight and doesn't let go*",
+        "4": "*gives you a bear hug*",
+        "5": "{user} gives {target} a warm hug"
+      },
+      "footer": "🤗 Hug sent!"
+    },
+    "kiss": {
+      "description": "Give someone a sweet kiss",
+      "user_option": "The user you want to kiss",
+      "title": "💋 Sweet Kiss",
+      "self_kiss": "{user} kisses themselves! 💋\n*Self-love is important!*",
+      "bot_kiss": "{user} tries to kiss me! 🤖💙\n*Beep boop! That's sweet!*",
+      "user_kiss": "{author} gives {target} a sweet kiss! 💋💕\n*How romantic!*",
+      "messages": [
+        "{user} kisses {target} 💋",
+        "{user} tenderly kisses {target}",
+        "{user} and {target} kiss! 💕"
+      ]
+    },
+    "slap": {
+      "description": "Slap someone (playfully)",
+      "user_option": "The user you want to slap",
+      "title": "👋 Playful Slap",
+      "self_slap": "{user} slaps themselves! 👋\n*That must have hurt!*",
+      "bot_slap": "{user} tries to slap me! 🤖\n*Ouch! That's not very nice!*",
+      "user_slap": "{author} slaps {target}! 👋\n*That's gotta hurt!*",
+      "messages": [
+        "{user} slaps {target}",
+        "{target} gets slapped by {user}!",
+        "{user} slaps {target} across the face"
+      ]
+    },
+    "pat": {
+      "description": "Give someone gentle pats",
+      "user_option": "The user you want to pat",
+      "title": "🤲 Gentle Pats",
+      "self_pat": "{user} pats themselves! 🤲\n*Good job!*",
+      "bot_pat": "{user} pats me! 🤖💙\n*Beep boop! That feels nice!*",
+      "user_pat": "{author} gives {target} gentle pats! 🤲💕\n*So comforting!*",
+      "messages": [
+        "{user} pats {target}",
+        "{user} pats {target} on the head",
+        "{target} receives pats from {user}!"
+      ]
+    },
+    "advice": {
+      "description": "Get some wise advice",
+      "title": "💡 Wise Advice",
+      "footer": "Take it with a grain of salt!",
+      "list": [
+        "Never stop learning.",
+        "Be kind to others.",
+        "Take care of your mental health.",
+        "Enjoy the small moments.",
+        "Don't be afraid to fail."
+      ]
+    },
+    "compliment": {
+      "description": "Give someone a nice compliment",
+      "user_option": "The user you want to compliment (optional)",
+      "title": "✨ Nice Compliment",
+      "self_compliment": "{user} compliments themselves! ✨\n*{compliment}*\n*Self-confidence is key!*",
+      "bot_compliment": "{user} compliments {target}! ✨\n*{compliment}*\n*Beep boop! Thank you!*",
+      "user_compliment": "{author} compliments {target}! ✨\n*{compliment}*\n*How sweet!*",
+      "list": [
+        "You're amazing just the way you are.",
+        "Your smile brightens the day.",
+        "You have a great heart.",
+        "You're stronger than you think.",
+        "The world is better with you in it."
+      ]
+    },
+    "cat": {
+      "description": "Get a random cat picture",
+      "title": "🐱 Random Cat",
+      "footer": "Meow! 🐾",
+      "error": "❌ Couldn't fetch a cat picture right now. The cats are probably napping!"
+    },
+    "dog": {
+      "description": "Get a random dog picture",
+      "title": "🐶 Random Dog",
+      "footer": "Woof! 🐾",
+      "error": "❌ Couldn't fetch a dog picture right now. The dogs are probably playing fetch!"
+    },
+    "guess": {
+      "description": "Play a number guessing game",
+      "guess_option": "Your guess (1-100 or 1-max)",
+      "max_option": "Maximum number to guess (default: 100)",
+      "title": "🎯 Number Guessing Game",
+      "win_title": "🎉 Congratulations!",
+      "win_message": "You guessed it! The number was **{number}** and you guessed **{guess}**!\nWell done!",
+      "lose_title": "❌ Wrong Guess",
+      "lose_message": "You guessed **{guess}**, but the number was **{number}**.\n{hint}\n\nTry again with a new `/guess` command (range: 1-{max})!",
+      "too_low": "📈 Your guess was too low!",
+      "too_high": "📉 Your guess was too high!"
+    },
+    "slowmode": {
+      "description": "Set slowmode for a channel",
+      "seconds_option": "Cooldown seconds (0 to disable)",
+      "channel_option": "Target channel (current if not specified)",
+      "reason_option": "Reason for the change",
+      "no_reason": "No reason specified",
+      "error_title": "Slowmode Error",
+      "invalid_channel": "❌ This command only works in text channels.",
+      "enabled_title": "Slowmode Enabled",
+      "disabled_title": "Slowmode Disabled",
+      "enabled_desc": "Slowmode has been set in {channel} to **{seconds} seconds** ({duration}).",
+      "disabled_desc": "Slowmode has been disabled in {channel}.",
+      "moderator": "Moderator",
+      "channel": "Channel",
+      "reason": "Reason",
+      "duration": "Duration",
+      "error_desc": "Failed to set slowmode. Check bot permissions.",
+      "duration_seconds": "{seconds} seconds",
+      "duration_minutes": "{minutes} minutes",
+      "duration_minutes_seconds": "{minutes} minutes and {seconds} seconds",
+      "duration_hours": "{hours} hours",
+      "duration_hours_minutes": "{hours} hours and {minutes} minutes"
+    },
+    "purge": {
+      "description": "Advanced message purging with multiple filters",
+      "amount_option": "Number of messages to check",
+      "user_option": "Specific user (optional)",
+      "filter_option": "Type of filter to apply",
+      "contains_option": "Text the message must contain",
+      "reason_option": "Reason for purging",
+      "no_reason": "No reason specified",
+      "error_title": "Purge Error",
+      "invalid_channel": "❌ This command only works in text channels.",
+      "no_messages_title": "No Messages",
+      "no_messages_desc": "No messages found matching the specified criteria.",
+      "success_title": "Purge Completed",
+      "success_desc": "Deleted **{count} messages** from {channel}.",
+      "moderator": "Moderator",
+      "channel": "Channel",
+      "reason": "Reason",
+      "filters": "Applied Filters",
+      "old_messages_warning": "⚠️ Old Messages",
+      "old_messages_count": "{count} messages were older than 14 days and could not be deleted.",
+      "error_desc": "Failed to complete purge. Check bot permissions.",
+      "filter_user": "👤 User: {user}",
+      "filter_contains": "💬 Contains: \"{text}\"",
+      "filter_bots": "🤖 Bot messages only",
+      "filter_humans": "👤 Human messages only",
+      "filter_attachments": "📎 Messages with attachments only",
+      "filter_embeds": "📋 Messages with embeds only",
+      "filter_links": "🔗 Messages with links only",
+      "filter_mentions": "📢 Messages with mentions only"
+    },
+    "massban": {
+      "description": "Ban multiple users at once",
+      "reason_option": "Reason for the bans",
+      "delete_days_option": "Days of messages to delete (0-7)",
+      "no_reason": "No reason specified",
+      "modal_title": "Mass Ban - User List",
+      "user_ids_label": "User IDs",
+      "user_ids_placeholder": "123456789012345678\n987654321098765432\n...\n\nOne ID per line, maximum 50 users",
+      "error_title": "Mass Ban Error",
+      "no_valid_ids": "❌ No valid user IDs found.",
+      "too_many_users": "❌ Maximum {max} users allowed per operation.",
+      "confirm_title": "Confirm Mass Ban",
+      "confirm_desc": "⚠️ **Are you sure you want to ban {count} users?**\n\n**Reason:** {reason}\n\nThis action cannot be undone.",
+      "user_count": "Users",
+      "delete_days": "Message Days",
+      "reason": "Reason",
+      "confirm_button": "Confirm Ban",
+      "cancel_button": "Cancel",
+      "cancelled_title": "Ban Cancelled",
+      "cancelled_desc": "The mass ban operation has been cancelled.",
+      "processing": "🔄 Processing mass bans...",
+      "result_title": "Mass Ban Completed",
+      "result_desc": "**Successful:** {successful}\n**Failed:** {failed}\n**Total:** {total}",
+      "moderator": "Moderator",
+      "failed_bans": "Failed Bans"
+    },
+    "tempban": {
+      "description": "Temporarily ban a user with automatic unban",
+      "user_option": "User to temporarily ban",
+      "duration_option": "Duration of the temporary ban",
+      "reason_option": "Reason for the temporary ban",
+      "delete_days_option": "Days of messages to delete (0-7)",
+      "no_reason": "No reason specified",
+      "error_title": "Temporary Ban Error",
+      "invalid_duration": "❌ Invalid duration specified.",
+      "hierarchy_error": "❌ You cannot ban this user due to role hierarchy.",
+      "owner_error": "❌ You cannot ban the server owner.",
+      "bot_error": "❌ You cannot ban this bot.",
+      "already_banned": "❌ {user} is already banned from this server.",
+      "dm_title": "Temporary Ban",
+      "dm_desc": "You have been temporarily banned from **{server}** for **{duration}**.\n\n**Reason:** {reason}",
+      "success_title": "Temporary Ban Applied",
+      "success_desc": "**{user}** has been temporarily banned for **{duration}**.",
+      "user": "User",
+      "moderator": "Moderator",
+      "duration": "Duration",
+      "unban_time": "Automatic Unban",
+      "reason": "Reason",
+      "deleted_messages": "Deleted Messages",
+      "deleted_days": "Last {days} days",
+      "error_desc": "Failed to apply temporary ban. Check bot permissions.",
+      "format_days": "{days} days",
+      "format_hours": "{hours} hours",
+      "format_minutes": "{minutes} minutes",
+      "format_seconds": "{seconds} seconds"
+    },
+    "autoresponse": {
+      "description": "Manage automatic responses to messages",
+      "list": {
+        "description": "List all automatic responses",
+        "no_responses": "No Auto-Responses",
+        "no_responses_desc": "No automatic responses are configured in this server.\n\nUse `/autoresponse create` to create one.",
+        "title": "Automatic Responses",
+        "list_description": "Showing {count} configured automatic responses:",
+        "showing_limited": "Showing {shown} of {total} responses"
+      },
+      "create": {
+        "description": "Create a new automatic response",
+        "modal_title": "Create Automatic Response",
+        "name_label": "Name",
+        "name_placeholder": "e.g: Auto greeting",
+        "triggers_label": "Trigger Words (one per line)",
+        "triggers_placeholder": "hello\ngood morning\ngreetings",
+        "response_label": "Response",
+        "response_placeholder": "Hello {user}! Welcome to {server}!",
+        "type_label": "Match Type (optional)",
+        "cooldown_label": "Cooldown in Seconds (optional)",
+        "success_title": "✅ Auto-response Created",
+        "success_desc": "Automatic response **{name}** was created with ID `{id}`."
+      },
+      "edit": {
+        "description": "Edit an existing automatic response",
+        "id_option": "Auto-response ID",
+        "modal_title": "Edit Automatic Response",
+        "not_implemented": "Feature in Development",
+        "not_implemented_desc": "🚧 Auto-response editing will be available soon.",
+        "id_not_found": "Automatic response with ID `{id}` was not found.",
+        "success_title": "✅ Auto-response Updated",
+        "success_desc": "Automatic response **{name}** (`{id}`) was updated."
+      },
+      "delete": {
+        "description": "Delete an automatic response",
+        "id_option": "Auto-response ID",
+        "not_implemented": "Feature in Development",
+        "not_implemented_desc": "🚧 Auto-response deletion will be available soon.",
+        "id_not_found": "Automatic response with ID `{id}` was not found.",
+        "success_title": "🗑️ Auto-response Deleted",
+        "success_desc": "Automatic response `{id}` was deleted."
+      },
+      "toggle": {
+        "description": "Enable/disable an automatic response",
+        "id_option": "Auto-response ID",
+        "not_implemented": "Feature in Development",
+        "not_implemented_desc": "🚧 Auto-response toggle will be available soon.",
+        "id_not_found": "Automatic response with ID `{id}` was not found.",
+        "enabled_title": "✅ Auto-response Enabled",
+        "disabled_title": "⏸️ Auto-response Disabled",
+        "toggle_desc": "Automatic response **{name}** (`{id}`) is now **{status}**."
+      },
+      "test": {
+        "description": "Test an automatic response",
+        "id_option": "Auto-response ID",
+        "message_option": "Test message",
+        "title": "Auto-Response Test",
+        "testing": "Testing response **{id}** with message: \"{message}\"",
+        "result": "Result",
+        "no_match": "❌ Message doesn't match any triggers.",
+        "match": "✅ Message matches this auto-response and would execute actions."
+      },
+      "stats": {
+        "description": "View automatic response statistics",
+        "title": "Auto-Response Statistics",
+        "stats_description": "Statistics for the automatic response system:",
+        "general": "📊 General",
+        "general_value": "**Total:** {total}\n**Active:** {enabled}\n**Inactive:** {disabled}",
+        "usage": "📈 Usage",
+        "usage_value": "**Total Uses:** {total}\n**Average per Response:** {average}",
+        "most_used": "🏆 Most Used",
+        "most_used_value": "**{name}** ({usage} uses)"
+      }
+    },
+    "premium": {
+      "description": "Manage premium subscription and features",
+      "info": {
+        "description": "View premium subscription information",
+        "no_premium_title": "No Premium",
+        "no_premium_desc": "This server doesn't have an active premium subscription.\n\nUnlock advanced features and enhance your KOREX experience with Premium!",
+        "upgrade_benefits": "🎁 Premium Benefits",
+        "view_plans": "View Plans",
+        "try_demo": "Try Free",
+        "premium_active": "Premium Active",
+        "premium_desc": "Your server has **{plan}** active!\n\n⏰ **{days} days remaining**",
+        "subscription_details": "📋 Subscription Details",
+        "subscription_value": "**Plan:** {plan}\n**Price:** {price}/month\n**Expires in:** {days} days",
+        "active_features": "✨ Active Features",
+        "view_usage": "View Usage",
+        "manage_subscription": "Manage"
+      },
+      "plans": {
+        "description": "View available premium plans",
+        "title": "Available Premium Plans",
+        "plans_description": "Choose the perfect plan for your server:",
+        "duration": "Duration: {days} days",
+        "comparison": "📊 Plan Comparison",
+        "comparison_value": "• **Basic**: Perfect for small to medium servers\n• **Pro**: Ideal for large and active communities\n• **Demo**: Try all premium features free for 7 days",
+        "select_plan": "Select a plan to activate"
+      },
+      "activate": {
+        "description": "Activate premium subscription",
+        "plan_option": "Premium plan to activate",
+        "already_premium": "Already Premium",
+        "already_premium_desc": "This server already has an active premium subscription.\n\nUse `/premium info` to view details.",
+        "demo_activated": "Demo Trial Activated",
+        "demo_desc": "Perfect! You've activated the **free demo trial** for 7 days.\n\nEnjoy all premium features!",
+        "trial_details": "📋 Trial Details",
+        "trial_value": "**Duration:** {days} days\n**Included features:**\n• {features}",
+        "invalid_plan": "Invalid Plan",
+        "invalid_plan_desc": "The specified plan doesn't exist or isn't available.",
+        "payment_info": "Payment Information",
+        "payment_desc": "To activate **{plan}** ({price}/month), you need to complete payment.",
+        "plan_features": "🎁 Included Features",
+        "payment_methods": "💳 Payment Methods",
+        "payment_methods_value": "• PayPal (Recommended)\n• Bank transfer\n• Cryptocurrencies (Bitcoin, Ethereum)",
+        "contact_info": "📞 Contact Information",
+        "contact_value": "To complete your subscription, contact our support team with your server ID.",
+        "contact_support": "Contact Support",
+        "manual_activate": "Manual Activation"
+      },
+      "cancel": {
+        "description": "Cancel premium subscription",
+        "no_premium": "No Premium",
+        "no_premium_desc": "This server doesn't have an active premium subscription to cancel.",
+        "confirm_title": "Confirm Cancellation",
+        "confirm_desc": "Are you sure you want to cancel your **{plan}** subscription?\n\n**Your premium expires on:** {endDate}",
+        "what_happens": "❓ What will happen?",
+        "what_happens_value": "• You'll keep premium access until expiration date\n• Won't auto-renew\n• You'll lose premium features after expiration\n• Your data will be preserved for 30 days",
+        "confirm_button": "Confirm Cancellation",
+        "keep_button": "Keep Premium"
+      },
+      "usage": {
+        "description": "View premium usage statistics",
+        "no_premium": "No Premium",
+        "no_premium_desc": "This server doesn't have an active premium subscription.\n\nUse `/premium plans` to view available options.",
+        "title": "Premium Usage Statistics",
+        "usage_description": "Current premium feature usage for **{plan}**:\n\n*Last reset: {resetDate}*",
+        "auto_responses": "🤖 Auto-Responses",
+        "giveaways": "🎁 Giveaways",
+        "polls": "📊 Polls",
+        "usage_format": "**{used}** / **{limit}** ({percentage}%)",
+        "unlimited": "**{used}** / **Unlimited**",
+        "premium_features": "✨ Premium Features",
+        "advanced_analytics": "Advanced Analytics",
+        "priority_support": "Priority Support",
+        "custom_branding": "Custom Branding"
+      },
+      "benefits": {
+        "description": "View premium benefits",
+        "title": "Premium Benefits",
+        "benefits_description": "Discover everything you can do with KOREX Premium:",
+        "all_benefits": "🎁 All Benefits",
+        "plan_comparison": "📊 Plan Comparison",
+        "comparison_value": "• **{basic}** ({basicPrice}/month): Essential features for medium servers\n• **{pro}** ({proPrice}/month): Complete features for large communities",
+        "view_plans": "View Plans",
+        "start_trial": "Free Trial"
+      }
+    }
+  },
+  "premium": {
+    "benefits": {
+      "unlimited_autoresponses": "🤖 Unlimited auto-responses",
+      "advanced_giveaways": "🎁 Advanced giveaway features",
+      "extended_polls": "📊 Extended poll options",
+      "priority_support": "🚀 Priority support",
+      "custom_branding": "🎨 Custom branding",
+      "advanced_analytics": "📈 Advanced analytics",
+      "custom_commands": "⚙️ Custom commands"
+    }
+  },
+  "addons": {
+    "errors": {
+      "guild_only": "This command can only be used in servers.",
+      "check_failed": "Failed to verify addon status. Please try again later."
+    },
+    "premium_required": "⭐ **{addon}** is a Premium addon.\n\nActivate it to unlock all its features.",
+    "buttons": {
+      "activate": "🚀 Activate Addon"
+    },
+    "activation": {
+      "success": "✅ **{addon}** has been successfully activated in **{server}**!\n\nYou can now use all premium features."
+    },
+    "deactivation": {
+      "cancelled": "⚠️ Your **{addon}** subscription in **{server}** has been cancelled.\n\nThe addon will remain active until the expiration date."
+    },
+    "payment": {
+      "failed": "⚠️ There was a problem with the payment for **{addon}** in **{server}**.\n\nPlease update your payment method to continue using premium features."
+    },
+    "tickets": {
+      "panel": {
+        "open_button": "Open Ticket",
+        "select_placeholder": "Select a category...",
+        "no_categories": "No categories configured.",
+        "no_categories_hint": "Use `/ticketconfig category add` first.",
+        "no_panels": "No panels configured.",
+        "list_title": "📋 Ticket Panels",
+        "list_item": "Channel: <#{channel}> | Type: `{type}` | Categories: {count}",
+        "create_modal_title": "Create Ticket Panel",
+        "deleted": "✅ Panel deleted.",
+        "channel_not_found": "Channel not found.",
+        "refreshed": "✅ Panel resent.",
+        "channel_not_text": "Channel not found or is not a text channel.",
+        "created": "✅ Panel created in {channel}."
+      },
+      "open": {
+        "select_category_title": "What type of support do you need?",
+        "modal_title": "Open a Ticket — {category}",
+        "topic_label": "Briefly describe your question",
+        "topic_placeholder": "How can we help you?",
+        "creating": "⏳ Creating your ticket...",
+        "success": "✅ Ticket created: {channel}",
+        "dm_created": "Your ticket **#{number}** has been created in {channel}.",
+        "already_open": "You already have **{count}** open ticket(s): {channels}",
+        "limit_reached": "You have reached the limit of **{max}** open tickets.",
+        "no_access": "You do not have access to this category.",
+        "blacklisted": "You cannot open tickets in this server.",
+        "outside_hours": "Support is not available right now.\n📅 Schedule: {schedule}\n🕐 Next opening: {next}"
+      },
+      "control_embed": {
+        "title": "🎫 Ticket #{number} — {category}",
+        "opened_by": "Opened by",
+        "category": "Category",
+        "status": "Status",
+        "priority": "Priority",
+        "assigned_to": "Assigned to",
+        "unassigned": "Unassigned",
+        "tags": "Tags",
+        "no_tags": "—",
+        "created_at": "Created",
+        "sla": "SLA",
+        "sla_breached": "⚠️ SLA BREACHED",
+        "intake_form": "📋 Opening form"
+      },
+      "buttons": {
+        "close": "🔒 Close",
+        "claim": "✋ Claim",
+        "unclaim": "🔓 Unclaim",
+        "add_user": "👤 Add",
+        "remove_user": "🚫 Remove",
+        "priority": "🔺 Priority",
+        "tags": "🏷️ Tags",
+        "templates": "📋 Templates",
+        "move": "📁 Move",
+        "transfer": "🔄 Transfer",
+        "note": "📝 Internal note",
+        "delete_channel": "🗑️ Delete channel",
+        "reopen": "🔓 Reopen",
+        "transcript": "📄 Transcript"
+      },
+      "close": {
+        "modal_title": "Close Ticket #{number}",
+        "reason_label": "Close reason (optional)",
+        "reason_placeholder": "Why is this ticket being closed?",
+        "success": "✅ Ticket closed.",
+        "generating_transcript": "Generating transcript...",
+        "transcript_sent": "📄 Transcript for Ticket #{number}",
+        "dm_closed": "Your ticket **#{number}** in **{server}** has been closed.\nReason: {reason}",
+        "no_permission": "You do not have permission to close this ticket.",
+        "post_title": "🔒 Ticket #{number} closed",
+        "post_description": "Closed by {staff}{reason}\n\nUse the buttons to manage this ticket.",
+        "post_reason": "\nReason: {reason}",
+        "log_message": "🔒 Ticket #{number} closed by {staff}{reason}",
+        "deleting": "🗑️ Deleting channel...",
+        "already_closed": "⚠️ This ticket is already closed."
+      },
+      "claim": {
+        "success": "✅ Ticket claimed by {staff}.",
+        "already_claimed": "This ticket is already claimed by {staff}.",
+        "unclaimed": "✅ Ticket unclaimed."
+      },
+      "move": {
+        "success": "📁 Ticket moved from **{from}** to **{to}** by {staff}.",
+        "same_category": "The ticket is already in that category.",
+        "log": "📁 Ticket #{number} moved: {from} → {to} by {staff}"
+      },
+      "transfer": {
+        "modal_title": "Transfer Ticket #{number}",
+        "target_label": "Staff member (mention or ID)",
+        "success": "🔄 Ticket transferred to {staff}.",
+        "log": "🔄 Ticket #{number} transferred: {from} → {to}"
+      },
+      "priority": {
+        "changed": "🔺 Priority changed to **{priority}** by {staff}.",
+        "auto_assigned": "Priority automatically assigned: **{priority}** ({reason})",
+        "low": "🟢 LOW",
+        "normal": "🟡 NORMAL",
+        "high": "🟠 HIGH",
+        "urgent": "🔴 URGENT"
+      },
+      "tags": {
+        "updated": "🏷️ Tags updated: {tags}"
+      },
+      "note": {
+        "modal_title": "Internal Note — Ticket #{number}",
+        "content_label": "Note content",
+        "sent": "📝 **[INTERNAL NOTE 🔒]**\n{content}",
+        "transcript_label": "[INTERNAL NOTE]"
+      },
+      "template": {
+        "select_placeholder": "Select a template...",
+        "sent_by": "📋 Template sent by {staff}"
+      },
+      "autoclose": {
+        "warning_title": "⏰ Inactivity Warning",
+        "warning_desc": "This ticket will automatically close in **{hours}h** due to inactivity.\nReply here to keep it open.",
+        "warning_button_keep": "💬 Keep open",
+        "warning_button_close": "🔒 Close now",
+        "cancelled": "✅ Auto-close cancelled. The ticket remains open.",
+        "executed": "🔒 Ticket automatically closed due to inactivity.",
+        "dm_warning": "Your ticket **#{number}** in **{server}** will close in {hours}h due to inactivity.",
+        "dm_closed": "Your ticket **#{number}** was automatically closed due to inactivity."
+      },
+      "rating": {
+        "dm_title": "🎫 Ticket #{number} closed — {server}",
+        "dm_desc": "How was your support experience?",
+        "dm_reason": "Close reason: {reason}",
+        "rated": "⭐ Thank you for your **{score}/5** rating.",
+        "feedback_prompt": "Would you like to add a comment?",
+        "feedback_button_add": "📝 Add comment",
+        "feedback_button_skip": "✅ Just the rating",
+        "feedback_modal_title": "Support feedback",
+        "feedback_label": "Tell us about your experience (optional)",
+        "feedback_saved": "✅ Thank you for your feedback.",
+        "expired": "The rating window for this ticket has expired."
+      },
+      "info": {
+        "title": "📋 Ticket #{number}",
+        "field_category": "Category",
+        "field_status": "Status",
+        "field_priority": "Priority",
+        "field_author": "Opened by",
+        "field_staff": "Assigned staff",
+        "field_tags": "Tags",
+        "field_created": "Created",
+        "field_first_response": "First response",
+        "field_messages": "Messages",
+        "field_participants": "Participants"
+      },
+      "status": {
+        "open": "🟢 Open",
+        "claimed": "🔵 Claimed",
+        "pending": "🟡 Pending",
+        "closed": "🔴 Closed",
+        "archived": "⚫ Archived"
+      },
+      "config": {
+        "saved": "✅ Configuration saved.",
+        "category_added": "✅ Category **{name}** added.",
+        "category_removed": "✅ Category removed.",
+        "category_not_found": "Category not found.",
+        "template_added": "✅ Template **{name}** added.",
+        "template_removed": "✅ Template removed.",
+        "tag_added": "✅ Tag **{name}** added.",
+        "tag_removed": "✅ Tag removed.",
+        "rule_added": "✅ Priority rule added.",
+        "rule_removed": "✅ Rule removed.",
+        "blacklist_added": "✅ **{user}** added to the blacklist.",
+        "blacklist_removed": "✅ **{user}** removed from the blacklist.",
+        "question_added": "✅ Question added to the category.",
+        "question_removed": "✅ Question removed.",
+        "limit_reached": "You have reached the limit of **{limit}** {item}."
+      },
+      "stats": {
+        "overview_title": "📊 Ticket Statistics",
+        "overview_period": "Period: last {days} days",
+        "total_opened": "Tickets opened",
+        "total_closed": "Tickets closed",
+        "currently_open": "Currently open",
+        "resolution_rate": "Resolution rate",
+        "avg_response": "Avg. first response",
+        "avg_resolution": "Avg. resolution",
+        "avg_rating": "Avg. rating",
+        "auto_closed": "Auto-closed",
+        "staff_title": "👤 Stats for {staff}",
+        "staff_claimed": "Tickets claimed",
+        "staff_closed": "Tickets closed",
+        "staff_open_now": "Currently open",
+        "category_month": "Tickets this month",
+        "category_closed": "Closed",
+        "no_data": "No data for the selected period.",
+        "export_sent": "📄 CSV exported with {count} tickets."
+      },
+      "transcript": {
+        "header_title": "Ticket Transcript",
+        "header_server": "Server",
+        "header_category": "Category",
+        "header_opened_by": "Opened by",
+        "header_staff": "Handled by",
+        "header_status": "Status",
+        "header_priority": "Priority",
+        "header_tags": "Tags",
+        "header_opened_at": "Opened at",
+        "header_closed_at": "Closed at",
+        "header_duration": "Duration",
+        "header_first_response": "First response",
+        "header_rating": "Rating",
+        "section_intake": "Initial form",
+        "section_messages": "Conversation",
+        "label_note": "[INTERNAL NOTE]",
+        "label_staff": "Staff",
+        "label_user": "User",
+        "footer": "Generated by Korex • panel.korex.dev"
+      },
+      "errors": {
+        "not_a_ticket": "This command can only be used inside a ticket channel.",
+        "no_staff_permission": "You do not have staff permissions for this action.",
+        "ticket_already_closed": "⚠️ This ticket is already closed.",
+        "ticket_not_found": "Ticket not found.",
+        "channel_create_failed": "Could not create the ticket channel. Please check the bot permissions.",
+        "transcript_failed": "Could not generate the transcript. The ticket was closed anyway.",
+        "user_not_in_server": "The user is not in the server.",
+        "user_already_added": "The user already has access to this ticket.",
+        "user_not_participant": "The user is not a participant in this ticket.",
+        "cannot_remove_author": "You cannot remove the ticket author.",
+        "cannot_remove_staff": "You cannot remove a staff member.",
+        "panel_not_found": "Panel not found.",
+        "max_panels_reached": "You have reached the limit of **{max}** panels.",
+        "max_categories_reached": "You have reached the limit of **{max}** categories.",
+        "session_expired": "The opening session expired. Please try again.",
+        "addon_not_configured": "The tickets addon is not configured. Use `/ticketconfig setup`.",
+        "addon_disabled": "⚠️ The tickets addon is not active in this server. Please contact the administrator.",
+        "transcript_not_found": "⚠️ No transcript found for this ticket.",
+        "channel_not_text": "Channel not found or is not a text channel.",
+        "rating_error": "❌ Error processing the rating.",
+        "generic": "❌ An error occurred. Please try again."
+      },
+      "add": {
+        "success": "✅ {user} added to the ticket."
+      },
+      "remove": {
+        "success": "✅ {user} removed from the ticket."
+      },
+      "rename": {
+        "success": "✅ Channel renamed to **{name}**."
+      },
+      "reopen": {
+        "success": "🔓 Ticket reopened by {staff}"
+      },
+      "add_user": {
+        "modal_title": "Add user to ticket",
+        "user_id_label": "User ID or mention"
+      }
+    },
+    "forms": {
+      "errors": {
+        "service_unavailable": "The forms addon is not available right now. Please try again later.",
+        "not_configured": "The forms addon is not configured yet. Use `/form config channels` to get started.",
+        "form_not_found": "Form not found.",
+        "form_not_active": "This form is not accepting submissions right now.",
+        "field_not_found": "Field not found.",
+        "max_forms": "You have reached the limit of **{max}** forms.",
+        "max_fields": "You have reached the limit of **{max}** fields per form.",
+        "no_fields": "This form has no fields configured. Add fields with `/form field add`.",
+        "session_expired": "Your session has expired. Please start the form again.",
+        "already_submitted": "You have already submitted this form.",
+        "cooldown": "You must wait before submitting this form again.",
+        "form_max_reached": "This form has reached the maximum number of submissions.",
+        "form_closed": "This form is currently closed.",
+        "generic": "An error occurred. Please try again."
+      },
+      "cmd": {
+        "create_modal_title": "Create Form",
+        "field_name": "Form name",
+        "field_description": "Description (optional)",
+        "field_emoji": "Emoji (optional)",
+        "field_review_channel": "Review channel ID (optional)",
+        "field_reviewer_roles": "Reviewer role IDs (comma separated)",
+        "create_success_title": "✅ Form Created",
+        "create_success_desc": "Form **{name}** created (`{id}`).\n\nAdd fields with `/form field add form_id:{id}`.",
+        "edit_modal_title": "Edit: {name}",
+        "edit_success": "✅ Form updated.",
+        "delete_success": "✅ Form **{name}** deleted.",
+        "status_updated": "✅ Status of **{name}** changed to `{status}`.",
+        "list_title": "📝 Forms",
+        "list_empty": "No forms configured. Create one with `/form create`.",
+        "list_fields": "{count} fields",
+        "config_saved": "✅ Configuration saved.",
+        "field_add_title": "Add Field",
+        "field_label_label": "Field label (question)",
+        "field_type_label": "Type (short / long)",
+        "field_placeholder_label": "Placeholder (optional)",
+        "field_required_label": "Required? (true / false)",
+        "field_maxlength_label": "Max length (optional)",
+        "field_added": "✅ Field **{label}** added.",
+        "field_removed": "✅ Field removed.",
+        "field_list_title": "Fields of **{name}**",
+        "field_list_empty": "No fields. Add them with `/form field add`.",
+        "field_list_steps": "Note: {steps} modal steps will be shown to the user."
+      },
+      "panel": {
+        "create_modal_title": "Create Forms Panel",
+        "channel_id_label": "Channel ID",
+        "title_label": "Embed title",
+        "default_title": "📝 Forms",
+        "description_label": "Embed description",
+        "default_description": "Select a form below to submit your information.",
+        "type_label": "Type (buttons / select / hybrid)",
+        "color_label": "Color (hex, e.g. #5865F2)",
+        "select_placeholder": "Select a form...",
+        "created": "✅ Panel created in {channel}.",
+        "deleted": "✅ Panel deleted.",
+        "refreshed": "✅ Panel resent.",
+        "not_found": "Panel not found.",
+        "channel_not_found": "Channel not found or invalid.",
+        "max_panels": "You have reached the limit of **{max}** panels.",
+        "max_forms": "You have reached the limit of **{max}** forms per panel.",
+        "list_title": "📋 Form Panels",
+        "list_empty": "No panels configured.",
+        "list_forms": "{count} forms",
+        "form_added": "✅ Form **{name}** added to the panel.",
+        "form_removed": "✅ Form removed from the panel."
+      },
+      "review": {
+        "embed_title": "📝 New Submission — {form}",
+        "embed_desc": "Submitted by {user}",
+        "embed_footer": "Submission ID: {id}",
+        "status_label": "Status",
+        "reviewed_by": "Reviewed by",
+        "note_label": "Note",
+        "btn_approve": "Approve",
+        "btn_deny": "Deny",
+        "deny_modal_title": "Deny Submission",
+        "deny_reason_label": "Reason (optional)",
+        "dm_approved": "✅ Your submission to **{form}** has been **approved**.",
+        "dm_denied": "❌ Your submission to **{form}** has been **denied**."
+      },
+      "submission": {
+        "list_title": "📋 Submissions — {form}",
+        "list_empty": "No submissions found.",
+        "not_found": "Submission not found.",
+        "already_reviewed": "This submission has already been reviewed.",
+        "approved": "✅ Submission approved.",
+        "denied": "✅ Submission denied.",
+        "view_title": "📄 Submission — {form}",
+        "field_user": "Submitted by",
+        "field_status": "Status",
+        "field_submitted": "Submitted at",
+        "field_reviewed_by": "Reviewed by",
+        "field_reviewed_at": "Reviewed at",
+        "dm_submitted": "✅ Your submission to **{form}** was received and is pending review.",
+        "success_title": "✅ Form Submitted",
+        "success_desc": "Your response to **{form}** has been sent for review.",
+        "success_footer": "Submission ID: {id}",
+        "export_sent": "📄 CSV exported with {count} submissions."
+      },
+      "status": {
+        "active": "🟢 Active",
+        "paused": "🟡 Paused",
+        "closed": "🔴 Closed",
+        "pending": "🟡 Pending",
+        "approved": "🟢 Approved",
+        "denied": "🔴 Denied",
+        "cancelled": "⚫ Cancelled"
+      },
+      "stats": {
+        "title": "📊 Forms Statistics",
+        "total_forms": "Total forms",
+        "total_submissions": "Total submissions",
+        "pending": "🟡 Pending",
+        "approved": "🟢 Approved",
+        "denied": "🔴 Denied"
+      }
+    },
+    "staff": {
+      "panel": {
+        "created": "✅ Staff panel posted in {channel}.",
+        "updated": "✅ Staff panel updated.",
+        "deleted": "✅ Staff panel deleted.",
+        "no_panel": "No panel configured yet. Use `/staffpanel create` first.",
+        "not_text_channel": "The selected channel must be a text channel."
+      },
+      "member": {
+        "added": "✅ {user} added to the staff team as **{role}**.",
+        "removed": "✅ {user} has been removed from the staff team.",
+        "already_exists": "This user is already part of the staff team.",
+        "not_found": "This user is not part of the staff team.",
+        "note_added": "📝 Note updated on {user}'s profile.",
+        "status_changed": "✅ {user}'s status changed to **{status}**.",
+        "list_title": "🛡️ Staff Team",
+        "list_empty": "No staff members registered. Add one with `/staff add`.",
+        "list_footer": "{count} member(s) total",
+        "info_title": "👤 Profile — {user}",
+        "field_role": "Role",
+        "field_department": "Department",
+        "field_status": "Status",
+        "field_joined": "Member since",
+        "field_last_active": "Last activity",
+        "field_voice_today": "Voice today",
+        "field_voice_week": "Voice (7d)",
+        "field_voice_month": "Voice (30d)",
+        "field_sessions": "Total sessions",
+        "field_notes": "📝 Notes",
+        "default_department": "General"
+      },
+      "status": {
+        "active": "🟢 Active",
+        "inactive": "🟡 Inactive",
+        "on_leave": "🔴 On leave"
+      },
+      "config": {
+        "setup_modal_title": "Staff Setup",
+        "log_channel_label": "Log channel (ID)",
+        "alert_channel_label": "Alert channel (ID)",
+        "panel_channel_label": "Panel channel",
+        "track_voice_label": "Voice tracking",
+        "alerts_enabled_label": "Alerts enabled",
+        "inactivity_days_label": "Inactivity threshold",
+        "total_members_label": "Total members",
+        "saved": "✅ Configuration saved successfully.",
+        "view_title": "⚙️ Staff Configuration",
+        "channel_not_found": "No channel found with that ID. Please verify and try again."
+      },
+      "stats": {
+        "overview_title": "📊 Staff Statistics",
+        "overview_period": "Period: last {days} days",
+        "member_title": "📊 Stats for {user}",
+        "total_staff": "Total staff",
+        "active_count": "Active",
+        "inactive_count": "Inactive",
+        "on_leave_count": "On leave",
+        "voice_time": "Voice time (total)",
+        "voice_time_today": "Voice today",
+        "voice_time_week": "Voice (7d)",
+        "voice_time_month": "Voice (30d)",
+        "voice_time_total": "Voice (total)",
+        "sessions_count": "Voice sessions",
+        "last_active": "Last activity",
+        "top_voice": "🎙️ Top by voice time (30d)",
+        "recent_activity": "📋 Recent activity",
+        "export_sent": "📄 CSV exported with {count} member(s).",
+        "no_data": "No data for the selected period."
+      },
+      "errors": {
+        "addon_disabled": "⚠️ The Staff addon is not active in this server. Contact the administrator.",
+        "addon_not_configured": "The Staff addon is not configured. Use `/staffconfig setup`.",
+        "service_unavailable": "The Staff service is not available at this time.",
+        "no_permission": "You do not have permission to perform this action.",
+        "max_members_reached": "You have reached the limit of **{max}** staff members.",
+        "cannot_add_bot": "You cannot add bots to the staff team."
+      }
+    },
+    "links": {
+      "created_title": "✅ Short link created",
+      "short_url": "Short URL",
+      "destination": "Destination",
+      "title_field": "Title",
+      "expires": "Expires",
+      "max_clicks": "Max clicks",
+      "deleted": "Link `{slug}` deleted successfully.",
+      "stats_title": "📊 Stats: {slug}",
+      "total_clicks": "Total clicks",
+      "unique_clicks": "Unique visitors",
+      "top_countries": "Top countries",
+      "devices": "Devices",
+      "referrers": "Top referrers",
+      "list_title": "🔗 Server links",
+      "list_empty": "No links created yet. Use `/link create` to add one.",
+      "page": "Page",
+      "info_title": "🔗 Link Manager",
+      "domain": "Domain",
+      "total_links": "Total links",
+      "avg_clicks": "Avg clicks/link",
+      "panel_hint": "Manage all links and analytics at panel.korex.dev",
+      "error_invalid_url": "The URL is not valid.",
+      "error_blocked_domain": "That domain is blocked for security reasons.",
+      "error_invalid_slug": "The slug must be 2-30 characters (letters, numbers, - _).",
+      "error_slug_taken": "That slug is already in use. Try another.",
+      "error_daily_limit": "You have reached the daily link creation limit.",
+      "error_user_limit": "You have reached your total link limit.",
+      "error_not_found": "Link not found.",
+      "error_forbidden": "You can only delete your own links.",
+      "error_generic": "An error occurred. Please try again."
+    }
+  },
+  "buttons": {
+    "cancel": "Cancel",
+    "next": "Next",
+    "previous": "Previous"
+  },
+  "balance": {
+    "amount": "{amount} 🪙"
+  },
+  "rank": {
+    "title": "📊 Stats for {user}",
+    "level": "Level",
+    "xp": "XP",
+    "messages": "Messages",
+    "progress": "Progress",
+    "progress_bar": "{current}/{needed} XP"
+  },
+  "leaderboard": {
+    "levels_title": "🏆 Levels Leaderboard",
+    "economy_title": "💰 Economy Leaderboard",
+    "description": "Top {count} users in the server",
+    "no_data": "No data available."
+  },
+  "serverinfo": {
+    "title": "📋 Server Information",
+    "owner": "Owner",
+    "created": "Created",
+    "members": "Members",
+    "channels": "Channels",
+    "roles": "Roles",
+    "emojis": "Emojis",
+    "boosts": "Boosts",
+    "boost_level": "Boost Level",
+    "verification": "Verification"
+  },
+  "userinfo": {
+    "title": "👤 User Info for {user}",
+    "id": "ID",
+    "created": "Account Created",
+    "joined": "Joined",
+    "roles": "Roles",
+    "permissions": "Permissions",
+    "administrator": "Administrator",
+    "status": "Status",
+    "activity": "Activity",
+    "not_found": "User not found."
+  },
+  "modlogs": {
+    "title": "📋 Moderation History",
+    "description": "History for {user}",
+    "no_history": "This user has no moderation history.",
+    "footer": "Page {page}/{total}"
+  },
+  "warn": {
+    "success_title": "⚠️ User Warned",
+    "success_description": "{user} has been warned.",
+    "moderator": "Moderator",
+    "case_id": "Case #{id}",
+    "cannot_moderate": "You cannot moderate this user.",
+    "user_not_found": "User not found."
+  },
+  "mute": {
+    "success_title": "🔇 User Muted",
+    "success_description": "{user} has been muted.",
+    "moderator": "Moderator",
+    "duration": "Duration",
+    "duration_value": "{time}",
+    "cannot_moderate": "You cannot moderate this user.",
+    "bot_cannot_moderate": "I cannot moderate this user.",
+    "user_not_found": "User not found."
+  },
+  "setup": {
+    "title": "⚙️ Bot Setup",
+    "description": "Use the buttons to configure the bot."
+  },
+  "suggestions": {
+    "modal": {
+      "title": "💡 New Suggestion",
+      "title_label": "Title",
+      "title_placeholder": "Write a brief title...",
+      "description_label": "Description",
+      "description_placeholder": "Describe your suggestion in detail...",
+      "category_label": "Category",
+      "category_placeholder": "E.g.: improvement, bug, new feature",
+      "priority_label": "Priority",
+      "priority_placeholder": "low, medium, high"
+    },
+    "success": {
+      "title": "✅ Suggestion Submitted",
+      "description": "Your suggestion has been submitted successfully."
+    },
+    "errors": {
+      "disabled": "The suggestion system is disabled.",
+      "no_channel": "No suggestion channel is configured.",
+      "cooldown": "You must wait {time} seconds before submitting another suggestion.",
+      "creation_failed": "Could not create the suggestion.",
+      "internal_error": "Internal error processing the suggestion.",
+      "service_unavailable": "The suggestion service is unavailable.",
+      "not_found": "Suggestion not found.",
+      "no_permission_vote": "You don't have permission to vote on suggestions.",
+      "no_permission_staff": "You don't have permission to manage suggestions."
+    },
+    "embed": {
+      "status": "Status",
+      "category": "Category",
+      "priority": "Priority",
+      "staff_notes": "Staff Notes",
+      "footer": "Suggestion ID: {id}"
+    },
+    "config": {
+      "title": "⚙️ Suggestion Settings",
+      "description": "Current suggestion system configuration.",
+      "enabled": "Enabled",
+      "channel": "Channel",
+      "cooldown": "Cooldown",
+      "vote_threshold": "Vote Threshold",
+      "auto_threads": "Auto Threads",
+      "notify_author": "Notify Author"
+    },
+    "setup": {
+      "success": {
+        "title": "✅ Suggestions Configured",
+        "description": "The suggestion system has been configured."
+      },
+      "error": "Error configuring suggestions.",
+      "invalid_channel": "Invalid channel.",
+      "next_steps": "Next Steps",
+      "next_steps_description": "Users can use /suggest to submit suggestions.",
+      "panel": {
+        "title": "💡 Suggestions",
+        "description": "Have an idea to improve the server? We'd love to hear it!\nUse `/suggest` to submit your suggestion.",
+        "how_it_works": "How it works",
+        "how_it_works_value": "1. Use `/suggest` to open the suggestion form\n2. Fill in the title, description, category and priority\n3. Your suggestion will appear here for the community to vote on\n4. Staff will review suggestions and update their status",
+        "voting": "Voting",
+        "voting_value": "👍 Upvote — 👎 Downvote — 🤷 Neutral\n\nVote on suggestions to help staff prioritize them.",
+        "footer": "Suggestions powered by Korex"
+      }
+    },
+    "stats": {
+      "title": "📊 Suggestion Statistics",
+      "description": "Suggestion system statistics.",
+      "overview": "Overview",
+      "by_status": "By Status",
+      "no_data": "No data available."
+    },
+    "view": {
+      "title": "📋 Suggestions",
+      "description": "Server suggestion list.",
+      "no_suggestions": "No suggestions.",
+      "footer": "Page {page}/{total}"
+    },
+    "categories": {
+      "feature": "Feature Request",
+      "improvement": "Improvement",
+      "bug": "Bug Report",
+      "other": "Other"
+    },
+    "priorities": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    },
+    "statuses": {
+      "new": "New",
+      "reviewing": "Under Review",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "considering": "Considering",
+      "in_progress": "In Progress",
+      "completed": "Completed"
+    },
+    "buttons": {
+      "approve": "Approve",
+      "reject": "Reject",
+      "consider": "Consider"
+    },
+    "modals": {
+      "approve": {
+        "title": "Approve Suggestion"
+      },
+      "reject": {
+        "title": "Reject Suggestion"
+      },
+      "consider": {
+        "title": "Consider Suggestion"
+      },
+      "reason_label": "Reason",
+      "reason_placeholder": "Explain your decision..."
+    },
+    "notification": {
+      "title": "Suggestion Update",
+      "description": "Your suggestion **{title}** in **{server}** has been updated to: **{status}**",
+      "reason": "Staff Response"
+    },
+    "vote_recorded": "✅ Your vote has been recorded!",
+    "staff_action_success": "Action applied successfully.",
+    "select": {
+      "step1_title": "💡 New Suggestion",
+      "step1_description": "Select a **category** that best fits your suggestion:",
+      "category_placeholder": "Choose a category...",
+      "step2_title": "💡 New Suggestion",
+      "step2_description": "Now select the **priority** of your suggestion:",
+      "priority_placeholder": "Choose a priority..."
+    }
+  },
+  "guildCreate": {
+    "title": "Thanks for adding Korex!",
+    "description": "Hi! I'm **Korex**, your new professional Discord bot.",
+    "getting_started": "🚀 **Getting started:**\n• Use `/help` to see all available commands\n• Configure the bot with `/setup` (admins only)\n• Visit the web panel for advanced configuration",
+    "links": "🔗 **Useful links:**\n• [Web Panel]({dashboardUrl})\n• [Documentation](https://korex.dev/docs)\n• [Support Server](https://discord.gg/KAfQQ25MQY)",
+    "addons": "💎 **Available addons:**\nKorex has premium addons to extend functionality:\n• **Store** - Shop with real payments\n• **Tickets** - Advanced support system\n• **Staff** - Team management\n• **Forms** - Custom forms\n• **Analytics Pro** - Advanced analytics\n• **AI Assistant** - Artificial intelligence assistant\n• And more...\n\nNeed help? Join our support server!",
+    "footer": "Korex v{version} - The Core of Your Community",
+    "greeting": "Hi <@{ownerId}>! 👋"
+  },
+  "verification": {
+    "setup_success": "Verification system configured successfully!",
+    "setup_channel": "Verification channel",
+    "setup_role": "Role to assign",
+    "setup_type": "Type",
+    "setup_emoji": "Emoji",
+    "already_verified": "You are already verified!",
+    "verified": "✅ You have been verified! You now have access to the server.",
+    "verified_log": "{user} has been verified.",
+    "role_not_found": "❌ The configured verification role was not found. Please contact an admin.",
+    "no_permission": "❌ I do not have permission to assign that role.",
+    "disabled": "Verification system disabled.",
+    "redeployed": "Verification message redeployed to {channel}.",
+    "not_configured": "❌ Verification is not configured. Use /verification setup first.",
+    "status_enabled": "Enabled",
+    "status_disabled": "Disabled",
+    "status_channel": "Channel",
+    "status_role": "Role",
+    "status_type": "Type",
+    "status_emoji": "Emoji",
+    "status_title": "Verification Status",
+    "embed_title_default": "Server Verification",
+    "embed_desc_default": "Click the button below to verify yourself and gain access to the server.",
+    "button_label": "Verify",
+    "reaction_instruction": "React with {emoji} to verify yourself.",
+    "cmd_description": "Manage the server verification system",
+    "cmd_setup_desc": "Configure and deploy the verification gate",
+    "cmd_setup_channel": "Channel where the verification embed will be sent",
+    "cmd_setup_role": "Role to assign when a user verifies",
+    "cmd_setup_type": "Verification style: button or reaction",
+    "cmd_setup_emoji": "Emoji to use (for reaction type)",
+    "cmd_setup_title": "Embed title",
+    "cmd_setup_desc_opt": "Embed description",
+    "cmd_redeploy_desc": "Resend the verification embed to the configured channel",
+    "cmd_disable_desc": "Disable the verification system",
+    "cmd_status_desc": "Show current verification configuration"
+  }
+}

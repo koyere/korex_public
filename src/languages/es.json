@@ -1,0 +1,3697 @@
+{
+  "common": {
+    "error": "Error",
+    "success": "Éxito",
+    "warning": "Advertencia",
+    "info": "Información",
+    "loading": "Cargando...",
+    "yes": "Sí",
+    "no": "No",
+    "enabled": "Habilitado",
+    "disabled": "Deshabilitado",
+    "none": "Ninguno",
+    "unknown": "Desconocido",
+    "user": "Usuario",
+    "server": "Servidor",
+    "channel": "Canal",
+    "role": "Rol",
+    "reason": "Razón",
+    "duration": "Duración",
+    "permanent": "Permanente",
+    "expires": "Expira",
+    "created": "Creado",
+    "level": "Nivel",
+    "balance": "Balance",
+    "bank": "Banco",
+    "total": "Total",
+    "position": "Posición",
+    "available": "Disponible",
+    "cooldown": "Cooldown",
+    "streak": "Racha",
+    "errors": {
+      "not_your_interaction": "Esta interacción no es para ti.",
+      "rate_limit": "⏰ ¡Estás haciendo eso muy rápido! Por favor espera **{retryAfter} segundos** ({remaining} minutos) antes de intentar de nuevo.",
+      "command_not_found": "Comando no encontrado.",
+      "cannot_use_command": "No puedes usar este comando.",
+      "command_cooldown": "⏳ Espera {time} antes de usar este comando otra vez.",
+      "command_execution_failed": "❌ Ocurrió un error al ejecutar el comando.",
+      "button_expired": "❌ Este botón ya no está disponible.",
+      "menu_expired": "❌ Este menú ya no está disponible.",
+      "form_expired": "❌ Este formulario ya no está disponible.",
+      "component_error": "❌ Ocurrió un error al procesar este componente.",
+      "generic": "Ha ocurrido un error inesperado.",
+      "service_unavailable": "El servicio no está disponible en este momento."
+    },
+    "cosmetics": "Cosméticos",
+    "consumables": "Consumibles",
+    "roles": "Roles",
+    "guild_only": "Este comando solo puede usarse en servidores.",
+    "unknown_role": "Rol desconocido",
+    "next": "Siguiente",
+    "previous": "Anterior"
+  },
+  "errors": {
+    "system_disabled": "Este sistema está deshabilitado en este servidor.",
+    "no_permission": "No tienes permisos para usar este comando.",
+    "user_not_found": "Usuario no encontrado.",
+    "user_not_in_server": "El usuario no está en este servidor.",
+    "cannot_target_self": "No puedes seleccionarte a ti mismo.",
+    "cannot_target_bot": "No puedes seleccionar bots.",
+    "hierarchy_error": "No puedes seleccionar este usuario debido a la jerarquía de roles.",
+    "insufficient_funds": "No tienes suficientes {currency}.",
+    "max_balance_reached": "No puedes tener más de {max} {currency}.",
+    "cooldown_active": "Debes esperar {time} antes de usar este comando de nuevo.",
+    "already_claimed": "Ya has reclamado tu recompensa {type}.",
+    "database_error": "Ocurrió un error de base de datos.",
+    "internal_error": "Ocurrió un error interno.",
+    "invalid_subcommand": "Subcomando inválido."
+  },
+  "commands": {
+    "ping": {
+      "description": "Muestra la latencia y estado del bot",
+      "response": "🏓 ¡Pong! Latencia: {latency}ms | API: {api}ms"
+    },
+    "help": {
+      "description": "Muestra información de ayuda",
+      "title": "📚 Menú de Ayuda",
+      "select_category": "Selecciona una categoría para ver los comandos:",
+      "no_commands": "No se encontraron comandos en esta categoría.",
+      "command_info": "Información del Comando",
+      "usage": "Uso",
+      "cooldown": "Cooldown: {seconds}s",
+      "permissions": "Permisos Requeridos"
+    },
+    "botinfo": {
+      "description": "Muestra información detallada del bot",
+      "title": "🤖 Información del Bot",
+      "general": "📋 Información General",
+      "version": "Versión",
+      "uptime": "Tiempo Activo",
+      "servers": "Servidores",
+      "users": "Usuarios",
+      "commands": "Comandos",
+      "system": "💻 Sistema",
+      "memory": "Uso de Memoria",
+      "cpu": "Uso de CPU",
+      "platform": "Plataforma",
+      "node_version": "Versión de Node.js"
+    },
+    "8ball": {
+      "description": "Pregunta a la bola 8 mágica",
+      "options": {
+        "question": "La pregunta que quieres hacer a la bola 8"
+      }
+    },
+    "dice": {
+      "description": "Lanza uno o más dados",
+      "options": {
+        "sides": "Número de caras del dado (por defecto: 6)",
+        "count": "Número de dados a lanzar (por defecto: 1)"
+      }
+    },
+    "hug": {
+      "description": "Dale un abrazo cálido a alguien",
+      "options": {
+        "user": "El usuario al que quieres abrazar"
+      }
+    },
+    "joke": {
+      "description": "Obtén un chiste aleatorio",
+      "options": {
+        "category": "Categoría del chiste (general, programación, oscuro)"
+      }
+    },
+    "rps": {
+      "description": "Juega Piedra, Papel o Tijeras",
+      "options": {
+        "choice": "Tu elección: piedra, papel o tijeras"
+      }
+    },
+    "suggestions": {
+      "description": "Administra las sugerencias del servidor",
+      "setup": {
+        "description": "Configura el sistema de sugerencias",
+        "options": {
+          "channel": "Canal donde se publicarán las sugerencias"
+        }
+      },
+      "view": {
+        "description": "Ver sugerencias",
+        "options": {
+          "status": "Filtrar por estado de sugerencia"
+        }
+      }
+    },
+    "serverinfo": {
+      "description": "Muestra información detallada del servidor",
+      "title": "📊 Información del Servidor - {server}",
+      "general": "🏷️ Información General",
+      "name": "Nombre",
+      "id": "ID",
+      "owner": "Propietario",
+      "created": "Creado",
+      "region": "Región",
+      "members": "👥 Miembros",
+      "humans": "Humanos",
+      "bots": "Bots",
+      "online": "En línea",
+      "max_members": "Máximo",
+      "channels": "📁 Canales ({count})",
+      "text": "Texto",
+      "voice": "Voz",
+      "categories": "Categorías",
+      "threads": "Hilos",
+      "roles_emojis": "🎭 Roles y Emojis",
+      "roles": "Roles",
+      "emojis": "Emojis",
+      "stickers": "Stickers",
+      "invites": "Invitaciones",
+      "security": "🛡️ Seguridad",
+      "verification": "Verificación",
+      "content_filter": "Filtro de Contenido",
+      "notifications": "Notificaciones",
+      "mfa_required": "MFA Requerido",
+      "mfa_not_required": "MFA No Requerido",
+      "boost": "💎 Boost del Servidor",
+      "boost_level": "Nivel",
+      "boost_count": "Boosts",
+      "boosters": "Boosters",
+      "benefits": "Beneficios",
+      "custom_url": "🔗 URL Personalizada",
+      "features": "✨ Características Especiales"
+    },
+    "userinfo": {
+      "description": "Muestra información detallada del usuario",
+      "title": "👤 Información del Usuario - {user}",
+      "general": "🏷️ Información General",
+      "username": "Nombre de Usuario",
+      "global_name": "Nombre Global",
+      "nickname": "Apodo",
+      "id": "ID",
+      "bot": "Bot",
+      "dates": "📅 Fechas",
+      "account_created": "Cuenta Creada",
+      "joined_server": "Se Unió al Servidor",
+      "ago": "Hace",
+      "joined_ago": "Se Unió Hace",
+      "status_activity": "🟢 Estado y Actividad",
+      "status": "Estado",
+      "custom_status": "Estado Personalizado",
+      "roles": "🎭 Roles ({count})",
+      "key_permissions": "🔑 Permisos Clave",
+      "server_info": "📊 Información del Servidor",
+      "boosting_since": "Boosting Desde",
+      "timeout_until": "Timeout Hasta",
+      "in_voice_channel": "En Canal de Voz",
+      "muted": "Muteado",
+      "deafened": "Ensordecido",
+      "moderation_history": "🛡️ Historial de Moderación",
+      "warnings": "Advertencias",
+      "mutes": "Muteos",
+      "kicks": "Expulsiones",
+      "bans": "Baneos",
+      "server_avatar": "🖼️ Avatar del Servidor",
+      "view_server_avatar": "Ver Avatar del Servidor"
+    },
+    "setup": {
+      "description": "Configuración inicial del bot en el servidor",
+      "title": "⚙️ Configuración del Servidor",
+      "select_module": "Selecciona un módulo para configurar:",
+      "moderation": {
+        "title": "🛡️ Configuración de Moderación",
+        "configuring": "Configurando sistema de moderación...",
+        "success": "✅ Sistema de moderación configurado exitosamente",
+        "configuration": "🔧 Configuración Aplicada",
+        "mute_role": "Rol de Mute",
+        "log_channel": "Canal de Logs",
+        "auto_mod": "Auto-moderación",
+        "max_warnings": "Máximo de Advertencias",
+        "warning_expiry": "Las Advertencias Expiran En",
+        "auto_actions": "⚡ Auto-acciones Configuradas",
+        "action_3_warnings": "3 advertencias: Mute por 1 hora",
+        "action_5_warnings": "5 advertencias: Expulsión",
+        "action_7_warnings": "7 advertencias: Ban temporal (24h)",
+        "error_mute_role": "No se pudo crear el rol de mute. Verifica los permisos del bot.",
+        "error_log_channel": "No se pudo crear el canal de logs. Verifica los permisos del bot."
+      },
+      "logging": {
+        "title": "📝 Configuración de Logs",
+        "in_development": "🚧 En Desarrollo",
+        "description": "Los canales de logs automáticos se implementarán en la próxima actualización."
+      },
+      "autoroles": {
+        "title": "🎭 Configuración de Roles Automáticos",
+        "in_development": "🚧 En Desarrollo",
+        "description": "Los roles automáticos se implementarán en la próxima actualización."
+      },
+      "welcome": {
+        "title": "👋 Configuración de Bienvenida",
+        "in_development": "🚧 En Desarrollo",
+        "description": "Los mensajes de bienvenida se implementarán en la próxima actualización."
+      },
+      "check": {
+        "title": "🔍 Verificación de Configuración",
+        "description": "Configuración actual para **{server}**",
+        "bot_info": "🤖 Bot",
+        "uptime": "Tiempo Activo",
+        "latency": "Latencia",
+        "server_stats": "📊 Estadísticas del Servidor",
+        "members": "Miembros",
+        "channels": "Canales",
+        "roles": "Roles",
+        "emojis": "Emojis",
+        "boost_level": "Nivel de Boost",
+        "missing_permissions": "⚠️ Permisos Faltantes",
+        "permissions_warning": "El bot necesita estos permisos para funcionar correctamente:"
+      }
+    },
+    "warn": {
+      "description": "Advertir a un usuario",
+      "user_option": "Usuario a advertir",
+      "reason_option": "Razón de la advertencia",
+      "title": "⚠️ Usuario Advertido",
+      "moderator": "Moderador",
+      "total_warnings": "Total de Advertencias",
+      "action_id": "ID de Acción"
+    },
+    "mute": {
+      "description": "Mutear a un usuario",
+      "user_option": "Usuario a mutear",
+      "reason_option": "Razón del muteo",
+      "duration_option": "Duración en minutos (opcional)",
+      "title": "🔇 Usuario Muteado",
+      "expires_in": "Expira"
+    },
+    "modlogs": {
+      "description": "Ver el historial de moderación de un usuario",
+      "user_option": "Usuario del que ver el historial",
+      "limit_option": "Número de acciones a mostrar (máximo 20)",
+      "title": "📋 Historial de Moderación",
+      "no_history": "{user} no tiene acciones de moderación registradas.",
+      "showing_actions": "Mostrando las últimas {count} acciones para {user}",
+      "moderator": "Moderador",
+      "reason": "Razón",
+      "duration": "Duración",
+      "expires": "Expira",
+      "date": "Fecha",
+      "active": "(Activo)",
+      "statistics": "📊 Estadísticas",
+      "total": "Total"
+    },
+    "license": {
+      "description": "Gestionar licencias de addons",
+      "check": {
+        "description": "Verificar licencia de addon",
+        "addon_option": "ID del addon a verificar"
+      },
+      "list": {
+        "description": "Listar todas las licencias del servidor"
+      },
+      "create": {
+        "description": "Crear una nueva licencia",
+        "addon_option": "ID del addon",
+        "type_option": "Tipo de licencia",
+        "features_option": "Features separadas por comas",
+        "duration_option": "Duración en días (opcional)"
+      },
+      "verification_title": "🔍 Verificación de Licencia",
+      "addon": "Addon",
+      "status": "Estado",
+      "valid": "✅ Válida",
+      "invalid": "❌ Inválida",
+      "type": "Tipo",
+      "features": "Features",
+      "expires": "Expira",
+      "remaining_days": "Días Restantes",
+      "reason": "Razón",
+      "server_licenses": "📋 Licencias del Servidor",
+      "no_licenses": "Este servidor no tiene licencias registradas.",
+      "licenses_found": "Se encontraron {count} licencias:",
+      "license_created": "✅ Licencia Creada",
+      "license_exists": "❌ Ya existe una licencia activa para el addon `{addon}`.",
+      "showing_licenses": "Mostrando 10 de {total} licencias"
+    },
+    "stats": {
+      "description": "Muestra estadísticas del sistema y servicios",
+      "type_option": "Tipo de estadísticas a mostrar",
+      "system": {
+        "title": "📊 Estadísticas del Sistema",
+        "bot": "🤖 Bot",
+        "uptime": "⏱️ Tiempo Activo",
+        "memory": "💾 Memoria",
+        "rss": "RSS",
+        "heap_used": "Heap Usado",
+        "heap_total": "Heap Total",
+        "external": "Externo",
+        "system": "🖥️ Sistema",
+        "os": "SO",
+        "arch": "Arquitectura",
+        "cpus": "CPUs",
+        "load_avg": "Carga Promedio",
+        "nodejs": "🔧 Node.js",
+        "version": "Versión",
+        "platform": "Plataforma",
+        "pid": "PID",
+        "latency": "📡 Latencia",
+        "websocket": "WebSocket",
+        "api": "API",
+        "calculating": "Calculando..."
+      },
+      "errors": {
+        "title": "🚨 Estadísticas de Errores",
+        "general": "📊 General",
+        "recent_24h": "Últimas 24h",
+        "resolved": "Resueltos",
+        "pending": "Pendientes",
+        "by_type": "📝 Por Tipo",
+        "by_severity": "⚠️ Por Severidad"
+      },
+      "licenses": {
+        "title": "🔑 Estadísticas de Licencias",
+        "general": "📊 General",
+        "active": "Activas",
+        "expired": "Expiradas",
+        "inactive": "Inactivas",
+        "by_type": "🏷️ Por Tipo"
+      },
+      "moderation": {
+        "title": "🛡️ Estadísticas de Moderación",
+        "description": "Estadísticas para **{server}**",
+        "general": "📊 General",
+        "total_actions": "Total de Acciones",
+        "active_actions": "Acciones Activas",
+        "unique_users": "Usuarios Únicos",
+        "by_type": "📝 Por Tipo",
+        "top_moderators": "👮 Top Moderadores"
+      }
+    },
+    "balance": {
+      "description": "Muestra tu balance o el de otro usuario",
+      "user_option": "Usuario del que ver el balance (opcional)",
+      "title": "{currency} Balance de {user}",
+      "wallet": "💰 Billetera",
+      "bank": "🏦 Banco",
+      "total": "💎 Total",
+      "streak_value": "{count} días",
+      "additional_info": "📋 Información Adicional",
+      "daily_streak": "Racha Diaria",
+      "daily_available_in": "Daily disponible en",
+      "work_available_in": "Work disponible en",
+      "limits": "📏 Límites",
+      "max_balance": "Balance Máximo",
+      "max_bank": "Banco Máximo"
+    },
+    "daily": {
+      "description": "Reclama tu recompensa diaria",
+      "title": "🎉 ¡Recompensa Diaria Reclamada!",
+      "new_balance": "💰 Nuevo Balance",
+      "base_reward": "🎁 Recompensa Base",
+      "daily_streak": "🔥 Racha Diaria",
+      "consecutive_days": "{days} días consecutivos",
+      "bonus": "+{bonus} {currency} de bonus",
+      "tip": "💡 Consejo",
+      "tip_message": "¡Reclama tu daily todos los días para mantener tu racha y obtener más {currency}!",
+      "not_available": "❌ No Disponible",
+      "next_daily": "⏰ Próximo Daily",
+      "current_streak": "🔥 Racha Actual"
+    },
+    "rank": {
+      "description": "Muestra tu nivel y progreso o el de otro usuario",
+      "user_option": "Usuario del que ver el nivel (opcional)",
+      "title": "📊 Nivel de {user}",
+      "current_level": "🏆 Nivel Actual",
+      "current_xp": "⭐ XP Actual",
+      "position": "📈 Posición",
+      "progress_next": "📊 Progreso al Siguiente Nivel",
+      "xp_needed": "XP necesario",
+      "statistics": "📋 Estadísticas",
+      "total_xp": "XP Total",
+      "messages": "Mensajes",
+      "voice_time": "Tiempo en Voz",
+      "hours": "horas",
+      "configuration": "⚙️ Configuración",
+      "xp_per_message": "XP por mensaje",
+      "xp_per_voice_minute": "XP por minuto en voz",
+      "multiplier": "Multiplicador",
+      "xp_cooldown": "Cooldown XP",
+      "level_roles": "🎭 Roles de Nivel",
+      "next_role": "🎯 Próximo Rol"
+    },
+    "leaderboard": {
+      "description": "Muestra el ranking de niveles del servidor",
+      "type_option": "Tipo de leaderboard",
+      "levels_title": "🏆 Ranking de Niveles",
+      "economy_title": "💰 Ranking Económico",
+      "page_info": "Página {current} de {total}",
+      "no_users": "No hay usuarios en el ranking aún.",
+      "ranking": "📋 Ranking",
+      "your_position": "👤 Tu Posición",
+      "server_stats": "📊 Estadísticas del Servidor",
+      "total_users": "Total de Usuarios",
+      "average_level": "Nivel Promedio",
+      "highest_level": "Nivel Más Alto",
+      "total_messages": "Total de Mensajes",
+      "money_circulation": "Dinero en Circulación",
+      "money_in_banks": "Dinero en Bancos",
+      "average_balance": "Balance Promedio",
+      "previous": "◀️ Anterior",
+      "next": "Siguiente ▶️",
+      "view_economy": "💰 Ver Economía",
+      "view_levels": "🏆 Ver Niveles",
+      "showing_top": "Mostrando 10 de {total} usuarios"
+    },
+    "giveaway": {
+      "description": "Gestionar sorteos del servidor",
+      "create": {
+        "description": "Crear un nuevo sorteo",
+        "options": {
+          "prize": "El premio a sortear",
+          "duration": "Duración en horas (1-168)",
+          "channel": "Canal donde publicar el sorteo",
+          "winners": "Número de ganadores (1-10)",
+          "title": "Título personalizado para el sorteo"
+        },
+        "wizard": {
+          "title": "🎉 Asistente de Configuración de Sorteo",
+          "description": "Revisa la configuración de tu sorteo y personaliza los requisitos:",
+          "add_requirements": "Agregar Requisitos",
+          "add_bonus": "Entradas Bonus",
+          "create": "Crear Sorteo"
+        },
+        "errors": {
+          "invalid_channel": "❌ Canal inválido. Por favor selecciona un canal de texto.",
+          "no_permissions": "❌ No tengo permisos para enviar mensajes en ese canal.",
+          "limit_reached": "❌ Has alcanzado el número máximo de sorteos activos ({limit}).",
+          "failed": "❌ Error al crear el sorteo. Por favor intenta de nuevo."
+        }
+      },
+      "end": {
+        "description": "Terminar un sorteo antes de tiempo",
+        "options": {
+          "id": "ID del sorteo a terminar"
+        },
+        "success": "✅ El sorteo **{id}** ha sido terminado exitosamente.",
+        "error": "❌ Error al terminar el sorteo. Asegúrate de que el ID sea correcto."
+      },
+      "reroll": {
+        "description": "Volver a sortear ganadores",
+        "options": {
+          "id": "ID del sorteo para volver a sortear"
+        },
+        "not_implemented": "🚧 ¡La función de re-sorteo estará disponible pronto!"
+      },
+      "list": {
+        "description": "Listar todos los sorteos del servidor",
+        "title": "🎉 Sorteos del Servidor",
+        "no_giveaways": "No se encontraron sorteos en este servidor.",
+        "footer": "Total: {count} sorteo(s)"
+      },
+      "info": {
+        "description": "Obtener información detallada de un sorteo",
+        "options": {
+          "id": "ID del sorteo para obtener información"
+        },
+        "not_implemented": "🚧 ¡La función de información de sorteos estará disponible pronto!"
+      }
+    },
+    "poll": {
+      "description": "Crear y gestionar encuestas",
+      "create": {
+        "description": "Crear una nueva encuesta",
+        "options": {
+          "title": "Título de la encuesta",
+          "type": "Tipo de encuesta (simple, múltiple, dropdown, ranking)",
+          "options": "Opciones de la encuesta (una por línea, emoji opcional)",
+          "channel": "Canal donde publicar la encuesta",
+          "duration": "Duración en horas (opcional)",
+          "description": "Descripción de la encuesta (opcional)",
+          "anonymous": "Hacer votos anónimos",
+          "allow_change": "Permitir a los usuarios cambiar su voto",
+          "max_choices": "Máximo de opciones para encuestas de opción múltiple"
+        },
+        "wizard": {
+          "title": "📊 Asistente de Configuración de Encuesta",
+          "description": "Revisa la configuración de tu encuesta y personaliza las opciones:",
+          "add_restrictions": "Agregar Restricciones",
+          "advanced_settings": "Configuración Avanzada",
+          "create": "Crear Encuesta"
+        },
+        "errors": {
+          "invalid_channel": "❌ Canal inválido. Por favor selecciona un canal de texto.",
+          "no_permissions": "❌ No tengo permisos para enviar mensajes en ese canal.",
+          "limit_reached": "❌ Has alcanzado el número máximo de encuestas activas ({limit}).",
+          "min_options": "❌ Las encuestas deben tener al menos 2 opciones.",
+          "max_options": "❌ Las encuestas pueden tener como máximo 25 opciones.",
+          "failed": "❌ Error al crear la encuesta. Por favor intenta de nuevo."
+        }
+      },
+      "end": {
+        "description": "Terminar una encuesta antes de tiempo",
+        "options": {
+          "id": "ID de la encuesta a terminar"
+        },
+        "success": "✅ La encuesta **{id}** ha sido terminada exitosamente.",
+        "error": "❌ Error al terminar la encuesta. Asegúrate de que el ID sea correcto."
+      },
+      "results": {
+        "description": "Exportar resultados de encuesta",
+        "options": {
+          "id": "ID de la encuesta para obtener resultados",
+          "format": "Formato de exportación (json, csv, text)"
+        },
+        "exported": "📊 Resultados de encuesta exportados como {format}",
+        "not_found": "❌ Encuesta no encontrada o no hay resultados disponibles.",
+        "error": "❌ Error al exportar los resultados de la encuesta."
+      },
+      "list": {
+        "description": "Listar todas las encuestas del servidor",
+        "title": "📊 Encuestas del Servidor",
+        "no_polls": "No se encontraron encuestas en este servidor.",
+        "footer": "Total: {count} encuesta(s)"
+      },
+      "info": {
+        "description": "Obtener información detallada de una encuesta",
+        "options": {
+          "id": "ID de la encuesta para obtener información"
+        },
+        "not_implemented": "🚧 ¡La función de información de encuestas estará disponible pronto!"
+      }
+    },
+    "avatar": {
+      "description": "Muestra el avatar de un usuario",
+      "user_option": "Usuario del que ver el avatar",
+      "server_option": "Mostrar avatar del servidor",
+      "title": "Avatar de {user}",
+      "global_avatar": "Avatar Global",
+      "server_avatar": "Avatar del Servidor",
+      "global_button": "Global",
+      "server_button": "Servidor",
+      "download": "Descargar",
+      "requested_by": "Solicitado por {user}"
+    },
+    "invite": {
+      "description": "Obtén el enlace para invitar al bot",
+      "title": "🤖 Invitar a {bot}",
+      "description_text": "¡Gracias por tu interés en agregar el bot a tu servidor!",
+      "features_title": "✨ Características",
+      "features_list": "• Moderación avanzada\n• Sistema de economía\n• Niveles y XP\n• Música\n• Y mucho más...",
+      "permissions_title": "🔐 Permisos",
+      "permissions_text": "El bot necesita ciertos permisos para funcionar correctamente.",
+      "invite_button": "Invitar Bot",
+      "support_button": "Servidor de Soporte",
+      "website_button": "Sitio Web",
+      "github_button": "GitHub",
+      "vote_button": "Votar",
+      "footer": "¡Gracias por usar {bot}!"
+    },
+    "invites": {
+      "description": "Sistema de invitaciones",
+      "me": {
+        "description": "Ver tus invitaciones",
+        "no_invites": "No tienes invitaciones.",
+        "error": "Error al obtener tus invitaciones."
+      },
+      "user": {
+        "description": "Ver invitaciones de un usuario",
+        "options": {
+          "target": "Usuario a consultar"
+        },
+        "no_invites": "Este usuario no tiene invitaciones.",
+        "error": "Error al obtener las invitaciones."
+      },
+      "leaderboard": {
+        "description": "Ver ranking de invitaciones",
+        "options": {
+          "page": "Página del ranking"
+        },
+        "empty": "No hay datos de invitaciones.",
+        "invalid_page": "Página inválida.",
+        "error": "Error al obtener el ranking."
+      },
+      "add": {
+        "description": "Agregar invitaciones a un usuario",
+        "options": {
+          "user": "Usuario",
+          "amount": "Cantidad",
+          "reason": "Razón"
+        },
+        "success": "Se agregaron {amount} invitaciones a {user}.",
+        "error": "Error al agregar invitaciones."
+      },
+      "remove": {
+        "description": "Quitar invitaciones a un usuario",
+        "options": {
+          "user": "Usuario",
+          "amount": "Cantidad",
+          "reason": "Razón"
+        },
+        "success": "Se quitaron {amount} invitaciones a {user}.",
+        "error": "Error al quitar invitaciones."
+      },
+      "config": {
+        "description": "Configurar sistema de invitaciones",
+        "not_implemented": "Esta función aún no está implementada."
+      }
+    },
+    "purge": {
+      "description": "Eliminar mensajes en masa",
+      "success_title": "🗑️ Mensajes Eliminados",
+      "success_desc": "Se eliminaron {count} mensajes.",
+      "error_title": "❌ Error",
+      "error_desc": "No se pudieron eliminar los mensajes.",
+      "no_messages_title": "⚠️ Sin Mensajes",
+      "no_messages_desc": "No se encontraron mensajes para eliminar.",
+      "moderator": "Moderador",
+      "channel": "Canal",
+      "reason": "Razón",
+      "no_reason": "Sin razón especificada",
+      "filters": "Filtros aplicados",
+      "filter_user": "Usuario: {user}",
+      "filter_bots": "Solo bots",
+      "filter_humans": "Solo humanos",
+      "filter_contains": "Contiene: {text}",
+      "filter_links": "Solo enlaces",
+      "filter_attachments": "Solo archivos",
+      "filter_embeds": "Solo embeds",
+      "filter_mentions": "Solo menciones",
+      "invalid_channel": "Canal inválido.",
+      "old_messages_warning": "⚠️ Mensajes Antiguos",
+      "old_messages_count": "{count} mensajes tienen más de 14 días y no pueden ser eliminados."
+    },
+    "slowmode": {
+      "description": "Configurar modo lento en un canal",
+      "enabled_title": "🐌 Modo Lento Activado",
+      "enabled_desc": "El modo lento ha sido activado.",
+      "disabled_title": "🐌 Modo Lento Desactivado",
+      "disabled_desc": "El modo lento ha sido desactivado.",
+      "error_title": "❌ Error",
+      "error_desc": "No se pudo cambiar el modo lento.",
+      "channel": "Canal",
+      "duration": "Duración",
+      "duration_seconds": "{seconds} segundos",
+      "duration_minutes": "{minutes} minutos",
+      "duration_minutes_seconds": "{minutes}m {seconds}s",
+      "duration_hours": "{hours} horas",
+      "duration_hours_minutes": "{hours}h {minutes}m",
+      "moderator": "Moderador",
+      "reason": "Razón",
+      "no_reason": "Sin razón especificada",
+      "invalid_channel": "Canal inválido."
+    },
+    "tempban": {
+      "description": "Banear temporalmente a un usuario",
+      "success_title": "🔨 Usuario Baneado Temporalmente",
+      "success_desc": "{user} ha sido baneado temporalmente.",
+      "error_title": "❌ Error",
+      "error_desc": "No se pudo banear al usuario.",
+      "dm_title": "🔨 Has sido baneado",
+      "dm_desc": "Has sido baneado temporalmente de {server}.",
+      "user": "Usuario",
+      "moderator": "Moderador",
+      "reason": "Razón",
+      "no_reason": "Sin razón especificada",
+      "duration": "Duración",
+      "unban_time": "Desbaneo",
+      "deleted_messages": "Mensajes eliminados",
+      "deleted_days": "{days} días",
+      "format_seconds": "{n} segundos",
+      "format_minutes": "{n} minutos",
+      "format_hours": "{n} horas",
+      "format_days": "{n} días",
+      "invalid_duration": "Duración inválida.",
+      "already_banned": "Este usuario ya está baneado.",
+      "hierarchy_error": "No puedes banear a este usuario por jerarquía de roles.",
+      "owner_error": "No puedes banear al dueño del servidor.",
+      "bot_error": "No puedo banear a este usuario."
+    },
+    "massban": {
+      "description": "Banear múltiples usuarios a la vez",
+      "modal_title": "🔨 Baneo Masivo",
+      "user_ids_label": "IDs de usuarios",
+      "user_ids_placeholder": "Pega los IDs separados por espacios o líneas...",
+      "confirm_title": "⚠️ Confirmar Baneo Masivo",
+      "confirm_desc": "¿Estás seguro de banear a {count} usuarios?",
+      "confirm_button": "Confirmar",
+      "cancel_button": "Cancelar",
+      "processing": "Procesando baneos...",
+      "result_title": "🔨 Baneo Masivo Completado",
+      "result_desc": "Se banearon {success} de {total} usuarios.",
+      "cancelled_title": "❌ Cancelado",
+      "cancelled_desc": "El baneo masivo fue cancelado.",
+      "error_title": "❌ Error",
+      "no_valid_ids": "No se encontraron IDs válidos.",
+      "too_many_users": "Demasiados usuarios. Máximo: {max}",
+      "user_count": "Usuarios",
+      "failed_bans": "Baneos fallidos",
+      "moderator": "Moderador",
+      "reason": "Razón",
+      "no_reason": "Sin razón especificada",
+      "delete_days": "Días de mensajes a eliminar"
+    },
+    "premium": {
+      "info": {
+        "premium_active": "⭐ Premium Activo",
+        "premium_desc": "Tu servidor tiene premium activo.",
+        "no_premium_title": "💫 Premium",
+        "no_premium_desc": "Tu servidor no tiene premium.",
+        "subscription_details": "Detalles de Suscripción",
+        "subscription_value": "Plan: {plan}\nExpira: {expires}",
+        "active_features": "Características Activas",
+        "manage_subscription": "Gestionar Suscripción",
+        "view_plans": "Ver Planes",
+        "view_usage": "Ver Uso",
+        "upgrade_benefits": "Beneficios de Mejorar",
+        "try_demo": "Probar Demo"
+      },
+      "plans": {
+        "title": "💎 Planes Premium",
+        "plans_description": "Elige el plan que mejor se adapte a ti.",
+        "duration": "Duración",
+        "comparison": "Comparación",
+        "comparison_value": "Free vs Premium"
+      },
+      "benefits": {
+        "title": "✨ Beneficios Premium",
+        "benefits_description": "Todas las ventajas de ser premium.",
+        "all_benefits": "Todos los Beneficios",
+        "plan_comparison": "Comparación de Planes",
+        "comparison_value": "Mira lo que obtienes con premium.",
+        "view_plans": "Ver Planes",
+        "start_trial": "Iniciar Prueba"
+      },
+      "usage": {
+        "title": "📊 Uso Premium",
+        "usage_description": "Tu uso actual de características premium.",
+        "no_premium": "Sin Premium",
+        "no_premium_desc": "Necesitas premium para ver el uso.",
+        "premium_features": "Características Premium",
+        "usage_format": "{used}/{limit}",
+        "unlimited": "Ilimitado",
+        "giveaways": "Sorteos",
+        "polls": "Encuestas",
+        "auto_responses": "Auto-respuestas",
+        "custom_branding": "Marca Personalizada",
+        "advanced_analytics": "Analytics Avanzados",
+        "priority_support": "Soporte Prioritario"
+      },
+      "activate": {
+        "already_premium": "Ya Premium",
+        "already_premium_desc": "Tu servidor ya tiene premium activo.",
+        "invalid_plan": "Plan Inválido",
+        "invalid_plan_desc": "El plan seleccionado no existe.",
+        "payment_info": "Información de Pago",
+        "payment_desc": "Completa el pago para activar premium.",
+        "payment_methods": "Métodos de Pago",
+        "payment_methods_value": "PayPal, Tarjeta de Crédito",
+        "plan_features": "Características del Plan",
+        "trial_details": "Detalles de Prueba",
+        "trial_value": "7 días gratis, sin compromiso.",
+        "demo_activated": "Demo Activado",
+        "demo_desc": "Tienes acceso demo por 24 horas.",
+        "manual_activate": "Activación Manual",
+        "contact_support": "Contactar Soporte",
+        "contact_info": "Información de Contacto",
+        "contact_value": "Discord: {discord}\nEmail: {email}"
+      },
+      "cancel": {
+        "no_premium": "Sin Premium",
+        "no_premium_desc": "No tienes una suscripción activa.",
+        "confirm_title": "⚠️ Cancelar Premium",
+        "confirm_desc": "¿Estás seguro de cancelar tu suscripción?",
+        "confirm_button": "Sí, Cancelar",
+        "keep_button": "No, Mantener",
+        "what_happens": "¿Qué pasará?",
+        "what_happens_value": "Perderás acceso a las características premium al final del período."
+      }
+    }
+  },
+  "moderation": {
+    "actions": {
+      "warn": "ADVERTIR",
+      "mute": "MUTEAR",
+      "unmute": "DESMUTEAR",
+      "kick": "EXPULSAR",
+      "ban": "BANEAR",
+      "unban": "DESBANEAR"
+    },
+    "auto_actions": {
+      "mute_1h": "Mute por 1 hora",
+      "kick": "Expulsión",
+      "ban_24h": "Ban temporal (24h)"
+    },
+    "automod": {
+      "spam_detected": "🚫 **Anti-Spam:** {user}, estás enviando mensajes muy rápido.",
+      "caps_detected": "🔠 **Filtro de Mayúsculas:** {user}, evita el uso excesivo de mayúsculas.",
+      "word_filtered": "🚫 **Filtro de Palabras:** {user}, tu mensaje contiene contenido no permitido.",
+      "link_blocked": "🔗 **Filtro de Enlaces:** {user}, los enlaces no están permitidos aquí.",
+      "ghost_ping": "👻 **Ghost Ping Detectado:** {user} mencionó a {mentioned} y eliminó el mensaje.",
+      "action_warn": "Has recibido una advertencia automática.",
+      "action_timeout": "Has recibido un timeout de {duration}.",
+      "action_delete": "Tu mensaje ha sido eliminado.",
+      "log_title": "🛡️ AutoMod",
+      "log_user": "Usuario",
+      "log_channel": "Canal",
+      "log_reason": "Razón",
+      "log_action": "Acción",
+      "log_content": "Contenido",
+      "reasons": {
+        "spam": "Spam detectado",
+        "caps": "Exceso de mayúsculas",
+        "word": "Palabra prohibida",
+        "link": "Enlace no permitido",
+        "ghost_ping": "Ghost ping"
+      }
+    }
+  },
+  "economy": {
+    "currency": {
+      "name": "monedas",
+      "symbol": "🪙"
+    },
+    "actions": {
+      "daily_claimed": "¡Reclamaste {amount} {currency}! (Base: {base} + Racha: {bonus})",
+      "daily_streak": "Racha actual: {days} días",
+      "daily_cooldown": "Debes esperar {hours} horas antes de reclamar tu recompensa diaria de nuevo.",
+      "weekly_claimed": "¡Reclamaste {amount} {currency} de recompensa semanal!",
+      "weekly_cooldown": "Debes esperar {days} días antes de reclamar tu recompensa semanal de nuevo.",
+      "work_success": "{message}",
+      "work_cooldown": "Debes esperar {minutes} minutos antes de trabajar de nuevo.",
+      "transfer_success": "Transferiste {amount} {currency} exitosamente.",
+      "deposit_success": "Depositaste {amount} {currency} en el banco.",
+      "withdraw_success": "Retiraste {amount} {currency} del banco."
+    },
+    "work_messages": [
+      "Trabajaste como programador y ganaste {amount} {currency}",
+      "Hiciste delivery y ganaste {amount} {currency}",
+      "Trabajaste en una tienda y ganaste {amount} {currency}",
+      "Fuiste streamer por un día y ganaste {amount} {currency}",
+      "Trabajaste como diseñador y ganaste {amount} {currency}"
+    ],
+    "disabled": "El sistema económico está deshabilitado en este servidor.",
+    "daily": {
+      "cooldown": "Ya reclamaste tu recompensa diaria. Vuelve en {hours} horas.",
+      "success": "¡Reclamaste {amount} {symbol}! (Base: {base} + Racha: {bonus})\nRacha actual: {streak} días",
+      "error": "Error al reclamar la recompensa diaria."
+    },
+    "weekly": {
+      "cooldown": "Ya reclamaste tu recompensa semanal. Vuelve en {days} días.",
+      "success": "¡Reclamaste {amount} {symbol} de recompensa semanal!",
+      "error": "Error al reclamar la recompensa semanal."
+    },
+    "work": {
+      "cooldown": "Debes esperar {minutes} minutos antes de trabajar de nuevo.",
+      "success": "¡Ganaste {amount} {symbol} trabajando!",
+      "error": "Error al procesar el trabajo."
+    },
+    "insufficient_funds": "No tienes suficientes {currency}.",
+    "max_balance": "No puedes tener más de {max} {currency}.",
+    "transfer_success": "Transferiste {amount} {symbol} exitosamente.",
+    "deposit_success": "Depositaste {amount} {symbol} en el banco.",
+    "withdraw_success": "Retiraste {amount} {symbol} del banco.",
+    "error": "Error al procesar la transacción."
+  },
+  "pay": {
+    "success_title": "💸 ¡Pago Enviado!",
+    "success_description": "Enviaste exitosamente {amount} 🪙 a {user}",
+    "your_new_balance": "💰 Tu Nuevo Balance",
+    "footer": "Transacción completada exitosamente",
+    "received_title": "💰 ¡Dinero Recibido!",
+    "received_description": "Recibiste {amount} 🪙 de {user} en {server}",
+    "cannot_pay_bot": "❌ No puedes enviar dinero a bots.",
+    "cannot_pay_self": "❌ No puedes enviarte dinero a ti mismo.",
+    "invalid_amount": "❌ Por favor ingresa una cantidad válida mayor a 0."
+  },
+  "deposit": {
+    "success_title": "🏦 ¡Dinero Depositado!",
+    "success_description": "Depositaste exitosamente {amount} 🪙 en tu cuenta bancaria",
+    "wallet_balance": "💰 Balance de Cartera",
+    "bank_balance": "🏦 Balance del Banco",
+    "total_balance": "💎 Balance Total",
+    "footer": "¡Tu dinero está seguro en el banco!",
+    "no_money": "❌ No tienes dinero para depositar.",
+    "invalid_amount": "❌ Por favor ingresa una cantidad válida mayor a 0."
+  },
+  "withdraw": {
+    "success_title": "🏦 ¡Dinero Retirado!",
+    "success_description": "Retiraste exitosamente {amount} 🪙 de tu cuenta bancaria",
+    "wallet_balance": "💰 Balance de Cartera",
+    "bank_balance": "🏦 Balance del Banco",
+    "total_balance": "💎 Balance Total",
+    "footer": "¡Dinero retirado exitosamente!",
+    "no_money_in_bank": "❌ No tienes dinero en tu cuenta bancaria.",
+    "invalid_amount": "❌ Por favor ingresa una cantidad válida mayor a 0."
+  },
+  "weekly": {
+    "success_title": "🎉 ¡Recompensa Semanal Reclamada!",
+    "success_description": "¡Reclamaste {amount} {symbol} de recompensa semanal!",
+    "new_balance": "💰 Nuevo Balance",
+    "next_claim": "⏰ Próximo Reclamo",
+    "next_claim_time": "Disponible en 7 días",
+    "footer": "¡Vuelve la próxima semana por otra recompensa!"
+  },
+  "kick": {
+    "success_title": "👢 Usuario Expulsado",
+    "success_description": "**{user}** ha sido expulsado del servidor.\n**Razón:** {reason}",
+    "kicked_user": "👤 Usuario Expulsado",
+    "moderator": "👮 Moderador",
+    "reason": "📝 Razón",
+    "footer": "El usuario ha sido removido del servidor",
+    "no_reason": "No se proporcionó razón",
+    "user_not_found": "❌ Usuario no encontrado en este servidor.",
+    "cannot_kick_self": "❌ No puedes expulsarte a ti mismo.",
+    "cannot_kick_bot": "❌ No puedes expulsar al bot.",
+    "cannot_kick_owner": "❌ No puedes expulsar al propietario del servidor.",
+    "insufficient_permissions": "❌ No puedes expulsar a este usuario debido a la jerarquía de roles.",
+    "cannot_kick_member": "❌ No puedo expulsar a este miembro. Verifica mis permisos y la jerarquía de roles."
+  },
+  "ban": {
+    "success_title": "🔨 Usuario Baneado",
+    "success_description": "**{user}** ha sido baneado del servidor.\n**Razón:** {reason}",
+    "banned_user": "👤 Usuario Baneado",
+    "moderator": "👮 Moderador",
+    "reason": "📝 Razón",
+    "duration": "⏰ Duración",
+    "duration_value": "{minutes} minutos",
+    "permanent": "Permanente",
+    "deleted_messages": "🗑️ Mensajes Eliminados",
+    "deleted_messages_value": "Últimos {days} días",
+    "footer": "El usuario ha sido baneado del servidor",
+    "no_reason": "No se proporcionó razón",
+    "already_banned": "❌ Este usuario ya está baneado.",
+    "cannot_ban_self": "❌ No puedes banearte a ti mismo.",
+    "cannot_ban_bot": "❌ No puedes banear al bot.",
+    "cannot_ban_owner": "❌ No puedes banear al propietario del servidor.",
+    "insufficient_permissions": "❌ No puedes banear a este usuario debido a la jerarquía de roles.",
+    "cannot_ban_member": "❌ No puedo banear a este miembro. Verifica mis permisos y la jerarquía de roles."
+  },
+  "unban": {
+    "success_title": "🔓 Usuario Desbaneado",
+    "success_description": "**{user}** ha sido desbaneado del servidor.\n**Razón:** {reason}",
+    "unbanned_user": "👤 Usuario Desbaneado",
+    "moderator": "👮 Moderador",
+    "reason": "📝 Razón",
+    "original_ban_reason": "📋 Razón Original del Ban",
+    "no_original_reason": "No se proporcionó razón",
+    "footer": "El usuario ahora puede volver a unirse al servidor",
+    "no_reason": "No se proporcionó razón",
+    "invalid_user_id": "❌ Por favor proporciona un ID de usuario válido.",
+    "user_not_found": "❌ Usuario no encontrado.",
+    "user_not_banned": "❌ **{user}** no está baneado de este servidor."
+  },
+  "unmute": {
+    "success_title": "🔊 Usuario Desmuteado",
+    "success_description": "**{user}** ha sido desmuteado.\n**Razón:** {reason}",
+    "unmuted_user": "👤 Usuario Desmuteado",
+    "moderator": "👮 Moderador",
+    "reason": "📝 Razón",
+    "footer": "El usuario ahora puede hablar de nuevo",
+    "no_reason": "No se proporcionó razón",
+    "user_not_found": "❌ Usuario no encontrado en este servidor.",
+    "no_mute_role": "❌ No hay rol de mute configurado. Usa `/setup` para configurar la moderación.",
+    "mute_role_not_found": "❌ Rol de mute no encontrado. Por favor reconfigura los ajustes de moderación.",
+    "user_not_muted": "❌ Este usuario no está muteado.",
+    "cannot_unmute_self": "❌ No puedes desmutearte a ti mismo.",
+    "cannot_unmute_bot": "❌ No puedes desmutear al bot.",
+    "insufficient_permissions": "❌ No puedes desmutear a este usuario debido a la jerarquía de roles."
+  },
+  "timeout": {
+    "success_title": "⏰ Usuario en Timeout",
+    "success_description": "**{user}** ha sido puesto en timeout por {duration} minutos.\n**Razón:** {reason}",
+    "timed_out_user": "👤 Usuario en Timeout",
+    "moderator": "👮 Moderador",
+    "duration": "⏰ Duración",
+    "duration_value": "{minutes} minutos",
+    "ends_at": "🕐 Termina En",
+    "reason": "📝 Razón",
+    "footer": "El usuario ha sido puesto en timeout",
+    "dm_title": "⏰ Has sido puesto en timeout",
+    "dm_description": "Has sido puesto en timeout en **{server}** por {duration} minutos.\n**Razón:** {reason}",
+    "dm_ends_at": "🕐 El timeout termina en",
+    "no_reason": "No se proporcionó razón",
+    "user_not_found": "❌ Usuario no encontrado en este servidor.",
+    "cannot_timeout_self": "❌ No puedes ponerte en timeout a ti mismo.",
+    "cannot_timeout_bot": "❌ No puedes poner en timeout al bot.",
+    "cannot_timeout_owner": "❌ No puedes poner en timeout al propietario del servidor.",
+    "insufficient_permissions": "❌ No puedes poner en timeout a este usuario debido a la jerarquía de roles.",
+    "cannot_timeout_member": "❌ No puedo poner en timeout a este miembro. Verifica mis permisos y la jerarquía de roles.",
+    "already_timed_out": "❌ Este usuario ya está en timeout."
+  },
+  "clear": {
+    "success_title": "🧹 Mensajes Eliminados",
+    "success_description": "Se eliminaron exitosamente {count} mensajes en {channel}",
+    "moderator": "👮 Moderador",
+    "channel": "📁 Canal",
+    "reason": "📝 Razón",
+    "target_user": "👤 Usuario Objetivo",
+    "old_messages_warning": "⚠️ Mensajes Antiguos",
+    "old_messages_count": "{count} mensajes eran muy antiguos para eliminar (más de 14 días)",
+    "footer": "Mensajes eliminados exitosamente",
+    "no_reason": "No se proporcionó razón",
+    "no_messages": "❌ No se encontraron mensajes para eliminar.",
+    "no_messages_from_user": "❌ No se encontraron mensajes de {user} en el rango especificado.",
+    "messages_too_old": "❌ Todos los mensajes son más antiguos de 14 días y no pueden ser eliminados.",
+    "no_permissions": "❌ No tengo permisos para eliminar mensajes en este canal."
+  },
+  "levels": {
+    "level_up": "🎉 ¡Subida de Nivel!",
+    "level_up_message": "🎉 ¡{user} subió al nivel {level}!",
+    "progress": "📊 Progreso",
+    "total_xp": "XP Total",
+    "rank": {
+      "name": "rank",
+      "description": "Muestra tu rango o el de otro usuario",
+      "user_option": "Usuario del que ver el rango",
+      "title": "📊 Rango de {user}",
+      "level": "Nivel",
+      "xp": "XP",
+      "xp_progress": "Progreso XP",
+      "messages": "Mensajes",
+      "voice_time": "Tiempo en Voz",
+      "server_rank": "Rango en Servidor",
+      "minutes": "minutos"
+    },
+    "leaderboard": {
+      "name": "leaderboard",
+      "description": "Muestra la tabla de clasificación del servidor",
+      "type_option": "Tipo de clasificación a mostrar",
+      "title": "🏆 Ranking de Niveles",
+      "no_data": "No hay datos de niveles disponibles",
+      "page": "Página {current} de {total}",
+      "level_short": "Nv.",
+      "xp_short": "XP"
+    }
+  },
+  "logging": {
+    "message_deleted": "Mensaje Eliminado",
+    "message_edited": "Mensaje Editado",
+    "member_joined": "Miembro Unido",
+    "member_left": "Miembro Salió",
+    "voice_joined": "Se Unió a Canal de Voz",
+    "voice_left": "Salió del Canal de Voz",
+    "author": "Autor",
+    "channel": "Canal",
+    "content": "Contenido",
+    "no_content": "*Sin contenido*",
+    "attachments": "Archivos Adjuntos",
+    "before": "Antes",
+    "after": "Después",
+    "user": "Usuario",
+    "account_created": "Cuenta Creada",
+    "account_age": "Edad de la Cuenta",
+    "member_count": "Cantidad de Miembros",
+    "warning": "Advertencia",
+    "new_account_warning": "Esta cuenta tiene menos de 7 días de antigüedad.",
+    "joined_at": "Se Unió",
+    "time_in_server": "Tiempo en el Servidor",
+    "roles": "Roles",
+    "days_old": "{days} días de antigüedad"
+  },
+  "welcome": {
+    "default_message": "¡Bienvenido {mention} a {server}! ¡Ahora tenemos {memberCount} miembros!",
+    "default_title": "¡Bienvenido a {server}!",
+    "default_description": "¡Bienvenido {mention}! ¡Por favor lee las reglas y disfruta tu estadía!",
+    "default_footer": "Miembro #{memberCount}",
+    "default_dm": "¡Bienvenido a {server}! Nos alegra tenerte aquí. Por favor asegúrate de leer las reglas del servidor y no dudes en preguntar si tienes alguna duda.",
+    "dm_title": "¡Bienvenido a {server}!",
+    "role_added": "¡Se te ha dado el rol {role}!",
+    "role_removed": "¡Se te ha quitado el rol {role}!",
+    "verified": "¡Has sido verificado! ¡Bienvenido al servidor!",
+    "rules_info": "Por favor asegúrate de leer y seguir todas las reglas del servidor. Puedes encontrarlas en el canal de reglas.",
+    "button_verify": "Verificar",
+    "button_rules": "Reglas",
+    "button_roles": "Obtener Roles"
+  },
+  "goodbye": {
+    "default_message": "¡Adiós {username}! Gracias por ser parte de {server}.",
+    "default_title": "Adiós {username}",
+    "default_description": "{username} ha dejado {server}. ¡Te extrañaremos!"
+  },
+  "autorole": {
+    "react_for_role": "Reacciona para obtener este rol",
+    "role_assigned": "¡Se ha asignado el rol {role}!",
+    "role_removed": "¡Se ha quitado el rol {role}!",
+    "max_uses_reached": "Este rol de reacción ha alcanzado su máximo de usos.",
+    "require_role_missing": "Necesitas el rol {role} para obtener este rol.",
+    "single_role_only": "Solo puedes tener un rol de esta selección.",
+    "level_role_assigned": "¡Felicidades! Se te ha asignado el rol {role} por alcanzar el nivel {level}!",
+    "boost_role_assigned": "¡Gracias por impulsar el servidor! Se te ha asignado el rol {role}!",
+    "reaction_role_created": "¡Mensaje de rol de reacción creado exitosamente!",
+    "reaction_role_deleted": "¡Mensaje de rol de reacción eliminado exitosamente!"
+  },
+  "utility": {
+    "avatar": {
+      "description": "Muestra el avatar del usuario",
+      "user_option": "Usuario para mostrar el avatar",
+      "server_option": "Mostrar avatar específico del servidor",
+      "title": "Avatar de {user}",
+      "requested_by": "Solicitado por {user}",
+      "server_avatar": "Avatar del Servidor",
+      "global_avatar": "Avatar Global",
+      "global_button": "Global",
+      "server_button": "Servidor",
+      "download": "Descargar"
+    },
+    "invite": {
+      "description": "Obtener enlace de invitación del bot y enlaces útiles",
+      "title": "¡Invita a Korex a tu Servidor!",
+      "description_text": "¡Gracias por tu interés en Korex! Haz clic en el botón de abajo para invitarme a tu servidor.",
+      "features_title": "🌟 Características",
+      "features_list": "• Sistema de moderación avanzado\n• Economía y niveles\n• Comandos personalizados y automatización\n• Soporte multi-idioma\n• Roles de reacción y mensajes de bienvenida\n• Música y entretenimiento\n• ¡Y mucho más!",
+      "permissions_title": "🔒 Permisos",
+      "permissions_text": "El enlace de invitación incluye todos los permisos necesarios para la funcionalidad completa. Puedes ajustarlos después de invitar si es necesario.",
+      "footer": "Korex - Tu bot de Discord todo en uno",
+      "invite_button": "Invitar Bot",
+      "support_button": "Servidor de Soporte",
+      "website_button": "Sitio Web",
+      "vote_button": "Vota por Nosotros",
+      "github_button": "GitHub"
+    },
+    "suggest": {
+      "description": "Enviar una sugerencia para el servidor",
+      "suggestion_option": "Tu sugerencia",
+      "category_option": "Categoría de la sugerencia",
+      "no_channel": "No hay canal de sugerencias configurado. Por favor contacta a un administrador.",
+      "no_permissions": "No tengo permisos para enviar mensajes en el canal de sugerencias.",
+      "embed_title": "💡 Nueva Sugerencia",
+      "author": "Autor",
+      "category": "Categoría",
+      "status": "Estado",
+      "pending": "Pendiente de Revisión",
+      "footer": "Reacciona con 👍 👎 🤷 para votar",
+      "approve": "Aprobar",
+      "deny": "Denegar",
+      "consider": "Considerar",
+      "submitted_title": "✅ ¡Sugerencia Enviada!",
+      "submitted_description": "Tu sugerencia ha sido publicada en {channel} para revisión.",
+      "your_suggestion": "Tu Sugerencia",
+      "categories": {
+        "general": "General",
+        "bot": "Características del Bot",
+        "events": "Eventos del Servidor",
+        "moderation": "Reglas y Moderación",
+        "structure": "Canales y Roles"
+      }
+    },
+    "suggestions": {
+      "errors": {
+        "service_unavailable": "El servicio de sugerencias no está disponible.",
+        "disabled": "Las sugerencias están deshabilitadas en este servidor.",
+        "no_channel": "No hay canal de sugerencias configurado. Por favor contacta a un administrador.",
+        "cooldown": "Debes esperar {time} segundos antes de enviar otra sugerencia.",
+        "not_found": "Sugerencia no encontrada.",
+        "no_permission_vote": "No tienes permisos para votar en sugerencias.",
+        "no_permission_staff": "No tienes permisos para gestionar sugerencias.",
+        "creation_failed": "Error al crear la sugerencia. Por favor intenta de nuevo.",
+        "internal_error": "Ocurrió un error interno. Por favor intenta más tarde."
+      },
+      "modal": {
+        "title": "Enviar Sugerencia",
+        "title_label": "Título de la Sugerencia",
+        "title_placeholder": "Título breve para tu sugerencia...",
+        "description_label": "Descripción",
+        "description_placeholder": "Descripción detallada de tu sugerencia...",
+        "category_label": "Categoría",
+        "category_placeholder": "feature, improvement, bug, o other",
+        "priority_label": "Prioridad",
+        "priority_placeholder": "low, medium, o high"
+      },
+      "success": {
+        "title": "¡Sugerencia Enviada!",
+        "description": "Tu sugerencia **{title}** ha sido enviada exitosamente!\n\nID de Sugerencia: `{id}`"
+      },
+      "embed": {
+        "category": "Categoría",
+        "priority": "Prioridad",
+        "status": "Estado",
+        "staff_notes": "Notas del Staff",
+        "footer": "ID de Sugerencia: {id}"
+      },
+      "categories": {
+        "feature": "Solicitud de Función",
+        "improvement": "Mejora",
+        "bug": "Reporte de Bug",
+        "other": "Otro"
+      },
+      "priorities": {
+        "low": "Baja",
+        "medium": "Media",
+        "high": "Alta"
+      },
+      "statuses": {
+        "new": "Nueva",
+        "reviewing": "En Revisión",
+        "approved": "Aprobada",
+        "rejected": "Rechazada",
+        "considering": "Considerando",
+        "in_progress": "En Progreso",
+        "completed": "Completada"
+      },
+      "buttons": {
+        "approve": "Aprobar",
+        "reject": "Rechazar",
+        "consider": "Considerar"
+      },
+      "modals": {
+        "approve": {
+          "title": "Aprobar Sugerencia"
+        },
+        "reject": {
+          "title": "Rechazar Sugerencia"
+        },
+        "consider": {
+          "title": "Considerar Sugerencia"
+        },
+        "reason_label": "Razón",
+        "reason_placeholder": "Explica tu decisión..."
+      },
+      "vote_recorded": "¡Tu voto ha sido registrado!",
+      "staff_action_success": "¡Sugerencia {action} exitosamente!",
+      "notification": {
+        "title": "Actualización de Sugerencia",
+        "description": "Tu sugerencia **{title}** en **{server}** ha sido actualizada a: **{status}**",
+        "reason": "Respuesta del Staff"
+      },
+      "config": {
+        "title": "Configuración de Sugerencias",
+        "description": "Gestionar configuración de sugerencias para este servidor",
+        "enabled": "Estado",
+        "channel": "Canal",
+        "cooldown": "Tiempo de Espera",
+        "auto_threads": "Hilos Automáticos",
+        "vote_threshold": "Umbral de Votos",
+        "notify_author": "Notificar Autores"
+      },
+      "setup": {
+        "invalid_channel": "Canal inválido proporcionado.",
+        "success": {
+          "title": "¡Configuración de Sugerencias Completa!",
+          "description": "Las sugerencias han sido habilitadas en {channel}."
+        },
+        "next_steps": "Próximos Pasos",
+        "next_steps_description": "• Configurar roles de staff con `/suggestions config`\n• Establecer permisos de votación\n• Personalizar configuraciones según sea necesario",
+        "error": "Error al configurar sugerencias. Por favor intenta de nuevo."
+      },
+      "view": {
+        "title": "Lista de Sugerencias",
+        "description": "Mostrando {count} sugerencias con estado: **{status}**",
+        "no_suggestions": "No se encontraron sugerencias con los criterios especificados.",
+        "footer": "Mostrando {shown} de {total} sugerencias"
+      },
+      "stats": {
+        "title": "Estadísticas de Sugerencias",
+        "description": "Resumen de actividad de sugerencias en este servidor",
+        "no_data": "No hay datos de sugerencias disponibles para este servidor.",
+        "overview": "Resumen",
+        "by_status": "Por Estado"
+      }
+    },
+    "poll": {
+      "description": "Crear una encuesta con múltiples opciones",
+      "question_option": "La pregunta de la encuesta",
+      "options_option": "Opciones de la encuesta separadas por | o ;",
+      "duration_option": "Duración de la encuesta en minutos (opcional)",
+      "anonymous_option": "Hacer la encuesta anónima",
+      "channel_option": "Canal donde publicar la encuesta",
+      "min_options": "Debes proporcionar al menos 2 opciones.",
+      "max_options": "Solo puedes tener hasta 10 opciones.",
+      "invalid_channel": "Canal especificado inválido.",
+      "no_permissions": "No tengo permisos para enviar mensajes en ese canal.",
+      "created_by": "Creado por",
+      "anonymous_user": "Anónimo",
+      "ends_at": "Termina",
+      "footer": "¡Reacciona para votar!",
+      "created_here": "✅ ¡Encuesta creada!",
+      "created_in_channel": "✅ ¡Encuesta creada en {channel}!",
+      "results_title": "Resultados de la Encuesta",
+      "total_votes": "Votos Totales",
+      "ended": "Encuesta Terminada"
+    }
+  },
+  "music": {
+    "disabled": "🚫 La música está deshabilitada en este servidor.",
+    "node_unavailable": "❌ El nodo de música no está disponible. Verifica que Lavalink esté activo y accesible.",
+    "not_in_voice": "❌ Necesitas estar en un canal de voz para usar comandos de música.",
+    "no_voice_permissions": "❌ No tengo permisos para unirme o hablar en ese canal de voz.",
+    "different_voice_channel": "❌ Necesitas estar en el mismo canal de voz que yo.",
+    "restricted_channel": "❌ Los comandos de música están restringidos a canales específicos.",
+    "dj_only": "❌ Este comando requiere permisos de DJ.",
+    "no_queue": "❌ No hay cola de música para este servidor.",
+    "nothing_playing": "❌ No se está reproduciendo nada actualmente.",
+    "no_results": "❌ No se encontraron resultados para: **{query}**",
+    "song_too_long": "❌ ¡La canción es muy larga! La duración máxima es {duration} minutos.",
+    "queue_full": "❌ ¡La cola está llena! El tamaño máximo es {maxSize} canciones.",
+    "skip_failed": "❌ Error al saltar la canción actual.",
+    "stop_failed": "❌ Error al detener la música.",
+    "volume_failed": "❌ Error al cambiar el volumen.",
+    "now_playing": "Reproduciendo Ahora",
+    "added_to_queue": "Agregado a la Cola",
+    "skipped": "Canción Saltada",
+    "stopped": "Música Detenida",
+    "volume_changed": "Volumen Cambiado",
+    "current_volume": "Volumen Actual",
+    "queue_title": "Cola de Música",
+    "up_next": "A Continuación",
+    "queue_empty": "La cola está vacía. ¡Usa `/play` para agregar canciones!",
+    "queue_ended": "Cola Terminada",
+    "queue_ended_description": "No hay más canciones en la cola.",
+    "last_track": "Última Canción",
+    "cleared_tracks": "Canciones Eliminadas",
+    "stopped_description": "Música detenida y cola limpiada.",
+    "duration": "Duración",
+    "source": "Fuente",
+    "requested_by": "Solicitado por {user}",
+    "queue_length": "Longitud de Cola",
+    "position": "Posición",
+    "volume": "Volumen",
+    "loop": "Repetir",
+    "status": "Estado",
+    "progress": "Progreso",
+    "volume_bar": "Volumen",
+    "volume_level": "El volumen actual es **{volume}%**",
+    "volume_changed_description": "Volumen cambiado de **{oldVolume}%** a **{newVolume}%**",
+    "loop_none": "Desactivado",
+    "loop_track": "Canción",
+    "loop_queue": "Cola",
+    "playing": "Reproduciendo",
+    "paused": "Pausado",
+    "pause": "Pausar",
+    "resume": "Reanudar",
+    "skip": "Saltar",
+    "stop": "Detener",
+    "shuffle": "Aleatorio",
+    "view_queue": "Ver Cola",
+    "skipped_by": "Saltado por {user}",
+    "stopped_by": "Detenido por {user}",
+    "changed_by": "Cambiado por {user}",
+    "queue_footer": "Página {page}/{totalPages} • {total} canciones totales"
+  },
+  "giveaways": {
+    "default_title": "🎉 Sorteo",
+    "duration_hours": "{hours} horas",
+    "status": {
+      "active": "Activo",
+      "ended": "Terminado"
+    },
+    "embed": {
+      "description": "¡Haz clic en el botón de abajo para participar!",
+      "prize": "🎁 Premio",
+      "winners": "🏆 Ganadores",
+      "entries": "🎫 Entradas",
+      "duration": "⏰ Duración",
+      "ends": "⏰ Termina",
+      "channel": "📍 Canal",
+      "requirements": "📋 Requisitos",
+      "footer": "ID del Sorteo: {id}"
+    },
+    "requirements": {
+      "role": "Tener rol",
+      "level": "Nivel mínimo {level}",
+      "messages": "Mínimo {count} mensajes",
+      "balance": "Mínimo {amount} monedas",
+      "account_age": "La cuenta debe tener {days} días de antigüedad"
+    },
+    "buttons": {
+      "join": "Unirse al Sorteo",
+      "leave": "Salir",
+      "info": "Info"
+    },
+    "join": {
+      "success_single": "¡Te uniste al sorteo con 1 entrada!",
+      "success_multiple": "¡Te uniste al sorteo con {entries} entradas!",
+      "already_participating": "Ya estás participando en este sorteo.",
+      "ended": "Este sorteo ya ha terminado.",
+      "missing_role": "No tienes el rol requerido para unirte a este sorteo.",
+      "requirements_not_met": "No cumples con los requisitos para unirte a este sorteo."
+    },
+    "leave": {
+      "success": "Saliste del sorteo exitosamente.",
+      "not_participating": "No estás participando en este sorteo.",
+      "ended": "Este sorteo ya ha terminado.",
+      "error": "Error al salir del sorteo."
+    },
+    "info": {
+      "not_implemented": "¡La función de información de sorteos estará disponible pronto!"
+    },
+    "setup": {
+      "expired": "La configuración del sorteo ha expirado. Por favor comienza de nuevo.",
+      "cancelled": "Configuración del sorteo cancelada.",
+      "created": "✅ ¡Sorteo **{id}** creado exitosamente en {channel}!",
+      "failed": "❌ Error al crear el sorteo. Por favor intenta de nuevo.",
+      "error": "❌ Ocurrió un error al crear el sorteo.",
+      "invalid_channel": "❌ Canal inválido seleccionado.",
+      "requirements_added": "✅ Se agregaron {count} requisito(s) al sorteo.",
+      "bonus_added": "✅ Se agregaron {count} regla(s) de entradas bonus al sorteo."
+    },
+    "modals": {
+      "requirements": {
+        "title": "Requisitos del Sorteo",
+        "roles_label": "Roles Requeridos",
+        "roles_placeholder": "@rol1 @rol2 o IDs de roles",
+        "level_label": "Nivel Mínimo",
+        "level_placeholder": "ej., 10",
+        "messages_label": "Mensajes Mínimos",
+        "messages_placeholder": "ej., 100",
+        "balance_label": "Balance Mínimo",
+        "balance_placeholder": "ej., 1000"
+      },
+      "bonus": {
+        "title": "Entradas Bonus",
+        "roles_label": "Reglas de Entradas Bonus",
+        "roles_placeholder": "@VIP: 5\n@Premium: 3\nUna regla por línea"
+      }
+    },
+    "reminder": {
+      "title": "Recordatorio de Sorteo",
+      "description": "⏰ ¡El sorteo de **{prize}** termina en **{time}**!\n\n¡No pierdas tu oportunidad de ganar!"
+    },
+    "alt_detection": {
+      "new_account": "Cuenta muy nueva ({days} días de antigüedad)",
+      "new_member": "Recién se unió al servidor",
+      "default_avatar": "Usando avatar por defecto",
+      "low_activity": "Muy poca actividad en el servidor"
+    },
+    "panel": {
+      "title": "Panel de Gestión de Sorteos",
+      "description": "Gestiona todos los sorteos de este servidor",
+      "stats": {
+        "total": "Sorteos Totales",
+        "active": "Sorteos Activos",
+        "participants": "Participantes Totales"
+      },
+      "active_list": "Sorteos Activos",
+      "no_active": "No hay sorteos activos",
+      "buttons": {
+        "create": "Crear",
+        "list": "Listar Todos",
+        "stats": "Estadísticas",
+        "settings": "Configuración"
+      }
+    },
+    "ended": {
+      "title": "¡Sorteo Terminado!",
+      "description": "🎉 ¡Felicidades {winners}!\n\nGanaste: **{prize}**",
+      "total_entries": "Entradas Totales",
+      "participants": "Participantes",
+      "no_winners": {
+        "title": "Sorteo Terminado - Sin Ganadores",
+        "description": "El sorteo de **{prize}** ha terminado, pero nadie participó."
+      }
+    },
+    "winner_dm": {
+      "title": "¡Ganaste un Sorteo!",
+      "description": "🎉 ¡Felicidades! ¡Ganaste **{prize}** en **{server}**!\n\nPor favor contacta a los administradores del servidor para reclamar tu premio."
+    }
+  },
+  "polls": {
+    "types": {
+      "simple": "Encuesta Simple",
+      "multiple": "Opción Múltiple",
+      "dropdown": "Menú Desplegable",
+      "ranking": "Encuesta de Ranking"
+    },
+    "status": {
+      "active": "Activa",
+      "ended": "Terminada"
+    },
+    "embed": {
+      "description": "¡Vota haciendo clic en los botones o seleccionando del menú de abajo!",
+      "title": "Título",
+      "type": "Tipo",
+      "options": "Opciones",
+      "options_count": "Número de Opciones",
+      "total_votes": "Votos Totales",
+      "participants": "Participantes",
+      "duration": "Duración",
+      "ends": "⏰ Termina",
+      "status": "Estado",
+      "channel": "📍 Canal",
+      "footer": "ID de Encuesta: {id}",
+      "votes_label": "votos"
+    },
+    "buttons": {
+      "results": "Ver Resultados",
+      "info": "Info de Encuesta"
+    },
+    "dropdown": {
+      "placeholder": "Selecciona tu(s) opción(es)..."
+    },
+    "vote": {
+      "success": "¡Tu voto ha sido registrado!",
+      "success_single": "¡Tu voto ha sido registrado!",
+      "success_multiple": "¡Tus {count} votos han sido registrados!",
+      "ended": "Esta encuesta ya ha terminado.",
+      "change_not_allowed": "No se permiten cambios de voto en esta encuesta.",
+      "multiple_not_allowed": "No se permiten opciones múltiples en esta encuesta.",
+      "missing_role": "No tienes el rol requerido para votar en esta encuesta.",
+      "requirements_not_met": "No cumples con los requisitos para votar en esta encuesta.",
+      "invalid_option": "Opción de voto inválida. Por favor intenta de nuevo."
+    },
+    "results": {
+      "description": "Aquí están los resultados actuales de la encuesta:",
+      "options": "📊 Resultados",
+      "total_votes": "Votos Totales",
+      "participants": "Participantes",
+      "winner": "🏆 Ganador",
+      "tie": "🤝 Empate",
+      "status": "Estado",
+      "not_found": "Encuesta no encontrada o no hay resultados disponibles."
+    },
+    "info": {
+      "not_implemented": "¡La función de información de encuestas estará disponible pronto!"
+    },
+    "setup": {
+      "expired": "La configuración de la encuesta ha expirado. Por favor comienza de nuevo.",
+      "cancelled": "Configuración de encuesta cancelada.",
+      "created": "✅ ¡Encuesta **{id}** creada exitosamente en {channel}!",
+      "failed": "❌ Error al crear la encuesta. Por favor intenta de nuevo.",
+      "error": "❌ Ocurrió un error al crear la encuesta.",
+      "invalid_channel": "❌ Canal inválido seleccionado.",
+      "restrictions_added": "✅ Se agregaron {count} restricción(es) a la encuesta.",
+      "settings_updated": "✅ Configuración de encuesta actualizada exitosamente."
+    },
+    "duration_hours": "{hours} horas",
+    "modals": {
+      "restrictions": {
+        "title": "Restricciones de Encuesta",
+        "roles_label": "Roles Requeridos",
+        "roles_placeholder": "@rol1 @rol2 o IDs de roles",
+        "level_label": "Nivel Mínimo",
+        "level_placeholder": "ej., 10",
+        "age_label": "Antigüedad Mínima de Cuenta (días)",
+        "age_placeholder": "ej., 7",
+        "messages_label": "Mensajes Mínimos",
+        "messages_placeholder": "ej., 50"
+      },
+      "settings": {
+        "title": "Configuración Avanzada",
+        "show_results_label": "Mostrar Resultados",
+        "show_results_placeholder": "always, after_vote, o after_end"
+      }
+    },
+    "wizard": {
+      "modal_title": "📊 Crear Encuesta",
+      "title_label": "Título",
+      "title_placeholder": "¿Qué quieres preguntar?",
+      "description_label": "Descripción (opcional)",
+      "description_placeholder": "Añade más contexto a tu encuesta...",
+      "options_label": "Opciones (una por línea, mín. 2)",
+      "options_placeholder": "Opción 1\nOpción 2\nOpción 3",
+      "step2_title": "📊 Tipo de Encuesta",
+      "step2_description": "¿Cómo votarán los usuarios?",
+      "type_placeholder": "Elige un tipo...",
+      "step3_title": "📊 Duración",
+      "step3_description": "¿Cuánto tiempo estará activa la encuesta?",
+      "duration_placeholder": "Elige una duración...",
+      "step4_title": "📊 Revisar y Crear",
+      "step4_description": "Revisa tu encuesta antes de publicarla:",
+      "field_options": "Opciones",
+      "field_type": "Tipo",
+      "field_duration": "Duración",
+      "field_channel": "Canal",
+      "field_settings": "Configuración",
+      "no_expiry": "Sin expiración",
+      "anonymous_on": "🙈 Anónima: SÍ",
+      "anonymous_off": "👁️ Anónima: NO",
+      "allow_change_on": "🔄 Cambiar voto: SÍ",
+      "allow_change_off": "🔒 Cambiar voto: NO",
+      "create": "Crear Encuesta",
+      "min_options": "Necesitas al menos **2 opciones** (una por línea).",
+      "max_options": "Máximo **25 opciones** permitidas.",
+      "errors": {
+        "min_options": "Necesitas al menos **2 opciones** (una por línea).",
+        "max_options": "Máximo **25 opciones** permitidas.",
+        "session_expired": "⏰ Tu sesión de creación de encuesta expiró. Usa `/poll create` de nuevo."
+      }
+    },
+    "durations": {
+      "0": "Sin expiración",
+      "1": "1 hora",
+      "6": "6 horas",
+      "12": "12 horas",
+      "24": "24 horas (1 día)",
+      "48": "48 horas (2 días)",
+      "168": "1 semana"
+    }
+  },
+  "invites": {
+    "stats": {
+      "title": "📊 Estadísticas de Invitaciones - {user}",
+      "total": "Invitaciones Totales",
+      "valid": "Invitaciones Válidas",
+      "bonus": "Invitaciones Bonus",
+      "fake": "Invitaciones Falsas",
+      "left": "Salieron del Servidor",
+      "rank": "Rango del Servidor",
+      "unranked": "Sin Rango",
+      "next_reward": "Próxima Recompensa",
+      "next_reward_desc": "{remaining} invitaciones más para: {reward}"
+    },
+    "leaderboard": {
+      "title": "🏆 Tabla de Invitaciones",
+      "description": "Los mejores invitadores de este servidor:",
+      "invites": "invitaciones",
+      "unknown_user": "Usuario Desconocido",
+      "footer": "Página {page}/{totalPages} • {total} usuarios totales"
+    },
+    "reward": {
+      "title": "🎉 ¡Recompensa de Invitación Obtenida!",
+      "description": "¡Felicidades {user}! Has obtenido una recompensa por alcanzar **{invites} invitaciones**:\n\n🎁 **{reward}**"
+    }
+  },
+  "autoroles": {
+    "setup": {
+      "title": "🎭 Configuración de Auto-Roles",
+      "description": "Configura la asignación automática de roles para tu servidor. Selecciona una opción abajo para comenzar.",
+      "select_placeholder": "Elige una función de auto-roles para configurar...",
+      "features": {
+        "join": {
+          "name": "👋 Roles de Entrada",
+          "value": "Roles asignados cuando los usuarios se unen al servidor"
+        },
+        "reaction": {
+          "name": "⭐ Roles de Reacción",
+          "value": "Roles asignados mediante reacciones a mensajes"
+        },
+        "button": {
+          "name": "🔘 Roles de Botón",
+          "value": "Roles asignados mediante interacciones con botones"
+        },
+        "level": {
+          "name": "📈 Roles de Nivel",
+          "value": "Roles asignados basados en el nivel del usuario"
+        },
+        "booster": {
+          "name": "💎 Roles de Booster",
+          "value": "Roles asignados a los boosters del servidor"
+        },
+        "invite": {
+          "name": "📨 Roles de Invitación",
+          "value": "Roles asignados basados en el conteo de invitaciones"
+        }
+      },
+      "options": {
+        "join": {
+          "label": "Roles de Entrada",
+          "description": "Configurar roles dados cuando los usuarios se unen"
+        },
+        "reaction": {
+          "label": "Roles de Reacción",
+          "description": "Crear mensajes de roles de reacción"
+        },
+        "button": {
+          "label": "Roles de Botón",
+          "description": "Crear mensajes de roles con botones"
+        },
+        "level": {
+          "label": "Roles de Nivel",
+          "description": "Configurar recompensas de roles basadas en nivel"
+        },
+        "booster": {
+          "label": "Roles de Booster",
+          "description": "Configurar roles para boosters del servidor"
+        }
+      },
+      "join_info": "Usa `/autoroles join` para agregar o quitar roles que se asignan automáticamente cuando los usuarios se unen al servidor.",
+      "reaction_info": "Usa `/autoroles reaction` para crear mensajes donde los usuarios pueden reaccionar para obtener roles.",
+      "button_info": "Usa `/autoroles button` para crear mensajes con botones para asignación de roles.",
+      "level_info": "Usa `/autoroles level` para configurar roles que se asignan cuando los usuarios alcanzan ciertos niveles.",
+      "booster_info": "Usa `/autoroles booster` para configurar roles que se asignan a los boosters del servidor."
+    },
+    "join": {
+      "added": "✅ Se agregó **{role}** como rol de entrada ({delay})",
+      "removed": "✅ Se quitó **{role}** de los roles de entrada",
+      "delay_minutes": "con retraso de {minutes} minutos",
+      "immediate": "asignado inmediatamente"
+    },
+    "level": {
+      "added": "✅ Se agregó **{role}** como recompensa de nivel {level} ({removeOthers})",
+      "removed": "✅ Se quitó **{role}** de las recompensas de nivel {level}",
+      "remove_others_yes": "quita otros roles de nivel",
+      "remove_others_no": "mantiene otros roles de nivel"
+    },
+    "booster": {
+      "added": "✅ Se agregó **{role}** como rol de booster",
+      "removed": "✅ Se quitó **{role}** de los roles de booster"
+    },
+    "reaction": {
+      "wizard_coming_soon": "🚧 ¡El asistente de roles de reacción estará disponible pronto! Usa el comando setup para configuración básica."
+    },
+    "button": {
+      "wizard_coming_soon": "🚧 ¡El asistente de roles de botón estará disponible pronto! Usa el comando setup para configuración básica."
+    },
+    "list": {
+      "title": "🎭 Configuración de Auto-Roles",
+      "status": "Estado: {status}",
+      "join_roles": "👋 Roles de Entrada",
+      "level_roles": "📈 Roles de Nivel",
+      "booster_roles": "💎 Roles de Booster",
+      "reaction_roles": "⭐ Roles de Reacción",
+      "level": "Nivel",
+      "reaction_count": "{count} mensajes de roles de reacción configurados"
+    },
+    "toggle": {
+      "success": "✅ El sistema de auto-roles ha sido **{status}**"
+    }
+  },
+  "welcome_image": {
+    "setup": {
+      "title": "🖼️ Configuración de Imágenes de Bienvenida",
+      "description": "Configura imágenes de bienvenida personalizadas con hermosas plantillas y variables dinámicas.",
+      "select_placeholder": "Elige una función de imágenes de bienvenida para configurar...",
+      "features": {
+        "templates": {
+          "name": "🎨 Plantillas",
+          "value": "10+ plantillas prediseñadas disponibles"
+        },
+        "variables": {
+          "name": "📝 Variables",
+          "value": "Información dinámica de usuario y servidor"
+        },
+        "customization": {
+          "name": "⚙️ Personalización",
+          "value": "Opciones de configuración flexibles"
+        }
+      },
+      "options": {
+        "view_templates": {
+          "label": "Ver Plantillas",
+          "description": "Explorar todas las plantillas de imagen disponibles"
+        },
+        "preview": {
+          "label": "Vista Previa de Plantilla",
+          "description": "Probar plantillas con tu perfil"
+        },
+        "configure": {
+          "label": "Configurar Ajustes",
+          "description": "Configurar preferencias de imágenes de bienvenida"
+        }
+      },
+      "templates_info": "Usa `/welcome-image templates` para ver todas las plantillas disponibles, luego `/welcome-image preview` para probarlas.",
+      "preview_info": "Usa `/welcome-image preview <plantilla>` para ver cómo se ve una plantilla con tu perfil.",
+      "configure_info": "Usa `/welcome-image set <plantilla>` para elegir una plantilla y `/welcome-image toggle` para activar/desactivar imágenes."
+    },
+    "templates": {
+      "title": "🎨 Plantillas de Bienvenida Disponibles",
+      "description": "Elige entre {count} plantillas diseñadas profesionalmente:",
+      "footer": "Usa /welcome-image preview <id-plantilla> para probar cualquier plantilla"
+    },
+    "preview": {
+      "title": "👀 Vista Previa de Plantilla",
+      "description": "Vista previa de la plantilla **{template}** con tu perfil:",
+      "footer": "Usa /welcome-image set para aplicar esta plantilla",
+      "error": "❌ Error al generar la imagen de vista previa. Por favor intenta de nuevo."
+    },
+    "set": {
+      "success": "✅ ¡Plantilla de imagen de bienvenida configurada a **{template}** y activada!",
+      "error": "❌ Error al configurar la plantilla de imagen de bienvenida. Por favor intenta de nuevo."
+    },
+    "toggle": {
+      "success": "✅ Las imágenes de bienvenida han sido **{status}**",
+      "error": "❌ Error al alternar las imágenes de bienvenida. Por favor intenta de nuevo."
+    },
+    "status": {
+      "title": "🖼️ Estado de Imágenes de Bienvenida",
+      "enabled": "Estado",
+      "template": "Plantilla Actual",
+      "template_info": "Detalles de la Plantilla",
+      "no_template": "No hay plantilla seleccionada",
+      "error": "❌ Error al obtener el estado de las imágenes de bienvenida."
+    }
+  },
+  "user_stats": {
+    "report": {
+      "title": "📊 Estadísticas de {user}",
+      "messages": {
+        "title": "💬 Mensajes",
+        "value": "**Total:** {total}\n**Promedio Diario:** {average}\n**Hora Pico:** {peak}:00"
+      },
+      "voice": {
+        "title": "🎤 Actividad de Voz",
+        "value": "**Tiempo Total:** {total}\n**Canales:** {channels}"
+      },
+      "activity": {
+        "title": "🔥 Actividad y Rachas",
+        "value": "**Racha Actual:** {current} días\n**Racha Más Larga:** {longest} días\n**Días Activo:** {days}"
+      },
+      "comparison": {
+        "title": "📈 Comparación del Servidor",
+        "value": "**Rango:** #{rank} de {total}\n**Percentil:** {percentile}%\n**Estado:** {status}"
+      },
+      "above_average": "Sobre el Promedio",
+      "below_average": "Bajo el Promedio",
+      "no_data": "No hay estadísticas disponibles para este usuario aún.",
+      "error": "❌ Error al generar el reporte de estadísticas del usuario."
+    },
+    "guild_report": {
+      "title": "📊 Estadísticas del Servidor - {server}",
+      "overview": {
+        "title": "📈 Resumen",
+        "value": "**Mensajes:** {messages}\n**Tiempo de Voz:** {voice}\n**Usuarios Activos:** {users}\n**Crecimiento:** +{growth}%"
+      },
+      "averages": {
+        "title": "📊 Promedios",
+        "value": "**Msg/Usuario:** {messages}\n**Voz/Usuario:** {voice}\n**Hora Pico:** {peak}:00"
+      },
+      "top_messages": {
+        "title": "🏆 Más Conversadores"
+      },
+      "no_data": "No hay estadísticas del servidor disponibles aún.",
+      "error": "❌ Error al generar el reporte de estadísticas del servidor."
+    },
+    "buttons": {
+      "activity": "Actividad",
+      "channels": "Canales",
+      "compare": "Comparar",
+      "detailed": "Detallado",
+      "growth": "Crecimiento"
+    },
+    "periods": {
+      "7d": "Últimos 7 días",
+      "30d": "Últimos 30 días",
+      "90d": "Últimos 90 días",
+      "all": "Todo el tiempo"
+    }
+  },
+  "stats": {
+    "user": {
+      "not_found": "❌ Usuario no encontrado en este servidor.",
+      "error": "❌ Error al obtener las estadísticas del usuario."
+    },
+    "server": {
+      "error": "❌ Error al obtener las estadísticas del servidor."
+    },
+    "channel": {
+      "title": "📁 Estadísticas del Canal - #{channel}",
+      "invalid": "❌ Por favor especifica un canal de texto o voz válido.",
+      "messages": {
+        "title": "💬 Actividad de Mensajes",
+        "value": "**Total:** {total}\n**Promedio Diario:** {daily}\n**Usuarios Únicos:** {users}"
+      },
+      "activity": {
+        "title": "📊 Información de Actividad",
+        "value": "**Hora Pico:** {peak}:00\n**Creado:** {created}"
+      },
+      "top_users": {
+        "title": "🏆 Usuarios Más Activos"
+      },
+      "no_data": "No hay estadísticas disponibles para este canal aún.",
+      "error": "❌ Error al obtener las estadísticas del canal."
+    },
+    "leaderboard": {
+      "messages": {
+        "title": "🏆 Tabla de Mensajes",
+        "label": "mensajes"
+      },
+      "voice": {
+        "title": "🎤 Tabla de Tiempo de Voz",
+        "label": ""
+      },
+      "streak": {
+        "title": "🔥 Tabla de Rachas de Actividad",
+        "label": "días"
+      },
+      "daily": {
+        "title": "📅 Tabla de Actividad Diaria",
+        "label": "hoy"
+      },
+      "footer": "Mostrando los {count} mejores usuarios por {type}",
+      "no_data": "No hay datos de tabla disponibles aún.",
+      "error": "❌ Error al obtener los datos de la tabla."
+    },
+    "compare": {
+      "title": "⚖️ Comparación de Actividad - {user}",
+      "user_not_found": "❌ Usuario no encontrado en este servidor.",
+      "ranking": {
+        "title": "📊 Ranking del Servidor",
+        "value": "**Rango:** #{rank} de {total}\n**Percentil:** Top {percentile}%"
+      },
+      "messages": {
+        "title": "💬 Mensajes",
+        "value": "**Tú:** {user}\n**Promedio:** {average}\n**Diferencia:** {difference} ({status})"
+      },
+      "voice": {
+        "title": "🎤 Tiempo de Voz",
+        "value": "**Tú:** {user}\n**Promedio:** {average}\n**Estado:** {status}"
+      },
+      "streak": {
+        "title": "🔥 Racha de Actividad",
+        "value": "**Tú:** {user} días\n**Promedio:** {average} días\n**Estado:** {status}"
+      },
+      "above": "sobre el promedio",
+      "below": "bajo el promedio",
+      "overall": {
+        "above": "🎉 ¡Eres más activo que la mayoría de usuarios en este servidor!",
+        "below": "📈 Hay espacio para mejorar en tu actividad del servidor."
+      },
+      "no_data": "No hay datos de comparación disponibles para este usuario aún.",
+      "error": "❌ Error al generar la comparación de actividad."
+    },
+    "activity": {
+      "title": "📊 Desglose de Actividad - {user} ({period})",
+      "user_not_found": "❌ Usuario no encontrado en este servidor.",
+      "hourly": {
+        "title": "🕐 Horas Pico"
+      },
+      "daily": {
+        "title": "📅 Patrón Semanal"
+      },
+      "summary": {
+        "title": "📈 Resumen",
+        "value": "**Hora Pico:** {peak}:00\n**Promedio Diario:** {average}\n**Racha Actual:** {streak} días"
+      },
+      "no_data": "No hay datos de actividad disponibles.",
+      "error": "❌ Error al obtener el desglose de actividad."
+    },
+    "buttons": {
+      "detailed": "Detallado",
+      "growth": "Crecimiento",
+      "activity": "Actividad",
+      "channels": "Canales",
+      "compare": "Comparar"
+    },
+    "periods": {
+      "7d": "7 días",
+      "30d": "30 días",
+      "90d": "90 días",
+      "all": "Todo el tiempo"
+    }
+  },
+  "nuke": {
+    "default_reason": "Canal eliminado por administrador",
+    "invalid_channel": "❌ Tipo de canal inválido para la operación de eliminación.",
+    "no_permission": "❌ No tienes permisos para gestionar este canal.",
+    "bot_no_permission": "❌ No tengo permisos para gestionar este canal.",
+    "confirmation": {
+      "title": "⚠️ Confirmación de Eliminación de Canal",
+      "description": "Estás a punto de **eliminar permanentemente** y recrear el canal **{channel}** ({type}).\n\n**¡Esta acción no se puede deshacer!**",
+      "channel": "Canal",
+      "reason": "Razón",
+      "warning": "⚠️ Advertencia",
+      "warning_text": "¡Todos los mensajes, hilos e historial del canal se perderán permanentemente!",
+      "footer": "Esta confirmación expira en 30 segundos"
+    },
+    "buttons": {
+      "confirm": "Confirmar Eliminación",
+      "cancel": "Cancelar"
+    },
+    "success": {
+      "title": "💥 Canal Eliminado Exitosamente",
+      "description": "El canal **{channel}** ha sido eliminado y recreado exitosamente por {user}.",
+      "reason": "Razón",
+      "timestamp": "Marca de Tiempo",
+      "footer": "Todos los permisos y configuraciones han sido restaurados",
+      "brief": "✅ El canal {channel} ha sido eliminado y recreado exitosamente."
+    },
+    "cancelled": "❌ Operación de eliminación de canal cancelada.",
+    "timeout": "⏰ Confirmación de eliminación de canal expirada.",
+    "error": "❌ Error al eliminar el canal. Por favor intenta de nuevo.",
+    "channel_types": {
+      "text": "Canal de Texto",
+      "voice": "Canal de Voz",
+      "announcement": "Canal de Anuncios",
+      "stage": "Canal de Escenario",
+      "forum": "Canal de Foro",
+      "unknown": "Desconocido"
+    }
+  },
+  "clone": {
+    "default_reason": "Clonado por administrador",
+    "channel": {
+      "no_access": "❌ No tengo acceso para ver ese canal.",
+      "unsupported_type": "❌ Este tipo de canal no puede ser clonado.",
+      "success": {
+        "title": "📋 Canal Clonado Exitosamente",
+        "description": "El canal **{original}** ha sido clonado exitosamente como **{clone}**.",
+        "original": "Canal Original",
+        "clone": "Canal Clonado",
+        "type": "Tipo de Canal",
+        "footer": "Todos los permisos y configuraciones han sido copiados"
+      },
+      "error": "❌ Error al clonar el canal. Por favor intenta de nuevo."
+    },
+    "role": {
+      "managed_role": "❌ No se pueden clonar roles gestionados (roles de bot, roles de booster, etc.).",
+      "hierarchy_error": "❌ No se pueden clonar roles superiores a mi rol más alto.",
+      "success": {
+        "title": "📋 Rol Clonado Exitosamente",
+        "description": "El rol **{original}** ha sido clonado exitosamente como **{clone}**.",
+        "original": "Rol Original",
+        "clone": "Rol Clonado",
+        "properties": "Propiedades",
+        "properties_value": "Color: {color}\nMostrado: {hoist}\nMencionable: {mentionable}\nPermisos: {permissions}",
+        "footer": "Todos los permisos y configuraciones han sido copiados"
+      },
+      "error": "❌ Error al clonar el rol. Por favor intenta de nuevo."
+    },
+    "channel_types": {
+      "text": "Canal de Texto",
+      "voice": "Canal de Voz",
+      "announcement": "Canal de Anuncios",
+      "stage": "Canal de Escenario",
+      "forum": "Canal de Foro",
+      "category": "Categoría",
+      "unknown": "Desconocido"
+    }
+  },
+  "timestamp": {
+    "now": {
+      "title": "🕐 Marca de Tiempo Actual",
+      "timestamp": "Código de Marca de Tiempo",
+      "preview": "Vista Previa",
+      "unix": "Marca de Tiempo Unix",
+      "footer": "Copia el código de marca de tiempo para usar en tus mensajes"
+    },
+    "custom": {
+      "title": "🕐 Marca de Tiempo Personalizada",
+      "input": "Entrada",
+      "timestamp": "Código de Marca de Tiempo",
+      "preview": "Vista Previa",
+      "unix": "Marca de Tiempo Unix",
+      "footer": "Copia el código de marca de tiempo para usar en tus mensajes",
+      "error": "❌ Formato de fecha inválido: `{input}`\n\n**Ejemplos:**\n{examples}",
+      "examples": "• `2024-12-25 15:30`\n• `25/12/2024 3:30 PM`\n• `25.12.2024 15:30`\n• `1735134600` (Unix)\n• `2 horas desde ahora`\n• `30 minutos atrás`"
+    },
+    "converter": {
+      "title": "🕐 Convertidor de Marcas de Tiempo Interactivo",
+      "description": "**Entrada:** {input}\n\nTodos los formatos de marca de tiempo de Discord para tu fecha:",
+      "unix": "Marca de Tiempo Unix",
+      "now": "Tiempo actual",
+      "select_placeholder": "Selecciona un formato para copiar...",
+      "copy_all": "Copiar Todos los Formatos",
+      "refresh": "Actualizar (Ahora)",
+      "copied": "📋 Copiado: `{timestamp}`",
+      "all_copied": "📋 Todos los formatos de marca de tiempo copiados:",
+      "error": "❌ Error al analizar la fecha/hora proporcionada."
+    }
+  },
+  "sticky": {
+    "footer": "Este es un mensaje fijo",
+    "set": {
+      "invalid_color": "❌ Formato de color inválido. Usa formato hex como #FF0000",
+      "success": {
+        "title": "📌 Mensaje Fijo Establecido",
+        "description": "El mensaje fijo ha sido establecido exitosamente en este canal.",
+        "channel": "Canal",
+        "type": "Tipo",
+        "preview": "Vista Previa",
+        "footer": "El mensaje reaparecerá después de que se envíen nuevos mensajes"
+      },
+      "error": "❌ Error al establecer el mensaje fijo. Por favor intenta de nuevo."
+    },
+    "remove": {
+      "not_found": "❌ No se encontró mensaje fijo en este canal.",
+      "success": {
+        "title": "📌 Mensaje Fijo Removido",
+        "description": "El mensaje fijo ha sido removido exitosamente de {channel}."
+      },
+      "error": "❌ Error al remover el mensaje fijo. Por favor intenta de nuevo."
+    },
+    "list": {
+      "empty": "❌ No se encontraron mensajes fijos en este servidor.",
+      "title": "📌 Mensajes Fijos ({count})",
+      "description": "Lista de todos los mensajes fijos en este servidor:",
+      "footer_more": "Y {more} mensajes fijos más..."
+    },
+    "edit": {
+      "not_found": "❌ No se encontró mensaje fijo en este canal para editar.",
+      "success": {
+        "title": "📌 Mensaje Fijo Actualizado",
+        "description": "El mensaje fijo ha sido actualizado exitosamente.",
+        "new_content": "Nuevo Contenido"
+      },
+      "error": "❌ Error al editar el mensaje fijo. Por favor intenta de nuevo."
+    },
+    "info": {
+      "not_found": "❌ No se encontró mensaje fijo en este canal.",
+      "title": "📌 Información del Mensaje Fijo",
+      "channel": "Canal",
+      "type": "Tipo",
+      "status": "Estado",
+      "content": "Contenido",
+      "refresh": "Actualizar Estado",
+      "error": "❌ Error al obtener la información del mensaje fijo."
+    },
+    "types": {
+      "embed": "Embed",
+      "text": "Texto"
+    },
+    "status": {
+      "active": "✅ Activo",
+      "missing": "❌ Mensaje Faltante"
+    }
+  },
+  "lockdown": {
+    "default_reason": "Bloqueo de emergencia por administrador",
+    "channel": {
+      "invalid_channel": "❌ Tipo de canal inválido para la operación de bloqueo.",
+      "already_locked": "❌ Este canal ya está bloqueado.",
+      "not_locked": "❌ Este canal no está actualmente bloqueado.",
+      "lock": {
+        "announcement": {
+          "title": "🔒 Canal Bloqueado",
+          "description": "Este canal ha sido bloqueado por un moderador. Solo los miembros del staff pueden enviar mensajes.",
+          "reason": "Razón",
+          "moderator": "Moderador",
+          "footer": "Este bloqueo permanecerá hasta ser removido manualmente"
+        },
+        "success": {
+          "title": "🔒 Canal Bloqueado Exitosamente",
+          "description": "El canal {channel} ha sido bloqueado exitosamente.",
+          "reason": "Razón",
+          "timestamp": "Bloqueado En"
+        }
+      },
+      "unlock": {
+        "announcement": {
+          "title": "🔓 Canal Desbloqueado",
+          "description": "Este canal ha sido desbloqueado. La actividad normal puede continuar.",
+          "reason": "Razón",
+          "moderator": "Moderador",
+          "footer": "Gracias por tu paciencia"
+        },
+        "success": {
+          "title": "🔓 Canal Desbloqueado Exitosamente",
+          "description": "El canal {channel} ha sido desbloqueado exitosamente.",
+          "duration": "Duración del Bloqueo",
+          "reason": "Razón"
+        }
+      },
+      "error": "❌ Error al realizar la operación de bloqueo del canal."
+    },
+    "server": {
+      "lock": {
+        "confirm_title": "⚠️ Confirmación de Bloqueo del Servidor",
+        "confirm_description": "Estás a punto de bloquear **todo el servidor**.\n\nEsto evitará que todos los miembros envíen mensajes o se unan a canales de voz.",
+        "success": {
+          "title": "🔒 Servidor Bloqueado",
+          "description": "Todo el servidor ha sido bloqueado exitosamente.",
+          "locked": "Canales Bloqueados",
+          "failed": "Error al Bloquear",
+          "reason": "Razón",
+          "footer": "Usa `/lockdown server unlock` para restaurar la actividad normal"
+        }
+      },
+      "unlock": {
+        "confirm_title": "🔓 Confirmación de Desbloqueo del Servidor",
+        "confirm_description": "Estás a punto de desbloquear **todo el servidor**.\n\nEsto restaurará la actividad normal para todos los miembros.",
+        "success": {
+          "title": "🔓 Servidor Desbloqueado",
+          "description": "El servidor ha sido desbloqueado exitosamente.",
+          "unlocked": "Canales Desbloqueados",
+          "failed": "Error al Desbloquear",
+          "reason": "Razón"
+        }
+      },
+      "confirm": {
+        "reason": "Razón",
+        "affected": "Afectado",
+        "all_channels": "Todos los canales del servidor",
+        "warning": "Esta acción afecta todo el servidor"
+      },
+      "error": "❌ Error al realizar la operación de bloqueo del servidor."
+    },
+    "status": {
+      "no_lockdowns": "✅ No hay bloqueos activos en este servidor.",
+      "title": "🔒 Bloqueos Activos ({count})",
+      "description": "Lista de todos los bloqueos activos en este servidor:",
+      "field_value": "**Tipo:** {type}\n**Duración:** {duration}\n**Moderador:** {moderator}\n**Razón:** {reason}",
+      "footer_more": "Y {more} bloqueos activos más..."
+    },
+    "buttons": {
+      "confirm": "Confirmar Bloqueo",
+      "cancel": "Cancelar"
+    },
+    "cancelled": "❌ Operación de bloqueo cancelada.",
+    "timeout": "⏰ Confirmación de bloqueo expirada.",
+    "types": {
+      "channel": "Canal",
+      "server": "Servidor"
+    },
+    "duration": {
+      "days": "{days} días",
+      "hours": "{hours} horas",
+      "minutes": "{minutes} minutos",
+      "seconds": "{seconds} segundos"
+    }
+  },
+  "shop": {
+    "browse": {
+      "title": "🛒 Tienda del Servidor",
+      "description": "¡Bienvenido a la tienda! Aquí puedes comprar items increíbles con tus {currency}.\n\n**Items disponibles:** {count}",
+      "empty": "❌ La tienda está vacía actualmente. ¡Vuelve más tarde!",
+      "footer": "Usa /shop buy <id> para comprar un item",
+      "select_placeholder": "Selecciona un item para comprar...",
+      "refresh": "Actualizar",
+      "inventory": "Mi Inventario"
+    },
+    "buy": {
+      "success_title": "✅ ¡Compra Exitosa!",
+      "error_title": "❌ Error de Compra",
+      "purchased_item": "Item Comprado",
+      "remaining_balance": "Balance Restante"
+    },
+    "info": {
+      "not_found": "❌ Item no encontrado en la tienda.",
+      "price": "💰 Precio",
+      "type": "📦 Tipo",
+      "stock": "📊 Stock",
+      "category": "🏷️ Categoría",
+      "status": "🔄 Estado",
+      "id": "🆔 ID",
+      "unlimited": "Ilimitado",
+      "available": "Disponible",
+      "unavailable": "No Disponible",
+      "requirements": "📋 Requisitos",
+      "req_level": "Nivel {level} o superior",
+      "req_role": "Rol: {role}",
+      "req_balance": "Balance adicional: {amount} {currency}",
+      "buy_button": "Comprar Ahora"
+    },
+    "categories": {
+      "cosmetics": "🎨 Cosméticos",
+      "boosts": "⚡ Potenciadores",
+      "reactions": "😀 Reacciones",
+      "roles": "🎭 Roles"
+    },
+    "types": {
+      "cosmetic": "Cosmético",
+      "consumable": "Consumible",
+      "reaction": "Reacción",
+      "role": "Rol",
+      "sticker": "Sticker"
+    }
+  },
+  "inventory": {
+    "view": {
+      "title": "🎒 Inventario de {user}",
+      "description": "Tienes {count} items en tu inventario.",
+      "empty_own": "Tu inventario está vacío. ¡Visita la tienda para comprar items!",
+      "empty_other": "{user} no tiene items en su inventario.",
+      "used": "(Usado)",
+      "stats": "📊 Estadísticas",
+      "stats_value": "**Total:** {total} items\n**Activos:** {active}\n**Usados:** {used}",
+      "use_button": "Usar Item",
+      "gift_button": "Regalar Item",
+      "refresh": "Actualizar"
+    },
+    "use": {
+      "not_found": "❌ Item no encontrado o no disponible para usar.",
+      "success_title": "⚡ ¡Item Usado!",
+      "error_title": "❌ Error al Usar Item",
+      "item_used": "Item Usado",
+      "xp_boost_activated": "¡Boost de XP activado! Ganarás el doble de XP por {duration}.",
+      "money_boost_activated": "¡Boost de dinero activado! Ganarás 50% más dinero por {duration}.",
+      "item_activated": "¡{item} ha sido activado!",
+      "menu_placeholder": "🚧 Menú de uso de items disponible pronto."
+    },
+    "gift": {
+      "self_gift": "❌ No puedes regalarte items a ti mismo.",
+      "bot_gift": "❌ No puedes regalar items a bots.",
+      "not_found": "❌ Item no encontrado en tu inventario.",
+      "success_title": "🎁 ¡Regalo Enviado!",
+      "error_title": "❌ Error al Enviar Regalo",
+      "gifted_item": "Item Regalado",
+      "recipient": "Destinatario",
+      "transfer_success": "¡{item} ha sido enviado exitosamente a {user}!",
+      "menu_placeholder": "🚧 Menú de regalo de items disponible pronto."
+    }
+  },
+  "work": {
+    "success_title": "💼 ¡Trabajo Completado!",
+    "job_message": "**{job}**\n{description}\n\n¡Ganaste {earned} {currency}!",
+    "earnings": "💰 Ganancias",
+    "new_balance": "💰 Nuevo Balance",
+    "next_work": "⏰ Próximo Trabajo",
+    "cooldown_info": "Disponible en 5 minutos",
+    "footer": "¡Sigue trabajando para ganar más dinero!",
+    "jobs": {
+      "programmer": {
+        "name": "Programador",
+        "desc": "Hoy programaste una aplicación increíble"
+      },
+      "delivery": {
+        "name": "Repartidor",
+        "desc": "Repartiste pizzas por toda la ciudad"
+      },
+      "chef": {
+        "name": "Chef",
+        "desc": "Cocinaste deliciosos platos en un restaurante"
+      },
+      "streamer": {
+        "name": "Streamer",
+        "desc": "Hiciste stream y entreteniste a miles de personas"
+      },
+      "designer": {
+        "name": "Diseñador",
+        "desc": "Creaste diseños impresionantes para una empresa"
+      },
+      "teacher": {
+        "name": "Profesor",
+        "desc": "Enseñaste a estudiantes entusiastas"
+      },
+      "mechanic": {
+        "name": "Mecánico",
+        "desc": "Reparaste varios autos en el taller"
+      },
+      "doctor": {
+        "name": "Doctor",
+        "desc": "Ayudaste a pacientes en el hospital"
+      },
+      "musician": {
+        "name": "Músico",
+        "desc": "Tocaste música en un concierto increíble"
+      },
+      "photographer": {
+        "name": "Fotógrafo",
+        "desc": "Tomaste fotos espectaculares en una sesión"
+      },
+      "barista": {
+        "name": "Barista",
+        "desc": "Preparaste cafés deliciosos para los clientes"
+      },
+      "gardener": {
+        "name": "Jardinero",
+        "desc": "Cuidaste hermosos jardines y plantas"
+      },
+      "writer": {
+        "name": "Escritor",
+        "desc": "Escribiste un artículo fascinante"
+      },
+      "cleaner": {
+        "name": "Limpiador",
+        "desc": "Limpiaste oficinas hasta dejarlas impecables"
+      },
+      "security": {
+        "name": "Guardia de Seguridad",
+        "desc": "Protegiste un edificio importante toda la noche"
+      }
+    }
+  },
+  "fun": {
+    "8ball": {
+      "question": "Pregunta",
+      "answer": "Respuesta",
+      "footer": "🎱 La bola mágica ha hablado",
+      "responses": {
+        "positive": {
+          "1": "Sí, definitivamente.",
+          "2": "Sin duda alguna.",
+          "3": "Puedes confiar en ello.",
+          "4": "Las señales apuntan a que sí.",
+          "5": "¡Por supuesto!"
+        },
+        "neutral": {
+          "1": "Pregunta de nuevo más tarde.",
+          "2": "Mejor no te lo digo ahora.",
+          "3": "No puedo predecirlo ahora.",
+          "4": "Concéntrate y pregunta de nuevo.",
+          "5": "Es difícil de decir."
+        },
+        "negative": {
+          "1": "No cuentes con ello.",
+          "2": "Mi respuesta es no.",
+          "3": "Las fuentes dicen que no.",
+          "4": "Muy dudoso.",
+          "5": "No lo creo."
+        }
+      },
+      "title": "🎱 Bola Mágica"
+    },
+    "coinflip": {
+      "description": "Lanza una moneda",
+      "title": "🪙 Lanzamiento de Moneda",
+      "result": {
+        "heads": "¡Ha salido Cara! 🪙",
+        "tails": "¡Ha salido Cruz! 🥈"
+      },
+      "footer": "🪙 Lanzamiento de moneda"
+    },
+    "dice": {
+      "description": "Lanza un dado",
+      "sides_option": "Número de caras del dado (por defecto: 6)",
+      "title": "🎲 Lanzamiento de Dado",
+      "result": "¡Sacaste un **{result}** en un dado de {sides} caras!",
+      "sides": "Caras",
+      "results": "Resultados",
+      "configuration": "Configuración",
+      "config_value": "{count}d{sides}",
+      "statistics": "Estadísticas",
+      "stats_value": "Total: {total} | Promedio: {avg}",
+      "footer": "🎲 Dados lanzados"
+    },
+    "rps": {
+      "description": "Juega Piedra, Papel o Tijera",
+      "choice_option": "Tu elección",
+      "title": "✂️ Piedra, Papel o Tijera",
+      "choices": {
+        "rock": "🪨 Piedra",
+        "paper": "📄 Papel",
+        "scissors": "✂️ Tijera"
+      },
+      "your_choice": "Tu Elección",
+      "bot_choice": "Mi Elección",
+      "result": "Resultado",
+      "results": {
+        "win": "🎉 ¡Ganaste!",
+        "lose": "😔 ¡Perdiste!",
+        "tie": "🤝 ¡Empate!"
+      },
+      "footer": "✊✋✌️ Piedra, Papel o Tijeras"
+    },
+    "joke": {
+      "description": "Obtén un chiste aleatorio",
+      "title": "😂 Chiste Aleatorio",
+      "footer": "Solicitado por {user}",
+      "categories": {
+        "programming": "💻 Programación",
+        "dad": "👨 Chistes de Papá",
+        "puns": "🎭 Juegos de Palabras",
+        "random": "🎲 Aleatorio"
+      },
+      "programming": [
+        "¿Por qué los programadores prefieren el modo oscuro? ¡Porque la luz atrae a los bugs!",
+        "Un programador va a un supermercado. Su esposa le dice: 'Compra pan. Si tienen huevos, compra una docena.' Vuelve con 12 panes.",
+        "¿Por qué los desarrolladores de Java usan gafas? ¡Porque no ven C#!",
+        "Solo hay 10 tipos de personas: las que entienden binario y las que no.",
+        "¿Por qué el programador se quedó sin dinero? ¡Porque gastó toda su caché!",
+        "¿Cuántos programadores hacen falta para cambiar una bombilla? Ninguno, eso es problema de hardware.",
+        "El programador murió en la ducha porque el champú decía: 'Aplicar, enjuagar, repetir'.",
+        "¿Por qué el programador dejó su trabajo? ¡Porque no le daban arrays de sueldo!",
+        "Un buen programador mira en ambas direcciones antes de cruzar una calle de un solo sentido.",
+        "Tengo un chiste sobre recursión, pero primero déjame contarte un chiste sobre recursión."
+      ],
+      "dad": [
+        "¿Por qué los científicos no confían en los átomos? ¡Porque inventan todo!",
+        "¿Por qué el espantapájaros ganó un premio? ¡Era sobresaliente en su campo!",
+        "Solo conozco 25 letras del abecedario. No sé por qué.",
+        "¿Cómo llamas a un queso que no es tuyo? ¡Nacho queso!",
+        "Estoy a dieta de mariscos. Veo comida y me la como.",
+        "¿Por qué una bicicleta no puede mantenerse en pie por sí sola? ¡Está muy cansada!",
+        "¿Qué le dijo el semáforo al auto? ¡No me mires que me estoy cambiando!",
+        "¿Por qué el libro de matemáticas se veía tan triste? ¡Porque tenía demasiados problemas!",
+        "¿Qué hace una abeja en el gimnasio? ¡Zum-ba!",
+        "¿Cuál es el colmo de un jardinero? ¡Que le den calabazas!"
+      ],
+      "puns": [
+        "Era banquero pero perdí el interés.",
+        "Estoy leyendo un libro sobre antigravedad. ¡Es imposible dejarlo!",
+        "Le dije a mi médico que me rompí el brazo en dos sitios. Me dijo que dejara de ir a esos sitios.",
+        "¿Qué le dijo el pastel al tenedor? ¡Estás bueno para comerte!",
+        "La pala fue un invento revolucionario.",
+        "Iba a contar un chiste de construcción, pero sigo trabajando en ello.",
+        "¿Por qué el melón no puede casarse? ¡Porque es un melón solterón!",
+        "Solía pensar que era indeciso, pero ahora no estoy tan seguro.",
+        "¿Cuál es el animal más antiguo? ¡La cebra, porque está en blanco y negro!",
+        "¿Qué le dijo el número 0 al número 8? ¡Bonito cinturón!"
+      ],
+      "jokes": [
+        "¿Por qué los científicos no confían en los átomos? ¡Porque inventan todo!",
+        "¿Por qué el espantapájaros ganó un premio? ¡Era sobresaliente en su campo!",
+        "¿Por qué los huevos no cuentan chistes? ¡Se partirían de risa!",
+        "¿Cómo llamas a un fideo falso? ¡Un im-pasta!",
+        "¿Por qué el libro de matemáticas se veía tan triste? ¡Porque tenía demasiados problemas!",
+        "¿Cómo llamas a un oso sin dientes? ¡Un oso de goma!",
+        "¿Por qué una bicicleta no puede mantenerse en pie por sí sola? ¡Está muy cansada!",
+        "¿Cómo llamas a un pez con corbatín? ¡Sofisticado!",
+        "¿Por qué la galleta fue al doctor? ¡Porque se sentía desmoronada!",
+        "¿Qué es lo mejor de Suiza? No lo sé, ¡pero la bandera es una gran ventaja!"
+      ]
+    },
+    "meme": {
+      "description": "Obtén un meme aleatorio",
+      "title": "😂 Meme Aleatorio",
+      "loading": "Obteniendo un meme fresco para ti...",
+      "error": "❌ No se pudo obtener un meme ahora. ¡Inténtalo más tarde!",
+      "footer": "👍 {upvotes} upvotes • r/{subreddit}",
+      "fallback_footer": "Powered by meme APIs"
+    },
+    "hug": {
+      "description": "Dale un abrazo cálido a alguien",
+      "user_option": "El usuario al que quieres abrazar",
+      "title": "🤗 Abrazo Cálido",
+      "self_hug": "¡{user} se abraza a sí mismo! 🤗\n*¡A veces necesitas amarte a ti mismo primero!*",
+      "bot_hug": "¡{user} trata de abrazarme! 🤖💙\n*¡Beep boop! ¡Abrazo virtual recibido!*",
+      "user_hug": "¡{author} le da a {target} un gran abrazo cálido! 🤗💕\n*¡Los abrazos hacen que todo sea mejor!*",
+      "messages": {
+        "0": "*te da el abrazo más cálido de todos*",
+        "1": "*te envuelve en un abrazo acogedor*",
+        "2": "*te aprieta suavemente*",
+        "3": "*te abraza fuerte y no te suelta*",
+        "4": "*te da un abrazo de oso*",
+        "5": "{user} le da un cálido abrazo a {target}"
+      },
+      "footer": "🤗 ¡Abrazo enviado!"
+    },
+    "kiss": {
+      "description": "Dale un beso dulce a alguien",
+      "user_option": "El usuario al que quieres besar",
+      "title": "💋 Beso Dulce",
+      "self_kiss": "¡{user} se besa a sí mismo! 💋\n*¡El amor propio es importante!*",
+      "bot_kiss": "¡{user} trata de besarme! 🤖💙\n*¡Beep boop! ¡Qué dulce!*",
+      "user_kiss": "¡{author} le da a {target} un beso dulce! 💋💕\n*¡Qué romántico!*",
+      "messages": [
+        "{user} le da un beso a {target} 💋",
+        "{user} besa tiernamente a {target}",
+        "¡{user} y {target} se besan! 💕"
+      ]
+    },
+    "slap": {
+      "description": "Abofetea a alguien (juguetonamente)",
+      "user_option": "El usuario al que quieres abofetear",
+      "title": "👋 Bofetada Juguetona",
+      "self_slap": "¡{user} se abofetea a sí mismo! 👋\n*¡Eso debe haber dolido!*",
+      "bot_slap": "¡{user} trata de abofetearme! 🤖\n*¡Auch! ¡Eso no es muy amable!*",
+      "user_slap": "¡{author} abofetea a {target}! 👋\n*¡Eso debe doler!*",
+      "messages": [
+        "{user} le da una bofetada a {target}",
+        "¡{target} recibe un golpe de {user}!",
+        "{user} abofetea a {target}"
+      ]
+    },
+    "pat": {
+      "description": "Dale palmaditas suaves a alguien",
+      "user_option": "El usuario al que quieres dar palmaditas",
+      "title": "🤲 Palmaditas Suaves",
+      "self_pat": "¡{user} se da palmaditas a sí mismo! 🤲\n*¡Buen trabajo!*",
+      "bot_pat": "¡{user} me da palmaditas! 🤖💙\n*¡Beep boop! ¡Se siente bien!*",
+      "user_pat": "¡{author} le da palmaditas suaves a {target}! 🤲💕\n*¡Tan reconfortante!*",
+      "messages": [
+        "{user} le da palmaditas a {target}",
+        "{user} acaricia la cabeza de {target}",
+        "¡{target} recibe palmaditas de {user}!"
+      ]
+    },
+    "advice": {
+      "description": "Obtén un consejo sabio",
+      "title": "💡 Consejo Sabio",
+      "footer": "¡Tómalo con pinzas!",
+      "list": [
+        "Nunca dejes de aprender.",
+        "Sé amable con los demás.",
+        "Cuida tu salud mental.",
+        "Disfruta los pequeños momentos.",
+        "No tengas miedo de fallar.",
+        "El tiempo que dedicas a ti mismo no es tiempo perdido.",
+        "Escucha más de lo que hablas.",
+        "La constancia supera al talento.",
+        "No compares tu camino con el de los demás.",
+        "Aprende a decir no sin sentirte culpable.",
+        "Rodéate de personas que te impulsen a crecer.",
+        "Los errores son lecciones disfrazadas.",
+        "Celebra tus pequeños logros, no solo los grandes.",
+        "La paciencia es una fortaleza, no una debilidad.",
+        "Pide ayuda cuando la necesites, no es señal de debilidad.",
+        "Duerme bien: todo parece más difícil cuando estás cansado.",
+        "Haz una cosa a la vez y hazla bien.",
+        "El respeto empieza por uno mismo.",
+        "No pospongas lo que puedes hacer hoy.",
+        "Mantén la calma antes de responder con enojo.",
+        "Invierte en tus relaciones tanto como en tus metas.",
+        "Leer transforma la manera en que ves el mundo.",
+        "No necesitas aprobación de todos para avanzar.",
+        "La gratitud cambia la perspectiva de cualquier día.",
+        "Cuida tu cuerpo: es el único que tendrás.",
+        "Las comparaciones roban la alegría.",
+        "Un paso al día te lleva más lejos que ninguno.",
+        "Sé honesto, incluso cuando sea incómodo.",
+        "El fracaso no es el opuesto del éxito, es parte del camino.",
+        "Da sin esperar siempre algo a cambio.",
+        "Aprecia lo que tienes mientras trabajas por lo que quieres.",
+        "Habla bien de ti mismo, como lo harías de alguien que amas."
+      ]
+    },
+    "compliment": {
+      "description": "Dale un buen cumplido a alguien",
+      "user_option": "El usuario al que quieres halagar (opcional)",
+      "title": "✨ Buen Cumplido",
+      "self_compliment": "¡{user} se halaga a sí mismo! ✨\n*{compliment}*\n*¡La confianza en uno mismo es clave!*",
+      "bot_compliment": "¡{user} halaga a {target}! ✨\n*{compliment}*\n*¡Beep boop! ¡Gracias!*",
+      "user_compliment": "¡{author} halaga a {target}! ✨\n*{compliment}*\n*¡Qué dulce!*",
+      "list": [
+        "Eres increíble tal como eres.",
+        "Tu sonrisa ilumina el día.",
+        "Tienes un gran corazón.",
+        "Eres más fuerte de lo que crees.",
+        "El mundo es mejor contigo."
+      ]
+    },
+    "cat": {
+      "description": "Obtén una imagen aleatoria de gato",
+      "title": "🐱 Gato Aleatorio",
+      "footer": "¡Miau! 🐾",
+      "error": "❌ No se pudo obtener una imagen de gato ahora. ¡Probablemente los gatos están durmiendo!"
+    },
+    "dog": {
+      "description": "Obtén una imagen aleatoria de perro",
+      "title": "🐶 Perro Aleatorio",
+      "footer": "¡Guau! 🐾",
+      "error": "❌ No se pudo obtener una imagen de perro ahora. ¡Probablemente los perros están jugando!"
+    },
+    "guess": {
+      "description": "Juega un juego de adivinar números",
+      "guess_option": "Tu respuesta (1-100 o 1-max)",
+      "max_option": "Número máximo a adivinar (por defecto: 100)",
+      "title": "🎯 Juego de Adivinar Números",
+      "win_title": "🎉 ¡Felicitaciones!",
+      "win_message": "¡Lo adivinaste! El número era **{number}** y adivinaste **{guess}**!\n¡Bien hecho!",
+      "lose_title": "❌ Respuesta Incorrecta",
+      "lose_message": "Adivinaste **{guess}**, pero el número era **{number}**.\n{hint}\n\n¡Inténtalo de nuevo con un nuevo comando `/guess` (rango: 1-{max})!",
+      "too_low": "📈 ¡Tu respuesta fue muy baja!",
+      "too_high": "📉 ¡Tu respuesta fue muy alta!"
+    },
+    "autoresponse": {
+      "description": "Gestionar respuestas automáticas a mensajes",
+      "list": {
+        "description": "Listar todas las respuestas automáticas del servidor",
+        "title": "Respuestas Automáticas",
+        "list_description": "El servidor tiene {count} respuesta(s) automática(s) configurada(s):",
+        "no_responses": "Sin Respuestas Automáticas",
+        "no_responses_desc": "Este servidor no tiene respuestas automáticas configuradas.\nUsa `/autoresponse create` para crear una.",
+        "showing_limited": "Mostrando {shown} de {total} respuestas automáticas"
+      },
+      "create": {
+        "description": "Crear una nueva respuesta automática",
+        "modal_title": "Crear Respuesta Automática",
+        "name_label": "Nombre",
+        "name_placeholder": "Ingresa un nombre para esta respuesta automática",
+        "triggers_label": "Activadores (uno por línea)",
+        "triggers_placeholder": "hola\nhi\nhey qué tal",
+        "response_label": "Mensaje de Respuesta",
+        "response_placeholder": "¡Hola {user}! ¡Bienvenido a {server}!",
+        "type_label": "Tipo de Activador (opcional)",
+        "cooldown_label": "Cooldown en segundos (opcional)",
+        "success_title": "✅ Respuesta automática creada",
+        "success_desc": "La respuesta automática **{name}** fue creada con ID `{id}`."
+      },
+      "edit": {
+        "description": "Editar una respuesta automática existente",
+        "id_option": "ID de la respuesta automática a editar",
+        "modal_title": "Editar Respuesta Automática",
+        "not_implemented": "Función de Edición Próximamente",
+        "not_implemented_desc": "La función de edición está siendo desarrollada y estará disponible en la próxima actualización.",
+        "id_not_found": "No se encontró una respuesta automática con ID `{id}`.",
+        "success_title": "✅ Respuesta automática actualizada",
+        "success_desc": "La respuesta automática **{name}** (`{id}`) fue actualizada."
+      },
+      "delete": {
+        "description": "Eliminar una respuesta automática",
+        "id_option": "ID de la respuesta automática a eliminar",
+        "not_implemented": "Función de Eliminación Próximamente",
+        "not_implemented_desc": "La función de eliminación está siendo desarrollada y estará disponible en la próxima actualización.",
+        "id_not_found": "No se encontró una respuesta automática con ID `{id}`.",
+        "success_title": "🗑️ Respuesta automática eliminada",
+        "success_desc": "La respuesta automática `{id}` fue eliminada."
+      },
+      "toggle": {
+        "description": "Habilitar o deshabilitar una respuesta automática",
+        "id_option": "ID de la respuesta automática a alternar",
+        "not_implemented": "Función de Alternado Próximamente",
+        "not_implemented_desc": "La función de alternado está siendo desarrollada y estará disponible en la próxima actualización.",
+        "id_not_found": "No se encontró una respuesta automática con ID `{id}`.",
+        "enabled_title": "✅ Respuesta automática habilitada",
+        "disabled_title": "⏸️ Respuesta automática deshabilitada",
+        "toggle_desc": "La respuesta automática **{name}** (`{id}`) ahora está **{status}**."
+      },
+      "test": {
+        "description": "Probar una respuesta automática con un mensaje",
+        "id_option": "ID de la respuesta automática a probar",
+        "message_option": "Contenido del mensaje de prueba",
+        "title": "Prueba de Respuesta Automática",
+        "testing": "Probando respuesta automática `{id}` con mensaje: `{message}`",
+        "result": "Resultado de la Prueba",
+        "no_match": "No se encontró coincidencia - la respuesta automática no se activaría",
+        "match": "✅ El mensaje coincide con esta respuesta automática y ejecutaría sus acciones."
+      },
+      "stats": {
+        "description": "Ver estadísticas de respuestas automáticas",
+        "title": "Estadísticas de Respuestas Automáticas",
+        "stats_description": "Estadísticas de las respuestas automáticas de este servidor:",
+        "general": "General",
+        "general_value": "**Total:** {total}\n**Habilitadas:** {enabled}\n**Deshabilitadas:** {disabled}",
+        "usage": "Uso",
+        "usage_value": "**Total de Activaciones:** {total}\n**Promedio por Respuesta:** {average}",
+        "most_used": "Más Usada",
+        "most_used_value": "**{name}** ({usage} veces)"
+      }
+    },
+    "slowmode": {
+      "description": "Configurar modo lento para un canal",
+      "seconds_option": "Duración del modo lento en segundos (0 para deshabilitar)",
+      "channel_option": "Canal para configurar modo lento (canal actual si no se especifica)",
+      "reason_option": "Razón para configurar el modo lento",
+      "no_reason": "No se proporcionó razón",
+      "error_title": "Error de Modo Lento",
+      "invalid_channel": "Este comando solo puede usarse en canales de texto.",
+      "enabled_title": "Modo Lento Habilitado",
+      "disabled_title": "Modo Lento Deshabilitado",
+      "enabled_desc": "El modo lento ha sido habilitado en {channel}.\nLos usuarios pueden enviar un mensaje cada **{duration}**.",
+      "disabled_desc": "El modo lento ha sido deshabilitado en {channel}.",
+      "moderator": "Moderador",
+      "channel": "Canal",
+      "reason": "Razón",
+      "duration": "Duración",
+      "error_desc": "Error al configurar el modo lento. Verifica los permisos del bot.",
+      "duration_seconds": "{seconds} segundos",
+      "duration_minutes": "{minutes} minutos",
+      "duration_minutes_seconds": "{minutes}m {seconds}s",
+      "duration_hours": "{hours} horas",
+      "duration_hours_minutes": "{hours}h {minutes}m"
+    },
+    "purge": {
+      "description": "Limpieza avanzada de mensajes con múltiples filtros",
+      "amount_option": "Número de mensajes a eliminar (1-100)",
+      "user_option": "Solo eliminar mensajes de este usuario",
+      "filter_option": "Filtrar mensajes por tipo",
+      "contains_option": "Solo eliminar mensajes que contengan este texto",
+      "reason_option": "Razón para limpiar mensajes",
+      "no_reason": "No se proporcionó razón",
+      "error_title": "Error de Limpieza",
+      "invalid_channel": "Este comando solo puede usarse en canales de texto.",
+      "no_messages_title": "No se Encontraron Mensajes",
+      "no_messages_desc": "No se encontraron mensajes que coincidan con los criterios especificados.",
+      "success_title": "Mensajes Limpiados",
+      "success_desc": "Se eliminaron exitosamente **{count}** mensajes en {channel}.",
+      "moderator": "Moderador",
+      "channel": "Canal",
+      "reason": "Razón",
+      "filters": "Filtros Aplicados",
+      "old_messages_warning": "⚠️ Mensajes Antiguos",
+      "old_messages_count": "{count} mensajes eran más antiguos de 14 días y no pudieron ser eliminados",
+      "error_desc": "Error al limpiar mensajes. Verifica los permisos del bot.",
+      "filter_user": "Usuario: {user}",
+      "filter_contains": "Contiene: `{text}`",
+      "filter_bots": "Solo mensajes de bots",
+      "filter_humans": "Solo mensajes humanos",
+      "filter_attachments": "Mensajes con archivos adjuntos",
+      "filter_embeds": "Mensajes con embeds",
+      "filter_links": "Mensajes con enlaces",
+      "filter_mentions": "Mensajes con menciones"
+    },
+    "massban": {
+      "description": "Banear múltiples usuarios a la vez",
+      "reason_option": "Razón para banear usuarios",
+      "delete_days_option": "Días de mensajes a eliminar (0-7)",
+      "no_reason": "No se proporcionó razón",
+      "modal_title": "Baneo Masivo de Usuarios",
+      "user_ids_label": "IDs de Usuario (uno por línea o separados por espacios)",
+      "user_ids_placeholder": "123456789012345678\n987654321098765432\n...",
+      "error_title": "Error de Baneo Masivo",
+      "no_valid_ids": "No se encontraron IDs de usuario válidos. Proporciona IDs válidos de Discord.",
+      "too_many_users": "Demasiados usuarios especificados. El máximo es {max} usuarios por baneo masivo.",
+      "confirm_title": "Confirmar Baneo Masivo",
+      "confirm_desc": "Estás a punto de banear **{count}** usuarios.\n\n**Razón:** {reason}\n\n¡Esta acción no se puede deshacer!",
+      "user_count": "Usuarios a Banear",
+      "delete_days": "Eliminar Mensajes (Días)",
+      "reason": "Razón",
+      "confirm_button": "Confirmar Baneo",
+      "cancel_button": "Cancelar",
+      "cancelled_title": "Baneo Masivo Cancelado",
+      "cancelled_desc": "La operación de baneo masivo ha sido cancelada.",
+      "processing": "Procesando baneo masivo... Esto puede tomar un tiempo.",
+      "result_title": "Baneo Masivo Completado",
+      "result_desc": "Baneo masivo completado.\n\n**Exitosos:** {successful}\n**Fallidos:** {failed}\n**Total:** {total}",
+      "moderator": "Moderador",
+      "failed_bans": "Baneos Fallidos"
+    },
+    "tempban": {
+      "description": "Banear temporalmente a un usuario con desbaneo automático",
+      "user_option": "Usuario a banear temporalmente",
+      "duration_option": "Duración del ban temporal",
+      "reason_option": "Razón para el ban temporal",
+      "delete_days_option": "Días de mensajes a eliminar (0-7)",
+      "no_reason": "Sin razón especificada",
+      "error_title": "Error de Ban Temporal",
+      "invalid_duration": "❌ Duración inválida especificada.",
+      "hierarchy_error": "❌ No puedes banear a este usuario debido a la jerarquía de roles.",
+      "owner_error": "❌ No puedes banear al propietario del servidor.",
+      "bot_error": "❌ No puedes banear a este bot.",
+      "already_banned": "❌ {user} ya está baneado de este servidor.",
+      "dm_title": "Ban Temporal",
+      "dm_desc": "Has sido baneado temporalmente de **{server}** por **{duration}**.\n\n**Razón:** {reason}",
+      "success_title": "Ban Temporal Aplicado",
+      "success_desc": "**{user}** ha sido baneado temporalmente por **{duration}**.",
+      "user": "Usuario",
+      "moderator": "Moderador",
+      "duration": "Duración",
+      "unban_time": "Desbaneo Automático",
+      "reason": "Razón",
+      "deleted_messages": "Mensajes Eliminados",
+      "deleted_days": "Últimos {days} días",
+      "error_desc": "No se pudo aplicar el ban temporal. Verifica los permisos del bot.",
+      "format_days": "{days} días",
+      "format_hours": "{hours} horas",
+      "format_minutes": "{minutes} minutos",
+      "format_seconds": "{seconds} segundos"
+    },
+    "premium": {
+      "description": "Gestionar suscripción premium y funciones",
+      "info": {
+        "description": "Ver información de suscripción premium",
+        "no_premium_title": "Sin Premium",
+        "no_premium_desc": "Este servidor no tiene una suscripción premium activa.\n\n¡Desbloquea funciones avanzadas y mejora tu experiencia KOREX con Premium!",
+        "upgrade_benefits": "🎁 Beneficios Premium",
+        "view_plans": "Ver Planes",
+        "try_demo": "Prueba Gratis",
+        "premium_active": "Premium Activo",
+        "premium_desc": "¡Tu servidor tiene **{plan}** activo!\n\n⏰ **{days} días restantes**",
+        "subscription_details": "📋 Detalles de Suscripción",
+        "subscription_value": "**Plan:** {plan}\n**Precio:** {price}/mes\n**Expira en:** {days} días",
+        "active_features": "✨ Funciones Activas",
+        "view_usage": "Ver Uso",
+        "manage_subscription": "Gestionar"
+      },
+      "plans": {
+        "description": "Ver planes premium disponibles",
+        "title": "Planes Premium Disponibles",
+        "plans_description": "Elige el plan perfecto para tu servidor:",
+        "duration": "Duración: {days} días",
+        "comparison": "📊 Comparación de Planes",
+        "comparison_value": "• **Básico**: Perfecto para servidores pequeños y medianos\n• **Pro**: Ideal para comunidades grandes y activas\n• **Demo**: Prueba todas las funciones premium gratis por 7 días",
+        "select_plan": "Selecciona un plan para activar"
+      },
+      "activate": {
+        "description": "Activar suscripción premium",
+        "plan_option": "Plan premium a activar",
+        "already_premium": "Ya Tienes Premium",
+        "already_premium_desc": "Este servidor ya tiene una suscripción premium activa.\n\nUsa `/premium info` para ver detalles.",
+        "demo_activated": "Prueba Demo Activada",
+        "demo_desc": "¡Perfecto! Has activado la **prueba demo gratuita** por 7 días.\n\n¡Disfruta todas las funciones premium!",
+        "trial_details": "📋 Detalles de la Prueba",
+        "trial_value": "**Duración:** {days} días\n**Funciones incluidas:**\n• {features}",
+        "invalid_plan": "Plan Inválido",
+        "invalid_plan_desc": "El plan especificado no existe o no está disponible.",
+        "payment_info": "Información de Pago",
+        "payment_desc": "Para activar **{plan}** ({price}/mes), necesitas completar el pago.",
+        "plan_features": "🎁 Funciones Incluidas",
+        "payment_methods": "💳 Métodos de Pago",
+        "payment_methods_value": "• PayPal (Recomendado)\n• Transferencia bancaria\n• Criptomonedas (Bitcoin, Ethereum)",
+        "contact_info": "📞 Información de Contacto",
+        "contact_value": "Para completar tu suscripción, contacta a nuestro equipo de soporte con tu ID de servidor.",
+        "contact_support": "Contactar Soporte",
+        "manual_activate": "Activación Manual"
+      },
+      "cancel": {
+        "description": "Cancelar suscripción premium",
+        "no_premium": "Sin Premium",
+        "no_premium_desc": "Este servidor no tiene una suscripción premium activa para cancelar.",
+        "confirm_title": "Confirmar Cancelación",
+        "confirm_desc": "¿Estás seguro de que quieres cancelar tu suscripción **{plan}**?\n\n**Tu premium expira el:** {endDate}",
+        "what_happens": "❓ ¿Qué pasará?",
+        "what_happens_value": "• Mantendrás acceso premium hasta la fecha de expiración\n• No se renovará automáticamente\n• Perderás las funciones premium después de la expiración\n• Tus datos se conservarán por 30 días",
+        "confirm_button": "Confirmar Cancelación",
+        "keep_button": "Mantener Premium"
+      },
+      "usage": {
+        "description": "Ver estadísticas de uso premium",
+        "no_premium": "Sin Premium",
+        "no_premium_desc": "Este servidor no tiene una suscripción premium activa.\n\nUsa `/premium plans` para ver las opciones disponibles.",
+        "title": "Estadísticas de Uso Premium",
+        "usage_description": "Uso actual de funciones premium para **{plan}**:\n\n*Último reinicio: {resetDate}*",
+        "auto_responses": "🤖 Respuestas Automáticas",
+        "giveaways": "🎁 Sorteos",
+        "polls": "📊 Encuestas",
+        "usage_format": "**{used}** / **{limit}** ({percentage}%)",
+        "unlimited": "**{used}** / **Ilimitado**",
+        "premium_features": "✨ Funciones Premium",
+        "advanced_analytics": "Analíticas Avanzadas",
+        "priority_support": "Soporte Prioritario",
+        "custom_branding": "Marca Personalizada"
+      },
+      "benefits": {
+        "description": "Ver beneficios premium",
+        "title": "Beneficios Premium",
+        "benefits_description": "Descubre todo lo que puedes hacer con KOREX Premium:",
+        "all_benefits": "🎁 Todos los Beneficios",
+        "plan_comparison": "📊 Comparación de Planes",
+        "comparison_value": "• **{basic}** ({basicPrice}/mes): Funciones esenciales para servidores medianos\n• **{pro}** ({proPrice}/mes): Funciones completas para comunidades grandes",
+        "view_plans": "Ver Planes",
+        "start_trial": "Prueba Gratuita"
+      }
+    }
+  },
+  "premium": {
+    "benefits": {
+      "unlimited_autoresponses": "🤖 Respuestas automáticas ilimitadas",
+      "advanced_giveaways": "🎁 Funciones avanzadas de sorteos",
+      "extended_polls": "📊 Opciones extendidas de encuestas",
+      "priority_support": "🚀 Soporte prioritario",
+      "custom_branding": "🎨 Marca personalizada",
+      "advanced_analytics": "📈 Analíticas avanzadas",
+      "custom_commands": "⚙️ Comandos personalizados"
+    }
+  },
+  "addons": {
+    "errors": {
+      "guild_only": "Este comando solo puede usarse en servidores.",
+      "check_failed": "Error al verificar el estado del addon. Por favor intenta de nuevo más tarde."
+    },
+    "premium_required": "⭐ **{addon}** es un addon Premium.\n\nActívalo para desbloquear todas sus funciones.",
+    "buttons": {
+      "activate": "🚀 Activar Addon"
+    },
+    "activation": {
+      "success": "✅ **{addon}** ha sido activado exitosamente en **{server}**!\n\nYa puedes usar todas las funciones premium."
+    },
+    "deactivation": {
+      "cancelled": "⚠️ Tu suscripción de **{addon}** en **{server}** ha sido cancelada.\n\nEl addon permanecerá activo hasta la fecha de expiración."
+    },
+    "payment": {
+      "failed": "⚠️ Hubo un problema con el pago de **{addon}** en **{server}**.\n\nPor favor actualiza tu método de pago para continuar usando las funciones premium."
+    },
+    "tickets": {
+      "panel": {
+        "open_button": "Abrir Ticket",
+        "select_placeholder": "Selecciona una categoría...",
+        "no_categories": "No hay categorías configuradas.",
+        "no_categories_hint": "Usa `/ticketconfig category add` primero.",
+        "no_panels": "No hay paneles configurados.",
+        "list_title": "📋 Paneles de Tickets",
+        "list_item": "Canal: <#{channel}> | Tipo: `{type}` | Categorías: {count}",
+        "create_modal_title": "Crear Panel de Tickets",
+        "deleted": "✅ Panel eliminado.",
+        "channel_not_found": "Canal no encontrado.",
+        "refreshed": "✅ Panel reenviado.",
+        "channel_not_text": "Canal no encontrado o no es un canal de texto.",
+        "created": "✅ Panel creado en {channel}."
+      },
+      "open": {
+        "select_category_title": "¿Qué tipo de soporte necesitas?",
+        "modal_title": "Abre un Ticket — {category}",
+        "topic_label": "Describe tu consulta brevemente",
+        "topic_placeholder": "¿En qué podemos ayudarte?",
+        "creating": "⏳ Creando tu ticket...",
+        "success": "✅ Ticket creado: {channel}",
+        "dm_created": "Tu ticket **#{number}** ha sido creado en {channel}.",
+        "already_open": "Ya tienes **{count}** ticket(s) abierto(s): {channels}",
+        "limit_reached": "Has alcanzado el límite de **{max}** tickets abiertos.",
+        "no_access": "No tienes acceso a esta categoría.",
+        "blacklisted": "No puedes abrir tickets en este servidor.",
+        "outside_hours": "El soporte no está disponible ahora.\n📅 Horario: {schedule}\n🕐 Próxima apertura: {next}"
+      },
+      "control_embed": {
+        "title": "🎫 Ticket #{number} — {category}",
+        "opened_by": "Abierto por",
+        "category": "Categoría",
+        "status": "Estado",
+        "priority": "Prioridad",
+        "assigned_to": "Asignado a",
+        "unassigned": "Sin asignar",
+        "tags": "Tags",
+        "no_tags": "—",
+        "created_at": "Creado",
+        "sla": "SLA",
+        "sla_breached": "⚠️ SLA VENCIDO",
+        "intake_form": "📋 Formulario de apertura"
+      },
+      "buttons": {
+        "close": "🔒 Cerrar",
+        "claim": "✋ Reclamar",
+        "unclaim": "🔓 Liberar",
+        "add_user": "👤 Añadir",
+        "remove_user": "🚫 Remover",
+        "priority": "🔺 Prioridad",
+        "tags": "🏷️ Tags",
+        "templates": "📋 Plantillas",
+        "move": "📁 Mover",
+        "transfer": "🔄 Transferir",
+        "note": "📝 Nota interna",
+        "delete_channel": "🗑️ Eliminar canal",
+        "reopen": "🔓 Reabrir",
+        "transcript": "📄 Transcripción"
+      },
+      "close": {
+        "modal_title": "Cerrar Ticket #{number}",
+        "reason_label": "Razón de cierre (opcional)",
+        "reason_placeholder": "¿Por qué se cierra este ticket?",
+        "success": "✅ Ticket cerrado.",
+        "generating_transcript": "Generando transcripción...",
+        "transcript_sent": "📄 Transcripción del Ticket #{number}",
+        "dm_closed": "Tu ticket **#{number}** en **{server}** ha sido cerrado.\nRazón: {reason}",
+        "no_permission": "No tienes permiso para cerrar este ticket.",
+        "post_title": "🔒 Ticket #{number} cerrado",
+        "post_description": "Cerrado por {staff}{reason}\n\nUsa los botones para gestionar este ticket.",
+        "post_reason": "\nRazón: {reason}",
+        "log_message": "🔒 Ticket #{number} cerrado por {staff}{reason}",
+        "deleting": "🗑️ Eliminando canal...",
+        "already_closed": "⚠️ Este ticket ya está cerrado."
+      },
+      "claim": {
+        "success": "✅ Ticket reclamado por {staff}.",
+        "already_claimed": "Este ticket ya está reclamado por {staff}.",
+        "unclaimed": "✅ Ticket liberado."
+      },
+      "move": {
+        "success": "📁 Ticket movido de **{from}** a **{to}** por {staff}.",
+        "same_category": "El ticket ya está en esa categoría.",
+        "log": "📁 Ticket #{number} movido: {from} → {to} por {staff}"
+      },
+      "transfer": {
+        "modal_title": "Transferir Ticket #{number}",
+        "target_label": "Miembro del staff (mención o ID)",
+        "success": "🔄 Ticket transferido a {staff}.",
+        "log": "🔄 Ticket #{number} transferido: {from} → {to}"
+      },
+      "priority": {
+        "changed": "🔺 Prioridad cambiada a **{priority}** por {staff}.",
+        "auto_assigned": "Prioridad asignada automáticamente: **{priority}** ({reason})",
+        "low": "🟢 BAJA",
+        "normal": "🟡 NORMAL",
+        "high": "🟠 ALTA",
+        "urgent": "🔴 URGENTE"
+      },
+      "tags": {
+        "updated": "🏷️ Tags actualizados: {tags}"
+      },
+      "note": {
+        "modal_title": "Nota Interna — Ticket #{number}",
+        "content_label": "Contenido de la nota",
+        "sent": "📝 **[NOTA INTERNA 🔒]**\n{content}",
+        "transcript_label": "[NOTA INTERNA]"
+      },
+      "template": {
+        "select_placeholder": "Selecciona una plantilla...",
+        "sent_by": "📋 Plantilla enviada por {staff}"
+      },
+      "autoclose": {
+        "warning_title": "⏰ Aviso de Inactividad",
+        "warning_desc": "Este ticket se cerrará automáticamente en **{hours}h** por falta de actividad.\nResponde aquí para mantenerlo abierto.",
+        "warning_button_keep": "💬 Mantener abierto",
+        "warning_button_close": "🔒 Cerrar ahora",
+        "cancelled": "✅ Auto-cierre cancelado. El ticket permanece abierto.",
+        "executed": "🔒 Ticket cerrado automáticamente por inactividad.",
+        "dm_warning": "Tu ticket **#{number}** en **{server}** se cerrará en {hours}h por inactividad.",
+        "dm_closed": "Tu ticket **#{number}** fue cerrado automáticamente por inactividad."
+      },
+      "rating": {
+        "dm_title": "🎫 Ticket #{number} cerrado — {server}",
+        "dm_desc": "¿Cómo fue tu experiencia de soporte?",
+        "dm_reason": "Razón de cierre: {reason}",
+        "rated": "⭐ Gracias por tu valoración de **{score}/5**.",
+        "feedback_prompt": "¿Quieres añadir un comentario?",
+        "feedback_button_add": "📝 Añadir comentario",
+        "feedback_button_skip": "✅ Solo la valoración",
+        "feedback_modal_title": "Comentario sobre el soporte",
+        "feedback_label": "Cuéntanos tu experiencia (opcional)",
+        "feedback_saved": "✅ Gracias por tu feedback.",
+        "expired": "El período para valorar este ticket ha expirado."
+      },
+      "info": {
+        "title": "📋 Ticket #{number}",
+        "field_category": "Categoría",
+        "field_status": "Estado",
+        "field_priority": "Prioridad",
+        "field_author": "Abierto por",
+        "field_staff": "Staff asignado",
+        "field_tags": "Tags",
+        "field_created": "Creado",
+        "field_first_response": "Primera respuesta",
+        "field_messages": "Mensajes",
+        "field_participants": "Participantes"
+      },
+      "status": {
+        "open": "🟢 Abierto",
+        "claimed": "🔵 Reclamado",
+        "pending": "🟡 Pendiente",
+        "closed": "🔴 Cerrado",
+        "archived": "⚫ Archivado"
+      },
+      "config": {
+        "saved": "✅ Configuración guardada.",
+        "category_added": "✅ Categoría **{name}** añadida.",
+        "category_removed": "✅ Categoría eliminada.",
+        "category_not_found": "Categoría no encontrada.",
+        "template_added": "✅ Plantilla **{name}** añadida.",
+        "template_removed": "✅ Plantilla eliminada.",
+        "tag_added": "✅ Tag **{name}** añadido.",
+        "tag_removed": "✅ Tag eliminado.",
+        "rule_added": "✅ Regla de prioridad añadida.",
+        "rule_removed": "✅ Regla eliminada.",
+        "blacklist_added": "✅ **{user}** añadido a la blacklist.",
+        "blacklist_removed": "✅ **{user}** removido de la blacklist.",
+        "question_added": "✅ Pregunta añadida a la categoría.",
+        "question_removed": "✅ Pregunta eliminada.",
+        "limit_reached": "Has alcanzado el límite de **{limit}** {item}."
+      },
+      "stats": {
+        "overview_title": "📊 Estadísticas de Tickets",
+        "overview_period": "Período: últimos {days} días",
+        "total_opened": "Tickets abiertos",
+        "total_closed": "Tickets cerrados",
+        "currently_open": "Abiertos ahora",
+        "resolution_rate": "Tasa de resolución",
+        "avg_response": "Primera respuesta prom.",
+        "avg_resolution": "Resolución prom.",
+        "avg_rating": "Rating promedio",
+        "auto_closed": "Auto-cerrados",
+        "staff_title": "👤 Stats de {staff}",
+        "staff_claimed": "Tickets reclamados",
+        "staff_closed": "Tickets cerrados",
+        "staff_open_now": "Abiertos ahora",
+        "category_month": "Tickets este mes",
+        "category_closed": "Cerrados",
+        "no_data": "Sin datos para el período seleccionado.",
+        "export_sent": "📄 CSV exportado con {count} tickets."
+      },
+      "transcript": {
+        "header_title": "Transcripción del Ticket",
+        "header_server": "Servidor",
+        "header_category": "Categoría",
+        "header_opened_by": "Abierto por",
+        "header_staff": "Atendido por",
+        "header_status": "Estado",
+        "header_priority": "Prioridad",
+        "header_tags": "Tags",
+        "header_opened_at": "Apertura",
+        "header_closed_at": "Cierre",
+        "header_duration": "Duración",
+        "header_first_response": "Primera respuesta",
+        "header_rating": "Valoración",
+        "section_intake": "Formulario inicial",
+        "section_messages": "Conversación",
+        "label_note": "[NOTA INTERNA]",
+        "label_staff": "Staff",
+        "label_user": "Usuario",
+        "footer": "Generado por Korex • panel.korex.dev"
+      },
+      "errors": {
+        "not_a_ticket": "Este comando solo puede usarse dentro de un canal de ticket.",
+        "no_staff_permission": "No tienes permisos de staff para esta acción.",
+        "ticket_already_closed": "⚠️ Este ticket ya está cerrado.",
+        "ticket_not_found": "Ticket no encontrado.",
+        "channel_create_failed": "No se pudo crear el canal del ticket. Verifica los permisos del bot.",
+        "transcript_failed": "No se pudo generar la transcripción. El ticket fue cerrado de todos modos.",
+        "user_not_in_server": "El usuario no está en el servidor.",
+        "user_already_added": "El usuario ya tiene acceso a este ticket.",
+        "user_not_participant": "El usuario no es participante de este ticket.",
+        "cannot_remove_author": "No puedes remover al autor del ticket.",
+        "cannot_remove_staff": "No puedes remover a un miembro del staff.",
+        "panel_not_found": "Panel no encontrado.",
+        "max_panels_reached": "Has alcanzado el límite de **{max}** paneles.",
+        "max_categories_reached": "Has alcanzado el límite de **{max}** categorías.",
+        "session_expired": "La sesión de apertura expiró. Vuelve a intentarlo.",
+        "addon_not_configured": "El addon de tickets no está configurado. Usa `/ticketconfig setup`.",
+        "addon_disabled": "⚠️ El addon de tickets no está activo en este servidor. Contacta al administrador.",
+        "transcript_not_found": "⚠️ No hay transcripción guardada para este ticket.",
+        "channel_not_text": "Canal no encontrado o no es un canal de texto.",
+        "rating_error": "❌ Error al procesar la calificación.",
+        "generic": "❌ Ocurrió un error. Por favor intenta de nuevo."
+      },
+      "add": {
+        "success": "✅ {user} añadido al ticket."
+      },
+      "remove": {
+        "success": "✅ {user} removido del ticket."
+      },
+      "rename": {
+        "success": "✅ Canal renombrado a **{name}**."
+      },
+      "reopen": {
+        "success": "🔓 Ticket reabierto por {staff}"
+      },
+      "add_user": {
+        "modal_title": "Añadir usuario al ticket",
+        "user_id_label": "ID o mención del usuario"
+      }
+    },
+    "forms": {
+      "errors": {
+        "service_unavailable": "El addon de formularios no está disponible ahora mismo. Intenta de nuevo más tarde.",
+        "not_configured": "El addon de formularios no está configurado. Usa `/form config channels` para comenzar.",
+        "form_not_found": "Formulario no encontrado.",
+        "form_not_active": "Este formulario no acepta respuestas en este momento.",
+        "field_not_found": "Campo no encontrado.",
+        "max_forms": "Has alcanzado el límite de **{max}** formularios.",
+        "max_fields": "Has alcanzado el límite de **{max}** campos por formulario.",
+        "no_fields": "Este formulario no tiene campos configurados. Añade campos con `/form field add`.",
+        "session_expired": "Tu sesión ha expirado. Vuelve a abrir el formulario.",
+        "already_submitted": "Ya has enviado una respuesta a este formulario.",
+        "cooldown": "Debes esperar antes de volver a enviar este formulario.",
+        "form_max_reached": "Este formulario ha alcanzado el número máximo de respuestas.",
+        "form_closed": "Este formulario está cerrado.",
+        "generic": "Ocurrió un error. Por favor intenta de nuevo."
+      },
+      "cmd": {
+        "create_modal_title": "Crear Formulario",
+        "field_name": "Nombre del formulario",
+        "field_description": "Descripción (opcional)",
+        "field_emoji": "Emoji (opcional)",
+        "field_review_channel": "ID del canal de revisión (opcional)",
+        "field_reviewer_roles": "IDs de roles revisores (separados por coma)",
+        "create_success_title": "✅ Formulario Creado",
+        "create_success_desc": "Formulario **{name}** creado (`{id}`).\n\nAñade campos con `/form field add form_id:{id}`.",
+        "edit_modal_title": "Editar: {name}",
+        "edit_success": "✅ Formulario actualizado.",
+        "delete_success": "✅ Formulario **{name}** eliminado.",
+        "status_updated": "✅ Estado de **{name}** cambiado a `{status}`.",
+        "list_title": "📝 Formularios",
+        "list_empty": "No hay formularios configurados. Crea uno con `/form create`.",
+        "list_fields": "{count} campos",
+        "config_saved": "✅ Configuración guardada.",
+        "field_add_title": "Añadir Campo",
+        "field_label_label": "Etiqueta del campo (pregunta)",
+        "field_type_label": "Tipo (short / long)",
+        "field_placeholder_label": "Placeholder (opcional)",
+        "field_required_label": "¿Requerido? (true / false)",
+        "field_maxlength_label": "Longitud máxima (opcional)",
+        "field_added": "✅ Campo **{label}** añadido.",
+        "field_removed": "✅ Campo eliminado.",
+        "field_list_title": "Campos de **{name}**",
+        "field_list_empty": "Sin campos. Añádelos con `/form field add`.",
+        "field_list_steps": "Nota: se mostrarán {steps} pasos de modal al usuario."
+      },
+      "panel": {
+        "create_modal_title": "Crear Panel de Formularios",
+        "channel_id_label": "ID del canal",
+        "title_label": "Título del embed",
+        "default_title": "📝 Formularios",
+        "description_label": "Descripción del embed",
+        "default_description": "Selecciona un formulario para enviar tu información.",
+        "type_label": "Tipo (buttons / select / hybrid)",
+        "color_label": "Color (hex, ej: #5865F2)",
+        "select_placeholder": "Selecciona un formulario...",
+        "created": "✅ Panel creado en {channel}.",
+        "deleted": "✅ Panel eliminado.",
+        "refreshed": "✅ Panel reenviado.",
+        "not_found": "Panel no encontrado.",
+        "channel_not_found": "Canal no encontrado o inválido.",
+        "max_panels": "Has alcanzado el límite de **{max}** paneles.",
+        "max_forms": "Has alcanzado el límite de **{max}** formularios por panel.",
+        "list_title": "📋 Paneles de Formularios",
+        "list_empty": "No hay paneles configurados.",
+        "list_forms": "{count} formularios",
+        "form_added": "✅ Formulario **{name}** añadido al panel.",
+        "form_removed": "✅ Formulario eliminado del panel."
+      },
+      "review": {
+        "embed_title": "📝 Nueva Respuesta — {form}",
+        "embed_desc": "Enviada por {user}",
+        "embed_footer": "ID de respuesta: {id}",
+        "status_label": "Estado",
+        "reviewed_by": "Revisado por",
+        "note_label": "Nota",
+        "btn_approve": "Aprobar",
+        "btn_deny": "Rechazar",
+        "deny_modal_title": "Rechazar Respuesta",
+        "deny_reason_label": "Razón (opcional)",
+        "dm_approved": "✅ Tu respuesta a **{form}** ha sido **aprobada**.",
+        "dm_denied": "❌ Tu respuesta a **{form}** ha sido **rechazada**."
+      },
+      "submission": {
+        "list_title": "📋 Respuestas — {form}",
+        "list_empty": "No se encontraron respuestas.",
+        "not_found": "Respuesta no encontrada.",
+        "already_reviewed": "Esta respuesta ya fue revisada.",
+        "approved": "✅ Respuesta aprobada.",
+        "denied": "✅ Respuesta rechazada.",
+        "view_title": "📄 Respuesta — {form}",
+        "field_user": "Enviada por",
+        "field_status": "Estado",
+        "field_submitted": "Enviada el",
+        "field_reviewed_by": "Revisada por",
+        "field_reviewed_at": "Revisada el",
+        "dm_submitted": "✅ Tu respuesta a **{form}** fue recibida y está pendiente de revisión.",
+        "success_title": "✅ Formulario Enviado",
+        "success_desc": "Tu respuesta a **{form}** ha sido enviada para revisión.",
+        "success_footer": "ID de respuesta: {id}",
+        "export_sent": "📄 CSV exportado con {count} respuestas."
+      },
+      "status": {
+        "active": "🟢 Activo",
+        "paused": "🟡 Pausado",
+        "closed": "🔴 Cerrado",
+        "pending": "🟡 Pendiente",
+        "approved": "🟢 Aprobado",
+        "denied": "🔴 Rechazado",
+        "cancelled": "⚫ Cancelado"
+      },
+      "stats": {
+        "title": "📊 Estadísticas de Formularios",
+        "total_forms": "Total de formularios",
+        "total_submissions": "Total de respuestas",
+        "pending": "🟡 Pendientes",
+        "approved": "🟢 Aprobados",
+        "denied": "🔴 Rechazados"
+      }
+    },
+    "staff": {
+      "panel": {
+        "created": "✅ Panel de staff publicado en {channel}.",
+        "updated": "✅ Panel de staff actualizado.",
+        "deleted": "✅ Panel de staff eliminado.",
+        "no_panel": "No hay ningún panel configurado. Usa `/staffpanel create` primero.",
+        "not_text_channel": "El canal seleccionado debe ser un canal de texto."
+      },
+      "member": {
+        "added": "✅ {user} añadido al equipo de staff como **{role}**.",
+        "removed": "✅ {user} ha sido removido del equipo de staff.",
+        "already_exists": "Este usuario ya es parte del equipo de staff.",
+        "not_found": "Este usuario no es parte del equipo de staff.",
+        "note_added": "📝 Nota actualizada en el perfil de {user}.",
+        "status_changed": "✅ Estado de {user} cambiado a **{status}**.",
+        "list_title": "🛡️ Equipo de Staff",
+        "list_empty": "No hay miembros de staff registrados. Añade uno con `/staff add`.",
+        "list_footer": "{count} miembro(s) en total",
+        "info_title": "👤 Perfil — {user}",
+        "field_role": "Rol",
+        "field_department": "Departamento",
+        "field_status": "Estado",
+        "field_joined": "Miembro desde",
+        "field_last_active": "Última actividad",
+        "field_voice_today": "Voz hoy",
+        "field_voice_week": "Voz (7d)",
+        "field_voice_month": "Voz (30d)",
+        "field_sessions": "Sesiones totales",
+        "field_notes": "📝 Notas",
+        "default_department": "General"
+      },
+      "status": {
+        "active": "🟢 Activo",
+        "inactive": "🟡 Inactivo",
+        "on_leave": "🔴 De baja"
+      },
+      "config": {
+        "setup_modal_title": "Configurar Staff",
+        "log_channel_label": "Canal de logs (ID)",
+        "alert_channel_label": "Canal de alertas (ID)",
+        "panel_channel_label": "Canal del panel",
+        "track_voice_label": "Tracking de voz",
+        "alerts_enabled_label": "Alertas activas",
+        "inactivity_days_label": "Umbral inactividad",
+        "total_members_label": "Total miembros",
+        "saved": "✅ Configuración guardada correctamente.",
+        "view_title": "⚙️ Configuración de Staff",
+        "channel_not_found": "No se encontró el canal con ese ID. Verifica e intenta de nuevo."
+      },
+      "stats": {
+        "overview_title": "📊 Estadísticas de Staff",
+        "overview_period": "Período: últimos {days} días",
+        "member_title": "📊 Stats de {user}",
+        "total_staff": "Total de staff",
+        "active_count": "Activos",
+        "inactive_count": "Inactivos",
+        "on_leave_count": "De baja",
+        "voice_time": "Tiempo en voz (total)",
+        "voice_time_today": "Voz hoy",
+        "voice_time_week": "Voz (7d)",
+        "voice_time_month": "Voz (30d)",
+        "voice_time_total": "Voz (total)",
+        "sessions_count": "Sesiones de voz",
+        "last_active": "Última actividad",
+        "top_voice": "🎙️ Top por tiempo en voz (30d)",
+        "recent_activity": "📋 Actividad reciente",
+        "export_sent": "📄 CSV exportado con {count} miembro(s).",
+        "no_data": "Sin datos para el período seleccionado."
+      },
+      "errors": {
+        "addon_disabled": "⚠️ El addon de Staff no está activo en este servidor. Contacta al administrador.",
+        "addon_not_configured": "El addon de Staff no está configurado. Usa `/staffconfig setup`.",
+        "service_unavailable": "El servicio de Staff no está disponible en este momento.",
+        "no_permission": "No tienes permisos para realizar esta acción.",
+        "max_members_reached": "Has alcanzado el límite de **{max}** miembros de staff.",
+        "cannot_add_bot": "No puedes añadir bots al equipo de staff."
+      }
+    },
+    "links": {
+      "created_title": "✅ Link corto creado",
+      "short_url": "URL corta",
+      "destination": "Destino",
+      "title_field": "Título",
+      "expires": "Expira",
+      "max_clicks": "Máx. clics",
+      "deleted": "Link `{slug}` eliminado correctamente.",
+      "stats_title": "📊 Estadísticas: {slug}",
+      "total_clicks": "Clics totales",
+      "unique_clicks": "Visitantes únicos",
+      "top_countries": "Top países",
+      "devices": "Dispositivos",
+      "referrers": "Top referrers",
+      "list_title": "🔗 Links del servidor",
+      "list_empty": "No hay links creados. Usa `/link create` para añadir uno.",
+      "page": "Página",
+      "info_title": "🔗 Link Manager",
+      "domain": "Dominio",
+      "total_links": "Links totales",
+      "avg_clicks": "Clics promedio/link",
+      "panel_hint": "Gestiona todos los links y analíticas en panel.korex.dev",
+      "error_invalid_url": "La URL no es válida.",
+      "error_blocked_domain": "Ese dominio está bloqueado por seguridad.",
+      "error_invalid_slug": "El slug debe tener 2-30 caracteres (letras, números, - _).",
+      "error_slug_taken": "Ese slug ya está en uso. Prueba con otro.",
+      "error_daily_limit": "Alcanzaste el límite diario de creación de links.",
+      "error_user_limit": "Alcanzaste tu límite total de links.",
+      "error_not_found": "Link no encontrado.",
+      "error_forbidden": "Solo puedes eliminar tus propios links.",
+      "error_generic": "Ocurrió un error. Inténtalo de nuevo."
+    }
+  },
+  "buttons": {
+    "cancel": "Cancelar",
+    "next": "Siguiente",
+    "previous": "Anterior"
+  },
+  "balance": {
+    "amount": "{amount} 🪙"
+  },
+  "rank": {
+    "title": "📊 Estadísticas de {user}",
+    "level": "Nivel",
+    "xp": "XP",
+    "messages": "Mensajes",
+    "progress": "Progreso",
+    "progress_bar": "{current}/{needed} XP"
+  },
+  "leaderboard": {
+    "levels_title": "🏆 Ranking de Niveles",
+    "economy_title": "💰 Ranking de Economía",
+    "description": "Top {count} usuarios del servidor",
+    "no_data": "No hay datos disponibles."
+  },
+  "serverinfo": {
+    "title": "📋 Información del Servidor",
+    "owner": "Propietario",
+    "created": "Creado",
+    "members": "Miembros",
+    "channels": "Canales",
+    "roles": "Roles",
+    "emojis": "Emojis",
+    "boosts": "Boosts",
+    "boost_level": "Nivel de Boost",
+    "verification": "Verificación"
+  },
+  "userinfo": {
+    "title": "👤 Información de {user}",
+    "id": "ID",
+    "created": "Cuenta creada",
+    "joined": "Se unió",
+    "roles": "Roles",
+    "permissions": "Permisos",
+    "administrator": "Administrador",
+    "status": "Estado",
+    "activity": "Actividad",
+    "not_found": "Usuario no encontrado."
+  },
+  "modlogs": {
+    "title": "📋 Historial de Moderación",
+    "description": "Historial de {user}",
+    "no_history": "Este usuario no tiene historial de moderación.",
+    "footer": "Página {page}/{total}"
+  },
+  "warn": {
+    "success_title": "⚠️ Usuario Advertido",
+    "success_description": "{user} ha sido advertido.",
+    "moderator": "Moderador",
+    "case_id": "Caso #{id}",
+    "cannot_moderate": "No puedes moderar a este usuario.",
+    "user_not_found": "Usuario no encontrado."
+  },
+  "mute": {
+    "success_title": "🔇 Usuario Silenciado",
+    "success_description": "{user} ha sido silenciado.",
+    "moderator": "Moderador",
+    "duration": "Duración",
+    "duration_value": "{time}",
+    "cannot_moderate": "No puedes moderar a este usuario.",
+    "bot_cannot_moderate": "No puedo moderar a este usuario.",
+    "user_not_found": "Usuario no encontrado."
+  },
+  "setup": {
+    "title": "⚙️ Configuración del Bot",
+    "description": "Usa los botones para configurar el bot."
+  },
+  "suggestions": {
+    "modal": {
+      "title": "💡 Nueva Sugerencia",
+      "title_label": "Título",
+      "title_placeholder": "Escribe un título breve...",
+      "description_label": "Descripción",
+      "description_placeholder": "Describe tu sugerencia en detalle...",
+      "category_label": "Categoría",
+      "category_placeholder": "Ej: mejora, bug, nueva función",
+      "priority_label": "Prioridad",
+      "priority_placeholder": "baja, media, alta"
+    },
+    "success": {
+      "title": "✅ Sugerencia Enviada",
+      "description": "Tu sugerencia ha sido enviada correctamente."
+    },
+    "errors": {
+      "disabled": "El sistema de sugerencias está deshabilitado.",
+      "no_channel": "No hay un canal de sugerencias configurado.",
+      "cooldown": "Debes esperar {time} segundos antes de enviar otra sugerencia.",
+      "creation_failed": "No se pudo crear la sugerencia.",
+      "internal_error": "Error interno al procesar la sugerencia.",
+      "service_unavailable": "El servicio de sugerencias no está disponible.",
+      "not_found": "Sugerencia no encontrada.",
+      "no_permission_vote": "No tienes permiso para votar en sugerencias.",
+      "no_permission_staff": "No tienes permiso para gestionar sugerencias."
+    },
+    "embed": {
+      "status": "Estado",
+      "category": "Categoría",
+      "priority": "Prioridad",
+      "staff_notes": "Notas del Staff",
+      "footer": "ID de sugerencia: {id}"
+    },
+    "config": {
+      "title": "⚙️ Configuración de Sugerencias",
+      "description": "Configuración actual del sistema de sugerencias.",
+      "enabled": "Habilitado",
+      "channel": "Canal",
+      "cooldown": "Cooldown",
+      "vote_threshold": "Umbral de votos",
+      "auto_threads": "Hilos automáticos",
+      "notify_author": "Notificar autor"
+    },
+    "setup": {
+      "success": {
+        "title": "✅ Sugerencias Configuradas",
+        "description": "El sistema de sugerencias ha sido configurado."
+      },
+      "error": "Error al configurar las sugerencias.",
+      "invalid_channel": "Canal inválido.",
+      "next_steps": "Próximos pasos",
+      "next_steps_description": "Los usuarios pueden usar /suggest para enviar sugerencias.",
+      "panel": {
+        "title": "💡 Sugerencias",
+        "description": "¿Tienes una idea para mejorar el servidor? ¡Nos encantaría escucharla!\nUsa `/suggest` para enviar tu sugerencia.",
+        "how_it_works": "Cómo funciona",
+        "how_it_works_value": "1. Usa `/suggest` para abrir el formulario de sugerencias\n2. Completa el título, descripción, categoría y prioridad\n3. Tu sugerencia aparecerá aquí para que la comunidad vote\n4. El staff revisará las sugerencias y actualizará su estado",
+        "voting": "Votación",
+        "voting_value": "👍 A favor — 👎 En contra — 🤷 Neutral\n\nVota en las sugerencias para ayudar al staff a priorizarlas.",
+        "footer": "Sugerencias impulsadas por Korex"
+      }
+    },
+    "stats": {
+      "title": "📊 Estadísticas de Sugerencias",
+      "description": "Estadísticas del sistema de sugerencias.",
+      "overview": "Resumen",
+      "by_status": "Por estado",
+      "no_data": "No hay datos disponibles."
+    },
+    "view": {
+      "title": "📋 Sugerencias",
+      "description": "Lista de sugerencias del servidor.",
+      "no_suggestions": "No hay sugerencias.",
+      "footer": "Página {page}/{total}"
+    },
+    "categories": {
+      "feature": "Nueva función",
+      "improvement": "Mejora",
+      "bug": "Error / Bug",
+      "other": "Otro"
+    },
+    "priorities": {
+      "low": "Baja",
+      "medium": "Media",
+      "high": "Alta"
+    },
+    "statuses": {
+      "new": "Nueva",
+      "reviewing": "En revisión",
+      "approved": "Aprobada",
+      "rejected": "Rechazada",
+      "considering": "En consideración",
+      "in_progress": "En progreso",
+      "completed": "Completada"
+    },
+    "buttons": {
+      "approve": "Aprobar",
+      "reject": "Rechazar",
+      "consider": "Considerar"
+    },
+    "modals": {
+      "approve": {
+        "title": "Aprobar Sugerencia"
+      },
+      "reject": {
+        "title": "Rechazar Sugerencia"
+      },
+      "consider": {
+        "title": "Considerar Sugerencia"
+      },
+      "reason_label": "Razón",
+      "reason_placeholder": "Explica tu decisión..."
+    },
+    "notification": {
+      "title": "Actualización de Sugerencia",
+      "description": "Tu sugerencia **{title}** en **{server}** ha sido actualizada a: **{status}**",
+      "reason": "Respuesta del Staff"
+    },
+    "vote_recorded": "✅ ¡Tu voto ha sido registrado!",
+    "staff_action_success": "Acción aplicada correctamente.",
+    "select": {
+      "step1_title": "💡 Nueva Sugerencia",
+      "step1_description": "Selecciona una **categoría** que mejor describa tu sugerencia:",
+      "category_placeholder": "Elige una categoría...",
+      "step2_title": "💡 Nueva Sugerencia",
+      "step2_description": "Ahora selecciona la **prioridad** de tu sugerencia:",
+      "priority_placeholder": "Elige una prioridad..."
+    }
+  },
+  "guildCreate": {
+    "title": "¡Gracias por añadir Korex!",
+    "description": "¡Hola! Soy **Korex**, tu nuevo bot de Discord profesional.",
+    "getting_started": "🚀 **Primeros pasos:**\n• Usa `/help` para ver todos los comandos disponibles\n• Configura el bot con `/setup` (solo administradores)\n• Visita el panel web para configuración avanzada",
+    "links": "🔗 **Enlaces útiles:**\n• [Panel Web]({dashboardUrl})\n• [Documentación](https://korex.dev/docs)\n• [Servidor de Soporte](https://discord.gg/KAfQQ25MQY)",
+    "addons": "💎 **Addons disponibles:**\nKorex cuenta con addons premium para extender funcionalidades:\n• **Store** - Tienda con pagos reales\n• **Tickets** - Sistema avanzado de soporte\n• **Staff** - Gestión de equipo\n• **Forms** - Formularios personalizados\n• **Analytics Pro** - Analíticas avanzadas\n• **IA Assistant** - Asistente con inteligencia artificial\n• Y más...\n\n¿Necesitas ayuda? ¡Únete a nuestro servidor de soporte!",
+    "footer": "Korex v{version} - The Core of Your Community",
+    "greeting": "¡Hola <@{ownerId}>! 👋"
+  },
+  "verification": {
+    "setup_success": "¡Sistema de verificación configurado correctamente!",
+    "setup_channel": "Canal de verificación",
+    "setup_role": "Rol a asignar",
+    "setup_type": "Tipo",
+    "setup_emoji": "Emoji",
+    "already_verified": "¡Ya estás verificado!",
+    "verified": "✅ ¡Has sido verificado! Ya tienes acceso al servidor.",
+    "verified_log": "{user} ha sido verificado.",
+    "role_not_found": "❌ El rol de verificación configurado no fue encontrado. Contacta a un administrador.",
+    "no_permission": "❌ No tengo permisos para asignar ese rol.",
+    "disabled": "Sistema de verificación desactivado.",
+    "redeployed": "Mensaje de verificación reenviado a {channel}.",
+    "not_configured": "❌ La verificación no está configurada. Usa /verification setup primero.",
+    "status_enabled": "Activado",
+    "status_disabled": "Desactivado",
+    "status_channel": "Canal",
+    "status_role": "Rol",
+    "status_type": "Tipo",
+    "status_emoji": "Emoji",
+    "status_title": "Estado de Verificación",
+    "embed_title_default": "Verificación del Servidor",
+    "embed_desc_default": "Haz clic en el botón de abajo para verificarte y acceder al servidor.",
+    "button_label": "Verificar",
+    "reaction_instruction": "Reacciona con {emoji} para verificarte.",
+    "cmd_description": "Gestiona el sistema de verificación del servidor",
+    "cmd_setup_desc": "Configura y despliega la puerta de verificación",
+    "cmd_setup_channel": "Canal donde se enviará el embed de verificación",
+    "cmd_setup_role": "Rol a asignar cuando un usuario se verifica",
+    "cmd_setup_type": "Estilo de verificación: botón o reacción",
+    "cmd_setup_emoji": "Emoji a usar (para tipo reacción)",
+    "cmd_setup_title": "Título del embed",
+    "cmd_setup_desc_opt": "Descripción del embed",
+    "cmd_redeploy_desc": "Reenvía el embed de verificación al canal configurado",
+    "cmd_disable_desc": "Desactiva el sistema de verificación",
+    "cmd_status_desc": "Muestra la configuración actual de verificación"
+  }
+}
