@@ -1,4 +1,4 @@
-import { Guild } from 'discord.js';
+import { Guild, EmbedBuilder } from 'discord.js';
 import { Event } from '../../client/structures/Event';
 import { KorexClient } from '../../client/KorexClient';
 import { createSuccessEmbed } from '../../utils/helpers';
@@ -16,22 +16,58 @@ export default class GuildCreateEvent extends Event<'guildCreate'> {
     this.client.logger.info(`📥 Bot añadido al servidor: ${guild.name} (${guild.id})`);
 
     try {
-      // Crear configuración inicial del servidor en la base de datos
+      // 1. Crear configuración inicial del servidor en la base de datos
       await this.client.database.getOrCreateGuild(guild.id);
 
-      // Initialize invite tracking for the new guild
+      // 2. Intentar restaurar licencias en periodo de gracia (KICKOUT)
+      const restored = await this.client.kickoutService.handleGuildRejoined(guild.id);
+
+      if (restored) {
+        // El servidor volvió dentro del periodo de gracia — notificar restauración
+        await this.notifyKickoutRestored(guild);
+        this.client.logger.info(`🔄 Licencias restauradas para servidor ${guild.id} tras reincorporación`);
+      } else {
+        // Servidor nuevo o reincorporación fuera del periodo de gracia
+        await this.client.shop.seedDefaultItems(guild.id);
+        await this.sendWelcomeMessage(guild);
+      }
+
+      // 3. Initialize invite tracking for the new guild
       await this.client.inviteService.cacheGuildInvites(guild);
 
-      // Enviar mensaje de bienvenida al owner o canal general
-      await this.sendWelcomeMessage(guild);
-
-      // Actualizar presencia del bot
+      // 4. Actualizar presencia del bot
       this.updateBotPresence();
 
-      // Log estadísticas
       this.client.logger.info(`📊 Ahora sirviendo ${this.client.guilds.cache.size} servidores`);
     } catch (error) {
       this.client.logger.error(`Error configurando nuevo servidor ${guild.id}:`, error);
+    }
+  }
+
+  /**
+   * Notifica al owner que sus licencias fueron restauradas automáticamente.
+   */
+  private async notifyKickoutRestored(guild: Guild): Promise<void> {
+    try {
+      const owner = await this.client.users.fetch(guild.ownerId).catch(() => null);
+      if (!owner) return;
+
+      const embed = new EmbedBuilder()
+        .setColor(0x22C55E) // green
+        .setTitle('✅ Suscripciones restauradas')
+        .setDescription(
+          `¡Bienvenido de vuelta a **${guild.name}**!\n\n` +
+          `Todos tus addons y suscripciones premium han sido **restaurados automáticamente**. No hubo ninguna interrupción en tu facturación de PayPal.`
+        )
+        .setFooter({ text: 'Korex Premium · Gracias por volver.' })
+        .setTimestamp();
+
+      await owner.send({ embeds: [embed] }).catch(() => null);
+    } catch (error) {
+      this.client.logger.error(
+        `Error notificando restauración de kickout al owner de ${guild.id}:`,
+        error
+      );
     }
   }
 

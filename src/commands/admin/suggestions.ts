@@ -72,7 +72,8 @@ export default class SuggestionsCommand extends Command {
         subcommand
           .setName('stats')
           .setDescription(i18n.t(`commands.${this.name}.stats.description`, 'global'))
-      ) as SlashCommandBuilder;
+      )
+      .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild) as SlashCommandBuilder;
   }
 
   async executeSlash(interaction: ChatInputCommandInteraction): Promise<void> {

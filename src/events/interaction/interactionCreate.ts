@@ -34,6 +34,12 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
         if (svc) await svc.handleButton(interaction).catch(() => {});
         return;
       }
+      // Addon-namespaced buttons (e.g. paste:*, tickets:*) are handled by addon interactionCreate events
+      if (interaction.customId.includes(':')) {
+        const prefix = interaction.customId.split(':')[0];
+        const addonNames = this.client.addons.getLoadedAddons().map((a: any) => a.config.name);
+        if (addonNames.includes(prefix)) return;
+      }
       await this.client.components.handleButton(interaction);
       return;
     }
@@ -47,8 +53,13 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
 
     // Modals
     if (interaction.isModalSubmit()) {
+      // Addon-namespaced modals (e.g. paste:*, tickets:*) are handled by addon interactionCreate events
+      if (interaction.customId.includes(':')) {
+        const prefix = interaction.customId.split(':')[0];
+        const addonNames = this.client.addons.getLoadedAddons().map((a: any) => a.config.name);
+        if (addonNames.includes(prefix)) return;
+      }
       await this.client.components.handleModal(interaction);
-
       return;
     }
   }

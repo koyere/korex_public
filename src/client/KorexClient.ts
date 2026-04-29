@@ -35,9 +35,9 @@ import { PremiumService } from '../services/PremiumService';
 import { AddonSyncService } from '../services/AddonSyncService';
 import { AnalyticsService } from '../services/AnalyticsService';
 import { AutoModService } from '../services/AutoModService';
-import { APIServer } from '../api/server';
 
 import { LicenseExpiryJob } from '../services/LicenseExpiryJob';
+import { GuildKickoutService } from '../services/GuildKickoutService';
 
 // Admin Panel Services
 import { AdminAuthService } from '../services/admin/AdminAuthService';
@@ -51,6 +51,7 @@ import { ProductionLogger } from '../logging/ProductionLogger';
 import { HealthMonitor } from '../monitoring/HealthMonitor';
 import { BackupManager } from '../backup/BackupManager';
 import { DatabaseOptimizer } from '../database/optimization/DatabaseOptimizer';
+import { StatusPageService } from '../services/StatusPageService';
 
 // Utils
 import { createLogger } from '../utils/Logger';
@@ -100,7 +101,6 @@ export class KorexClient extends Client {
   public addonSync: AddonSyncService;
   public analytics: AnalyticsService;
   public autoMod: AutoModService;
-  public api: APIServer;
 
   // ═══════════════════════════════════════════════════════════════
   // ADMIN PANEL SERVICES
@@ -119,6 +119,8 @@ export class KorexClient extends Client {
   public backupManager: BackupManager;
   public databaseOptimizer: DatabaseOptimizer;
   public licenseExpiryJob: LicenseExpiryJob;
+  public kickoutService: GuildKickoutService;
+  public statusPage: StatusPageService;
 
   public services: {
     // license: LicenseService;
@@ -192,8 +194,6 @@ export class KorexClient extends Client {
       this.emailService
     );
 
-    this.api = new APIServer(this);
-
     // Inicializar servicios que requieren DatabaseManager
     this.licenses = LicenseService.getInstance(this.database);
     this.moderation = ModerationService.getInstance(this.database);
@@ -213,9 +213,11 @@ export class KorexClient extends Client {
     this.rateLimiter = new RateLimiter(this);
     this.productionLogger = new ProductionLogger(this);
     this.healthMonitor = new HealthMonitor(this);
+    this.statusPage = new StatusPageService(this.healthMonitor);
     this.backupManager = new BackupManager(this);
     this.databaseOptimizer = new DatabaseOptimizer(this.db);
     this.licenseExpiryJob = new LicenseExpiryJob(this);
+    this.kickoutService = new GuildKickoutService(this);
 
     // Configurar owners
     this.setupOwners();
@@ -274,12 +276,6 @@ export class KorexClient extends Client {
       // 10. Conectar a Discord
       await this.login(process.env.DISCORD_TOKEN);
 
-      // 11. Iniciar API Server
-      if (process.env.ENABLE_API !== 'false') {
-        await this.api.start();
-        this.logger.info('✅ API Server iniciado');
-      }
-
       this.logger.info('🎉 Korex iniciado exitosamente');
     } catch (error) {
       this.logger.error('❌ Error iniciando Korex:', error);
@@ -302,9 +298,17 @@ export class KorexClient extends Client {
       this.healthMonitor.startMonitoring(30000); // Cada 30 segundos
       this.logger.info('✅ Health monitoring started');
 
+      // Statuspage.io integration
+      this.statusPage.start();
+      this.logger.info('✅ Statuspage integration started');
+
       // Iniciar job de expiración de licencias
       this.licenseExpiryJob.start();
       this.logger.info('✅ License expiry job started');
+
+      // Iniciar servicio de kickout de guilds
+      this.kickoutService.start();
+      this.logger.info('✅ Guild kickout service started');
 
       // Iniciar backup manager
       if (process.env.ENABLE_BACKUPS !== 'false') {
@@ -472,7 +476,7 @@ export class KorexClient extends Client {
     }
 
     // Agregar checks de producción si están disponibles
-    let productionHealth = null;
+    let productionHealth: any = null;
 
     if (this.healthMonitor) {
       productionHealth = this.healthMonitor.getCurrentHealth();
@@ -539,8 +543,13 @@ export class KorexClient extends Client {
     // leniency (degraded vs unhealthy for ping=-1, music node, etc.) is lifted.
     this.healthMonitor?.markBotReady();
 
-    // Registrar slash commands
+    // Registrar slash commands globales (solo core, sin addons)
     await this.commands.registerSlashCommands();
+
+    // Sincronizar comandos de addons por guild para las guilds que ya tienen addons activos
+    this.commands.syncAllGuildsOnStartup().catch(err =>
+      this.logger.warn('Startup guild command sync failed:', err)
+    );
 
     // Configurar owners si no están configurados
     if (this.owners.size === 0 && this.application?.owner) {
@@ -577,16 +586,14 @@ export class KorexClient extends Client {
       if (this.licenseExpiryJob) {
         this.licenseExpiryJob.stop();
       }
+      if (this.kickoutService) {
+        this.kickoutService.stop();
+      }
       if (this.rateLimiter) {
         this.rateLimiter.destroy();
       }
       if (this.productionLogger) {
         this.productionLogger.destroy();
-      }
-
-      // 2. Detener API Server
-      if (this.api) {
-        await this.api.stop();
       }
 
       // 2. Descargar addons

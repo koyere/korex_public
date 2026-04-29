@@ -10,6 +10,7 @@ import {
 } from 'discord.js';
 import { Command } from '../../client/structures/Command';
 import { KorexClient } from '../../client/KorexClient';
+import { ShopItem } from '../../services/ShopService';
 
 export default class ShopCommand extends Command {
   constructor(client: KorexClient) {
@@ -35,6 +36,15 @@ export default class ShopCommand extends Command {
       );
   }
 
+  private resolveItem(item: ShopItem, lang: string): { name: string; description: string } {
+    if (item.translationKey) {
+      const name = this.client.i18n.t(`shop.catalog.${item.translationKey}.name`, lang) || item.name;
+      const description = this.client.i18n.t(`shop.catalog.${item.translationKey}.desc`, lang) || item.description;
+      return { name, description };
+    }
+    return { name: item.name, description: item.description };
+  }
+
   async executeAutocomplete(interaction: AutocompleteInteraction): Promise<void> {
     const guildId = interaction.guild?.id;
 
@@ -42,11 +52,18 @@ export default class ShopCommand extends Command {
 
     const focused = interaction.options.getFocused().toLowerCase();
     const items = await this.client.shop.getShopItems(guildId);
+    const lang = await this.client.i18n.getGuildLanguage(guildId);
 
     const choices = items
-      .filter(item => item.name.toLowerCase().includes(focused))
+      .filter(item => {
+        const { name } = this.resolveItem(item, lang);
+        return name.toLowerCase().includes(focused);
+      })
       .slice(0, 25)
-      .map(item => ({ name: `${item.emoji || '📦'} ${item.name} - ${item.price} 🪙`, value: item.id }));
+      .map(item => {
+        const { name } = this.resolveItem(item, lang);
+        return { name: `${item.emoji || '📦'} ${name} - ${item.price} 🪙`, value: item.id };
+      });
 
     await interaction.respond(choices);
   }
@@ -65,36 +82,41 @@ export default class ShopCommand extends Command {
 
     const items = await this.client.shop.getShopItems(guildId);
     const config = await this.client.economy.getConfig(guildId);
+    const lang = await this.client.i18n.getGuildLanguage(guildId);
 
     if (items.length === 0) {
-      await interaction.editReply('❌ No hay items en la tienda. El admin debe agregarlos desde el panel web.');
+      await interaction.editReply(this.client.i18n.t('shop.browse.empty', lang));
 
       return;
     }
 
     const embed = new EmbedBuilder()
       .setColor(Colors.Blue)
-      .setTitle('🛒 Tienda del Servidor')
-      .setDescription('Selecciona un item del menú o usa `/shop buy`')
-      .setFooter({ text: `${items.length} items disponibles` });
+      .setTitle(this.client.i18n.t('shop.browse.title', lang))
+      .setDescription(this.client.i18n.t('shop.browse.description', lang, { currency: config.currencySymbol, count: String(items.length) }))
+      .setFooter({ text: this.client.i18n.t('shop.browse.footer', lang) });
 
     const itemList = items.map(item => {
+      const { name, description } = this.resolveItem(item, lang);
       const stock = item.stock === -1 ? '∞' : item.stock;
 
-      return `${item.emoji || '📦'} **${item.name}** - ${item.price} ${config.currencySymbol}\n└ ${item.description || 'Sin descripción'} (Stock: ${stock})`;
+      return `${item.emoji || '📦'} **${name}** - ${item.price} ${config.currencySymbol}\n└ ${description} (Stock: ${stock})`;
     }).join('\n\n');
 
     embed.addFields({ name: 'Items', value: itemList.substring(0, 1024) || 'Vacío' });
 
     const select = new StringSelectMenuBuilder()
       .setCustomId('shop_buy')
-      .setPlaceholder('Selecciona un item para comprar...')
-      .addOptions(items.slice(0, 25).map(item => ({
-        label: item.name,
-        description: `${item.price} ${config.currencySymbol}`,
-        value: item.id,
-        emoji: item.emoji || '📦'
-      })));
+      .setPlaceholder(this.client.i18n.t('shop.browse.select_placeholder', lang))
+      .addOptions(items.slice(0, 25).map(item => {
+        const { name } = this.resolveItem(item, lang);
+        return {
+          label: name,
+          description: `${item.price} ${config.currencySymbol}`,
+          value: item.id,
+          emoji: item.emoji || '📦'
+        };
+      }));
 
     const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(select);
     const msg = await interaction.editReply({ embeds: [embed], components: [row] });
@@ -168,13 +190,16 @@ export default class ShopCommand extends Command {
     // Agregar al inventario
     await this.client.shop.addToInventory(guildId, userId, itemId);
 
+    const lang = await this.client.i18n.getGuildLanguage(guildId);
+    const { name: itemName } = this.resolveItem(item, lang);
+
     const embed = new EmbedBuilder()
       .setColor(Colors.Green)
-      .setTitle('✅ Compra Exitosa')
-      .setDescription(`Has comprado **${item.emoji || '📦'} ${item.name}** por ${item.price} 🪙`)
+      .setTitle(this.client.i18n.t('shop.buy.success_title', lang))
+      .setDescription(this.client.i18n.t('shop.buy.success_desc', lang, { item: `${item.emoji || '📦'} ${itemName}`, price: String(item.price) }))
       .addFields(
-        { name: '💰 Nuevo Balance', value: `${result.newBalance} 🪙`, inline: true },
-        { name: '🎒 Inventario', value: 'Usa `/inventory view` para ver tus items', inline: true }
+        { name: this.client.i18n.t('shop.buy.new_balance', lang), value: `${result.newBalance} 🪙`, inline: true },
+        { name: this.client.i18n.t('shop.buy.inventory_hint_label', lang), value: this.client.i18n.t('shop.buy.inventory_hint', lang), inline: true }
       );
 
     await interaction.editReply({ embeds: [embed], components: [] });

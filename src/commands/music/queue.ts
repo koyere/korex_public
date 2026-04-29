@@ -112,7 +112,7 @@ export default class QueueCommand extends Command {
     }
 
     // Queue info
-    const infoFields = [];
+    const infoFields: { name: string; value: string; inline: boolean }[] = [];
 
     if (queueData.currentTrack || queueData.tracks.length > 0) {
       infoFields.push(
@@ -141,7 +141,7 @@ export default class QueueCommand extends Command {
     }
 
     // Navigation buttons
-    const components = [];
+    const components: ActionRowBuilder<ButtonBuilder>[] = [];
 
     if (queueData.totalPages > 1) {
       const row = new ActionRowBuilder<ButtonBuilder>().addComponents(

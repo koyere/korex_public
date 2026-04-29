@@ -164,7 +164,7 @@ export default class GiveawayCommand extends Command {
     const requiredBalance = interaction.options.get('required_balance')?.value as number | undefined;
 
     // Build requirements array
-    const requirements = [];
+    const requirements: { type: string; value: string | number; operator?: string }[] = [];
 
     if (requiredRole) requirements.push({ type: 'role', value: requiredRole.id });
     if (requiredLevel) requirements.push({ type: 'level', value: requiredLevel, operator: 'gte' });

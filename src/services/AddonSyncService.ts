@@ -2,6 +2,11 @@ import { Redis } from 'ioredis';
 import { KorexClient } from '../client/KorexClient';
 import { createLogger } from '../utils/Logger';
 
+/** Addons cubiertos por el paquete bundle ($14.99/mes). */
+export const BUNDLE_ADDONS = new Set([
+  'tickets', 'store', 'staff', 'forms', 'links', 'paste', 'analytics-pro', 'events',
+]);
+
 export interface AddonEvent {
   type: 'ADDON_ACTIVATED' | 'ADDON_DEACTIVATED' | 'ADDON_CONFIG_UPDATED';
   guildId: string;
@@ -22,8 +27,13 @@ export class AddonSyncService {
   constructor(client: KorexClient) {
     this.client = client;
     this.redis = client.redis.getClient();
-    this.subscriber = new Redis(process.env.REDIS_URL!);
-    
+
+    const subscriberOptions: any = {};
+    if (process.env.REDIS_PASSWORD) {
+      subscriberOptions.password = process.env.REDIS_PASSWORD;
+    }
+    this.subscriber = new Redis(process.env.REDIS_URL!, subscriberOptions);
+
     this.setupSubscriber();
   }
 
@@ -145,38 +155,52 @@ export class AddonSyncService {
   }
 
   /**
-   * Verificar si un addon está activo para un servidor
+   * Verificar si un addon está activo para un servidor.
+   * Para addons del bundle, comprueba primero si el servidor tiene guildPremium activo.
    */
   async isAddonActive(guildId: string, addonName: string): Promise<boolean> {
     const cacheKey = `addon:${addonName}:guild_${guildId}`;
-    
-    try {
-      // 1. Verificar cache Redis (< 1ms)
-      const cached = await this.redis.get(cacheKey);
 
-      if (cached !== null) {
-        return cached === 'true';
-      }
-      
-      // 2. Si no hay cache, consultar PostgreSQL
-      const license = await this.client.db.addonLicense.findFirst({
-        where: {
-          guildId,
-          addonName,
-          status: 'ACTIVE',
-          expiresAt: { gt: new Date() }
+    try {
+      // 1. Cache específico del addon (< 1 ms)
+      const cached = await this.redis.get(cacheKey);
+      if (cached !== null) return cached === 'true';
+
+      // 2. Para addons del bundle, verificar guildPremium antes de buscar licencia individual
+      if (BUNDLE_ADDONS.has(addonName)) {
+        const bundleKey = `bundle:guild:${guildId}`;
+        const bundleCached = await this.redis.get(bundleKey);
+
+        if (bundleCached === 'true') {
+          await this.redis.setex(cacheKey, 3600, 'true');
+          return true;
         }
+
+        if (bundleCached === null) {
+          // Sin cache de bundle → consultar DB
+          const premium = await this.client.db.guildPremium.findFirst({
+            where: { guildId, planId: 'bundle', status: 'ACTIVE', expiresAt: { gt: new Date() } },
+          });
+          if (premium) {
+            await this.redis.setex(bundleKey, 3600, 'true');
+            await this.redis.setex(cacheKey, 3600, 'true');
+            return true;
+          }
+          // Negativo: TTL corto (5 min) para no bloquear activaciones futuras
+          await this.redis.setex(bundleKey, 300, 'false');
+        }
+      }
+
+      // 3. Licencia individual en PostgreSQL
+      const license = await this.client.db.addonLicense.findFirst({
+        where: { guildId, addonName, status: 'ACTIVE', expiresAt: { gt: new Date() } },
       });
-      
+
       const isActive = !!license;
-      
-      // 3. Actualizar cache (1 hora)
       await this.redis.setex(cacheKey, 3600, String(isActive));
-      
       return isActive;
     } catch (error) {
       this.logger.error(`Error checking addon status for ${addonName} in guild ${guildId}:`, error);
-
       return false;
     }
   }

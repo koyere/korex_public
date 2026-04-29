@@ -19,6 +19,9 @@ export default class SuggestionFormModal extends Component {
     const modalInteraction = interaction as ModalSubmitInteraction;
     const guildId = modalInteraction.guildId!;
 
+    // Defer immediately — postSuggestion + thread creation can exceed the 3s modal token timeout
+    await modalInteraction.deferReply({ ephemeral: true });
+
     // Extract category and priority from customId: suggestion_form_{category}_{priority}
     const parts = modalInteraction.customId.replace('suggestion_form_', '').split('_');
     const category = parts[0] as 'feature' | 'improvement' | 'bug' | 'other';
@@ -30,7 +33,7 @@ export default class SuggestionFormModal extends Component {
     const suggestionService = this.client.suggestionService;
 
     if (!suggestionService) {
-      await modalInteraction.reply({ content: i18n.t('suggestions.errors.service_unavailable', guildId), flags: MessageFlags.Ephemeral });
+      await modalInteraction.editReply({ content: i18n.t('suggestions.errors.service_unavailable', guildId) });
       return;
     }
 
@@ -45,7 +48,7 @@ export default class SuggestionFormModal extends Component {
       );
 
       if (!suggestion) {
-        await modalInteraction.reply({ content: i18n.t('suggestions.errors.creation_failed', guildId), flags: MessageFlags.Ephemeral });
+        await modalInteraction.editReply({ content: i18n.t('suggestions.errors.creation_failed', guildId) });
         return;
       }
 
@@ -63,11 +66,11 @@ export default class SuggestionFormModal extends Component {
         )
         .setTimestamp();
 
-      await modalInteraction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+      await modalInteraction.editReply({ embeds: [embed] });
 
     } catch (error) {
       this.client.logger.error('Error creating suggestion:', error);
-      await modalInteraction.reply({ content: i18n.t('suggestions.errors.internal_error', guildId), flags: MessageFlags.Ephemeral });
+      await modalInteraction.editReply({ content: i18n.t('suggestions.errors.internal_error', guildId) });
     }
   }
 }

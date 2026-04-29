@@ -136,7 +136,7 @@ export default class InventoryCommand extends Command {
 
     // Menú para acciones rápidas
     if (cosmetics.length > 0 || consumables.length > 0) {
-      const options = [];
+      const options: { label: string; value: string; emoji: string }[] = [];
       
       for (const item of cosmetics.slice(0, 12)) {
         options.push({

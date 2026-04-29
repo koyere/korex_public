@@ -62,10 +62,21 @@ export default class PlayCommand extends Command {
     }
 
     try {
+      // Fetch music-pro limits if addon is active for this guild
+      let limits: { maxQueueSize?: number; maxTrackDuration?: number } | undefined;
+      const musicProSvc = (this.client as any)._musicProService;
+      if (musicProSvc) {
+        try {
+          const cfg = await musicProSvc.getOrCreateConfig(interaction.guildId!);
+          limits = { maxQueueSize: cfg.maxQueueSize, maxTrackDuration: cfg.maxTrackDuration };
+        } catch { /* addon not loaded / no config — play without limits */ }
+      }
+
       const result = await this.client.music.play(
         member,
         interaction.channel as TextChannel,
-        query
+        query,
+        limits,
       );
 
       const embed = new EmbedBuilder()
@@ -107,6 +118,12 @@ export default class PlayCommand extends Command {
         localized = i18n.t('music.node_unavailable', interaction.guildId!);
       } else if (errorMessage === 'MUSIC_DIFFERENT_VOICE_CHANNEL') {
         localized = i18n.t('music.different_voice_channel', interaction.guildId!);
+      } else if (errorMessage.startsWith('QUEUE_FULL:')) {
+        const max = errorMessage.split(':')[1];
+        localized = i18n.t('music_pro.queue_full', interaction.guildId!, { max });
+      } else if (errorMessage.startsWith('TRACK_TOO_LONG:')) {
+        const [, max, duration] = errorMessage.split(':');
+        localized = i18n.t('music_pro.track_too_long', interaction.guildId!, { max, duration });
       } else if (errorMessage.toLowerCase().includes('no se encontraron resultados')) {
         localized = i18n.t('music.no_results', interaction.guildId!, { query });
       } else if (errorMessage.toLowerCase().includes('canal de voz')) {

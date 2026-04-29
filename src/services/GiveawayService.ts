@@ -931,7 +931,7 @@ export class GiveawayService {
       id: prismaGiveaway.id,
       guildId: prismaGiveaway.guildId,
       channelId: prismaGiveaway.channelId,
-      messageId: prismaGiveaway.messageId,
+      messageId: prismaGiveaway.messageId ?? undefined,
       title: parsedData.title || 'Giveaway',
       description: parsedData.description,
       prize: prismaGiveaway.prize,

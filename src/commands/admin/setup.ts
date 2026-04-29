@@ -417,7 +417,7 @@ export default class SetupCommand extends Command {
     const botMember = guild.members.cache.get(this.client.user!.id);
 
     if (botMember) {
-      const missingPerms = [];
+      const missingPerms: string[] = [];
       const requiredPerms = [
         'ManageRoles',
         'ManageChannels',

@@ -107,48 +107,115 @@ export class CommandManager {
   }
 
   /**
-   * Register slash commands in Discord
+   * Register GLOBAL slash commands (core only — addon commands go per-guild).
+   * Safe to call on every startup; Discord deduplicates unchanged payloads.
    */
   async registerSlashCommands(): Promise<void> {
     const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN!);
 
-    const commands = this.commands
-      .filter((cmd) => cmd.enabled)
-      .map((cmd) => {
-        try {
-          return cmd.data().toJSON();
-        } catch (error) {
-          this.client.logger.error(`Error generating data for command ${cmd.name}:`, error);
+    const toJSON = (cmd: Command) => {
+      try { return cmd.data().toJSON(); } catch { return null; }
+    };
 
-          return null;
-        }
-      })
+    // Development: dump everything into the dev guild for instant feedback
+    if (process.env.NODE_ENV === 'development' && process.env.DISCORD_DEV_GUILD_ID) {
+      const all = this.commands.filter(c => c.enabled).map(toJSON).filter(Boolean);
+      await rest.put(
+        Routes.applicationGuildCommands(process.env.DISCORD_CLIENT_ID!, process.env.DISCORD_DEV_GUILD_ID),
+        { body: all }
+      );
+      this.client.logger.info(`Slash commands registered in dev guild (${all.length})`);
+      return;
+    }
+
+    // Production: register globally all commands that are NOT premium addon commands.
+    // Core module commands (addon: 'music', 'economy', etc.) are included globally —
+    // only commands from registered premium addons (addon: 'music-pro', etc.) go per-guild.
+    const premiumAddonNames = new Set(this.client.addons.addons.keys());
+    const globalCmds = this.commands
+      .filter(c => c.enabled && (c.addon === null || !premiumAddonNames.has(c.addon)))
+      .map(toJSON)
       .filter(Boolean);
 
     try {
-      this.client.logger.info(`Registering ${commands.length} slash commands...`);
-
-      // Development: register in specific guild (instant)
-      if (process.env.NODE_ENV === 'development' && process.env.DISCORD_DEV_GUILD_ID) {
-        await rest.put(
-          Routes.applicationGuildCommands(
-            process.env.DISCORD_CLIENT_ID!,
-            process.env.DISCORD_DEV_GUILD_ID
-          ),
-          { body: commands }
-        );
-        this.client.logger.info('Slash commands registered in development guild');
-      } else {
-        // Production: register globally (can take up to 1 hour)
-        await rest.put(Routes.applicationCommands(process.env.DISCORD_CLIENT_ID!), {
-          body: commands,
-        });
-        this.client.logger.info('Slash commands registered globally');
-      }
+      this.client.logger.info(`Registering ${globalCmds.length} global slash commands...`);
+      await rest.put(Routes.applicationCommands(process.env.DISCORD_CLIENT_ID!), { body: globalCmds });
+      this.client.logger.info('Global slash commands registered');
     } catch (error) {
-      this.client.logger.error('Error registering slash commands:', error);
+      this.client.logger.error('Error registering global slash commands:', error);
       throw error;
     }
+  }
+
+  /**
+   * Register addon slash commands for a specific guild.
+   * Called when a guild enables or disables an addon.
+   * A PUT replaces all guild commands atomically — Discord removes any that are absent.
+   */
+  async syncGuildAddonCommands(guildId: string): Promise<void> {
+    const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN!);
+
+    // Resolve which addons are currently enabled for this guild
+    let enabledAddons: string[] = [];
+    try {
+      const guild = await this.client.db.guild.findUnique({
+        where: { id: guildId },
+        select: { enabledAddons: true },
+      });
+      enabledAddons = guild?.enabledAddons ?? [];
+    } catch {
+      this.client.logger.warn(`[CommandManager] Could not fetch guild ${guildId} for command sync`);
+      return;
+    }
+
+    const toJSON = (cmd: Command) => {
+      try { return cmd.data().toJSON(); } catch { return null; }
+    };
+
+    // Only include commands from registered premium addons (not core module commands).
+    const premiumAddonNames = new Set(this.client.addons.addons.keys());
+    const guildCmds = this.commands
+      .filter(c => c.enabled && c.addon !== null && premiumAddonNames.has(c.addon) && enabledAddons.includes(c.addon))
+      .map(toJSON)
+      .filter(Boolean);
+
+    try {
+      await rest.put(
+        Routes.applicationGuildCommands(process.env.DISCORD_CLIENT_ID!, guildId),
+        { body: guildCmds }
+      );
+      this.client.logger.info(
+        `Guild ${guildId}: ${guildCmds.length} addon command(s) synced [${enabledAddons.join(', ')}]`
+      );
+    } catch (error) {
+      this.client.logger.error(`Error syncing addon commands for guild ${guildId}:`, error);
+    }
+  }
+
+  /**
+   * One-time startup sync for guilds that already have addons enabled.
+   * Runs sequentially to avoid Discord rate limits.
+   */
+  async syncAllGuildsOnStartup(): Promise<void> {
+    let guilds: { id: string; enabledAddons: string[] }[] = [];
+    try {
+      guilds = await this.client.db.guild.findMany({
+        where: { enabledAddons: { isEmpty: false } },
+        select: { id: true, enabledAddons: true },
+      });
+    } catch {
+      return;
+    }
+
+    if (guilds.length === 0) return;
+
+    this.client.logger.info(`Syncing addon commands for ${guilds.length} guild(s)...`);
+    for (const guild of guilds) {
+      await this.syncGuildAddonCommands(guild.id);
+      // Small pause to respect Discord's rate limits when there are many guilds
+      if (guilds.length > 10) await new Promise(r => setTimeout(r, 500));
+    }
+    this.client.logger.info('Startup guild command sync complete');
   }
 
   /**

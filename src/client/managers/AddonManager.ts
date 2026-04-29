@@ -321,6 +321,11 @@ export class AddonManager {
         await addon.onEnable(guildId);
       }
 
+      // Sync guild slash commands so the addon's commands appear immediately
+      this.client.commands.syncGuildAddonCommands(guildId).catch(err =>
+        this.client.logger.warn(`Failed to sync guild commands after enabling ${addonName} in ${guildId}:`, err)
+      );
+
       this.client.logger.info(`Addon ${addonName} enabled in server ${guildId}`);
 
       return true;
@@ -362,6 +367,11 @@ export class AddonManager {
 
       // Call addon disable method
       await addon.onDisable(guildId);
+
+      // Sync guild slash commands so the addon's commands disappear immediately
+      this.client.commands.syncGuildAddonCommands(guildId).catch(err =>
+        this.client.logger.warn(`Failed to sync guild commands after disabling ${addonName} in ${guildId}:`, err)
+      );
 
       this.client.logger.info(`Addon ${addonName} disabled in server ${guildId}`);
 

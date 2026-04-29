@@ -487,7 +487,7 @@ export class PollService {
         percentage: totalVotes > 0 ? Math.round((option.votes / totalVotes) * 100) : 0,
         voters: poll.settings.anonymous ? [] : option.voters
       })),
-      winner: null,
+      winner: null as any,
       createdAt: poll.createdAt,
       endedAt: poll.ended ? new Date() : null
     };

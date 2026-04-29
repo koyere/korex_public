@@ -20,8 +20,75 @@ import {
   EmbedBuilder,
   Colors,
 } from 'discord.js';
-import { Player, GuildQueue, Track, useQueue, QueryType } from 'discord-player';
-import { SoundCloudExtractor } from '@discord-player/extractor';
+import https from 'https';
+import http from 'http';
+import { Player, GuildQueue, Track, BaseExtractor, useQueue, QueryType, Util } from 'discord-player';
+import { SoundCloudExtractor, AttachmentExtractor } from '@discord-player/extractor';
+
+const DIRECT_AUDIO_RE = /\.(mp3|wav|ogg|flac|m4a|aac|opus)(\?.*)?$/i;
+
+function fetchStream(url: string): Promise<any> {
+  return new Promise((resolve, reject) => {
+    const lib = url.startsWith('http://') ? http : https;
+    lib.get(url, (res) => resolve(res)).once('error', reject);
+  });
+}
+
+// Handles direct audio URLs (e.g. S3) that serve binary/octet-stream content-type,
+// which AttachmentExtractor rejects. Runs at higher priority so it intercepts first.
+class DirectAudioExtractor extends BaseExtractor {
+  static override identifier = 'com.korex.directaudio';
+  priority = 1;
+
+  async validate(query: string, type?: string | null): Promise<boolean> {
+    return type === (QueryType.ARBITRARY as string) && typeof query === 'string' && DIRECT_AUDIO_RE.test(query.split('?')[0]);
+  }
+
+  async handle(query: string, context: any) {
+    let durationMs = 0;
+
+    try {
+      const stream = await fetchStream(query);
+      const mediaplex = require('mediaplex');
+      const probeTimeout = this.context.player.options?.probeTimeout ?? 5000;
+      const { result, stream: probeStream } = await Promise.race<any>([
+        mediaplex.probeStream(stream),
+        new Promise((_, r) => setTimeout(() => r(new Error('Timeout')), probeTimeout)),
+      ]);
+      if (result?.duration) durationMs = result.duration * 1000;
+      probeStream?.destroy?.();
+    } catch {
+      // probing failed — duration stays 0
+    }
+
+    const track = new Track(this.context.player, {
+      title: 'AI Generated Music',
+      url: query,
+      duration: Util.buildTimeCode(Util.parseMS(durationMs)),
+      description: 'AI Generated Music',
+      thumbnail: 'https://upload.wikimedia.org/wikipedia/commons/2/2a/ITunes_12.2_logo.png',
+      views: 0,
+      author: 'AI Music',
+      requestedBy: context.requestedBy,
+      source: 'arbitrary' as any,
+      engine: query,
+      queryType: context.type,
+      metadata: { url: query },
+      async requestMetadata() { return { url: query }; },
+    });
+    track.extractor = this;
+    (track as any).raw.isFile = false;
+    return { playlist: null, tracks: [track] };
+  }
+
+  async stream(track: Track): Promise<string> {
+    return track.url;
+  }
+
+  async getRelatedTracks() {
+    return this.createResponse();
+  }
+}
 import { KorexClient } from '../client/KorexClient';
 import { createLogger } from '../utils/Logger';
 import fs from 'fs';
@@ -124,7 +191,9 @@ export class MusicService {
     // even for SoundCloud tracks, breaking playback.
     // TODO: re-enable YoutubeiExtractor when proxy/IP rotation is available for premium.
     await this.player.extractors.register(SoundCloudExtractor, {});
-    this.logger.info('🎵 SoundCloudExtractor registered');
+    await this.player.extractors.register(AttachmentExtractor, {});
+    await this.player.extractors.register(DirectAudioExtractor, {});
+    this.logger.info('🎵 SoundCloudExtractor + AttachmentExtractor + DirectAudioExtractor registered');
   }
 
   public async initialize(): Promise<void> {
@@ -148,6 +217,8 @@ export class MusicService {
     member: GuildMember,
     channel: TextChannel,
     query: string,
+    limits?: { maxQueueSize?: number; maxTrackDuration?: number },
+    titleOverride?: string,
   ): Promise<MusicPlayResult> {
     if (!this.player) throw new Error('MUSIC_NODE_UNAVAILABLE');
     if (!member.voice.channel) throw new Error('Debes estar en un canal de voz para usar este comando.');
@@ -185,10 +256,18 @@ export class MusicService {
       }
     }
 
+    // Direct audio URLs (e.g. S3 .mp3) bypass SoundCloud search entirely
+    const isDirectAudio = isUrl && /\.(mp3|wav|ogg|flac|m4a|aac|opus)(\?.*)?$/i.test(resolvedQuery);
+    const engine = resolvedQuery.startsWith('ytsearch:')
+      ? QueryType.YOUTUBE_SEARCH
+      : isDirectAudio
+        ? QueryType.ARBITRARY
+        : QueryType.SOUNDCLOUD_SEARCH;
+
     // Search explicitly with forced source — no implicit fallback to YouTube
     const searchResult = await this.player.search(resolvedQuery, {
       requestedBy: member.user,
-      searchEngine: resolvedQuery.startsWith('ytsearch:') ? QueryType.YOUTUBE_SEARCH : QueryType.SOUNDCLOUD_SEARCH,
+      searchEngine: engine,
     });
 
     // Filter out MONETIZE tracks (require SC OAuth to stream — will fail silently)
@@ -199,6 +278,24 @@ export class MusicService {
 
     const trackToPlay = playableTracks[0] ?? searchResult.tracks[0];
     if (!trackToPlay) throw new Error('No se encontraron resultados para tu búsqueda.');
+
+    if (titleOverride) (trackToPlay as any).title = titleOverride;
+
+    // Enforce music-pro limits if active
+    if (limits?.maxQueueSize && limits.maxQueueSize > 0) {
+      const existingQ = useQueue(guildId);
+      const currentSize = (existingQ?.tracks.size ?? 0) + (existingQ?.currentTrack ? 1 : 0);
+      if (currentSize >= limits.maxQueueSize) {
+        throw new Error(`QUEUE_FULL:${limits.maxQueueSize}`);
+      }
+    }
+
+    if (limits?.maxTrackDuration && limits.maxTrackDuration > 0) {
+      const durationSec = Math.floor((trackToPlay.durationMS ?? 0) / 1000);
+      if (durationSec > limits.maxTrackDuration) {
+        throw new Error(`TRACK_TOO_LONG:${limits.maxTrackDuration}:${durationSec}`);
+      }
+    }
 
     const result = await this.player.play(member.voice.channel as any, trackToPlay, {
       nodeOptions: {
@@ -225,6 +322,19 @@ export class MusicService {
     const started = result.queue.node.isPlaying();
 
     return { track: this.toTrackView(result.track), started, queueSize };
+  }
+
+  /** Resolve a song name or URL to a streamable URL without joining a voice channel. */
+  public async searchTrackUrl(query: string): Promise<string> {
+    if (!this.player) throw new Error('MUSIC_NODE_UNAVAILABLE');
+    const isUrl = query.startsWith('http://') || query.startsWith('https://');
+    const resolvedQuery = isUrl ? query : `scsearch:${query}`;
+    const result = await this.player.search(resolvedQuery, {
+      searchEngine: QueryType.SOUNDCLOUD_SEARCH,
+    });
+    const track = result.tracks[0];
+    if (!track) throw new Error('No results found for query.');
+    return track.url;
   }
 
   public async skip(member: GuildMember, channel: TextChannel): Promise<boolean> {

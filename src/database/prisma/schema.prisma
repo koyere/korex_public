@@ -33,6 +33,9 @@ model Guild {
   suspended     Boolean   @default(false)
   suspendedAt   DateTime?
   suspendReason String?
+
+  // Registro de salida del bot del servidor
+  leftAt        DateTime?
   
   // Configuración de módulos
   moderationConfig  ModerationConfig?
@@ -60,6 +63,16 @@ model Guild {
   staffConfig       StaffConfig?
   staffMembers      StaffMember[]
   linkConfig        LinkConfig?
+  pasteConfig          PasteConfig?
+  analyticsProConfig   AnalyticsProConfig?
+  musicProConfig       MusicProConfig?
+  musicPlaylists       MusicPlaylist[]
+  musicHistory         MusicHistory[]
+  musicAIJobs          MusicAIJob[]
+  eventConfig          EventConfig?
+  events               Event[]
+  aiAssistantConfig    AiAssistantConfig?
+  storeConfig          StoreConfig?
 
   @@map("guilds")
 }
@@ -276,14 +289,15 @@ model ShopItem {
   guildId     String
   guild       Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
   
-  name        String
-  description String
-  price       Int
-  type        String   @default("cosmetic")
-  emoji       String?
-  roleId      String?
-  stock       Int      @default(-1)
-  enabled     Boolean  @default(true)
+  name           String
+  description    String
+  translationKey String?
+  price          Int
+  type           String   @default("cosmetic")
+  emoji          String?
+  roleId         String?
+  stock          Int      @default(-1)
+  enabled        Boolean  @default(true)
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -531,6 +545,7 @@ model AddonLicense {
   updatedAt             DateTime @updatedAt
   cancelledAt           DateTime?
   suspendedAt           DateTime?
+  kickoutAt             DateTime?
   paymentFailures       Int      @default(0)
   lastPaymentFailedAt   DateTime?
 
@@ -556,6 +571,7 @@ enum AddonStatus {
   CANCELLED
   SUSPENDED
   TRIAL
+  KICKOUT
 }
 
 model AddonConfig {
@@ -588,6 +604,7 @@ model GuildPremium {
   expiresAt            DateTime
   cancelledAt          DateTime?
   suspendedAt          DateTime?
+  kickoutAt            DateTime?
   paymentFailures      Int       @default(0)
   lastPaymentFailedAt  DateTime?
 
@@ -598,6 +615,8 @@ model GuildPremium {
   usageCustomCommands  Int       @default(0)
   usageYoutubeMonthly  Int       @default(0)   // YouTube plays this billing month
   usageYoutubeResetAt  DateTime  @default(now()) // When the monthly counter resets
+  usageAiMonthly       Int       @default(0)   // MusicGPT AI generations this billing month
+  usageAiResetAt       DateTime  @default(now()) // When the AI monthly counter resets
 
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
@@ -1821,4 +1840,645 @@ model LinkClick {
   @@index([guildId])
   @@index([clickedAt])
   @@map("link_clicks")
+}
+
+// ─── PASTE ADDON ──────────────────────────────────────────────────────────────
+
+model PasteConfig {
+  id                  String   @id @default(cuid())
+  guildId             String   @unique
+
+  defaultExpiration   Int?
+  defaultPrivacy      String   @default("public")
+  maxPasteSize        Int      @default(102400)
+  maxFileSize         Int      @default(10485760)
+
+  pastesPerUser       Int      @default(100)
+  pastesPerDay        Int      @default(20)
+
+  allowedRoles        String[] @default([])
+  requireApproval     Boolean  @default(false)
+
+  logChannelId        String?
+  notifyChannel       String?
+
+  moderationEnabled   Boolean  @default(true)
+  flaggedKeywords     String[] @default(["password", "api_key", "secret", "token", "private_key"])
+  autoScan            Boolean  @default(true)
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  guild   Guild   @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  pastes  Paste[]
+
+  @@map("paste_configs")
+}
+
+model AnalyticsProConfig {
+  guildId           String   @unique
+  alertChannelId    String?
+  reportChannelId   String?
+  reportEnabled     Boolean  @default(false)
+  reportSchedule    String   @default("weekly")
+  reportFormat      String   @default("embed")
+  trackMessages     Boolean  @default(true)
+  trackVoice        Boolean  @default(true)
+  trackCommands     Boolean  @default(true)
+  trackModerations  Boolean  @default(true)
+  alertsEnabled     Boolean  @default(true)
+  alertGrowthMin    Int      @default(10)
+  alertDropMax      Int      @default(5)
+  alertMessageDrop  Int      @default(30)
+  alertVoiceDrop    Int      @default(40)
+  alertInactive     Int      @default(3)
+  // AI per-guild key system
+  aiEnabled         Boolean  @default(false)
+  aiApiKeyEncrypted String?
+  aiProvider        String   @default("openai")
+  aiBaseUrl         String?
+  aiModel           String   @default("gpt-4o-mini")
+  aiRateLimitMode   String   @default("per_user_daily")
+  aiRateLimitGlobal Int      @default(100)
+  aiRateLimitUser   Int      @default(10)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  guild    Guild                 @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  aiUsage  AnalyticsProAiUsage[]
+
+  @@map("analytics_pro_configs")
+}
+
+model AnalyticsProAiUsage {
+  id        String   @id @default(cuid())
+  guildId   String
+  userId    String
+  date      String   // YYYY-MM-DD
+  hour      Int      // 0-23
+  count     Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  config AnalyticsProConfig @relation(fields: [guildId], references: [guildId], onDelete: Cascade)
+
+  @@unique([guildId, userId, date])
+  @@index([guildId, date])
+  @@map("analytics_pro_ai_usage")
+}
+
+model Paste {
+  id            String    @id @default(cuid())
+  guildId       String
+  createdBy     String
+
+  title         String?
+  content       String    @db.Text
+  language      String    @default("plaintext")
+
+  privacy       String    @default("public")
+  password      String?
+  burnAfterRead Boolean   @default(false)
+
+  expiresAt     DateTime?
+  views         Int       @default(0)
+  editedAt      DateTime?
+
+  flagged       Boolean   @default(false)
+  flagReason    String?
+  approved      Boolean   @default(true)
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  config PasteConfig @relation(fields: [guildId], references: [guildId], onDelete: Cascade)
+
+  @@index([guildId])
+  @@index([createdBy])
+  @@index([guildId, privacy])
+  @@index([expiresAt])
+  @@map("pastes")
+}
+
+// ─── Events Addon ─────────────────────────────────────────────────────────────
+
+model EventConfig {
+  id                  String   @id @default(cuid())
+  guildId             String   @unique
+  guild               Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  enabled             Boolean  @default(true)
+  defaultChannelId    String?
+  announceChannelId   String?
+  announceMessageId   String?
+  logChannelId        String?
+  organizerRoles      String[] @default([])
+  rsvpRole            String?
+  reminderTimes       Int[]    @default([3600, 1800, 900])
+  maxAttendeesDefault Int?
+  waitlistTimeout     Int      @default(1800)
+  googleCalendarId    String?
+  googleAccessToken   String?
+  googleRefreshToken  String?
+  googleWebhookId     String?
+  googleSyncToken     String?
+  outlookCalendarId   String?
+  outlookAccessToken  String?
+  outlookRefreshToken String?
+  outlookSubscriptionId String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@map("event_configs")
+}
+
+model Event {
+  id              String    @id @default(cuid())
+  guildId         String
+  guild           Guild     @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  createdBy       String
+  title           String
+  description     String?
+  location        String?
+  meetingUrl      String?
+  meetingProvider String?
+  startsAt        DateTime
+  endsAt          DateTime?
+  timezone        String    @default("UTC")
+  maxAttendees    Int?
+  channelId       String
+  messageId       String?
+  status          String    @default("SCHEDULED")
+  recurrence      String?
+  recurrenceEnd   DateTime?
+  parentEventId   String?
+  googleEventId   String?
+  outlookEventId  String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  rsvps        EventRsvp[]
+  waitlist     EventWaitlist[]
+  reminders    EventReminder[]
+  availability AvailabilityPoll[]
+
+  @@index([guildId, startsAt])
+  @@index([guildId, status])
+  @@map("events")
+}
+
+model EventRsvp {
+  id        String   @id @default(cuid())
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId    String
+  username  String
+  status    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([eventId, userId])
+  @@index([eventId, status])
+  @@map("event_rsvps")
+}
+
+model EventWaitlist {
+  id        String   @id @default(cuid())
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId    String
+  username  String
+  position  Int
+  notified  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@unique([eventId, userId])
+  @@index([eventId, position])
+  @@map("event_waitlist")
+}
+
+model EventReminder {
+  id            String    @id @default(cuid())
+  eventId       String
+  event         Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  sendAt        DateTime
+  secondsBefore Int
+  sent          Boolean   @default(false)
+  sentAt        DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([sendAt, sent])
+  @@map("event_reminders")
+}
+
+model AvailabilityPoll {
+  id        String   @id @default(cuid())
+  guildId   String
+  eventId   String?
+  event     Event?   @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  createdBy String
+  title     String
+  channelId String
+  messageId String?
+  options   Json
+  status    String   @default("OPEN")
+  closesAt  DateTime?
+  createdAt DateTime @default(now())
+
+  votes AvailabilityVote[]
+
+  @@index([guildId, status])
+  @@map("availability_polls")
+}
+
+model AvailabilityVote {
+  id           String           @id @default(cuid())
+  pollId       String
+  poll         AvailabilityPoll @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  userId       String
+  username     String
+  optionIndexes Int[]
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@unique([pollId, userId])
+  @@map("availability_votes")
+}
+
+// ─── AI Assistant Addon ───────────────────────────────────────────────────────
+
+model AiAssistantConfig {
+  id      String @id @default(cuid())
+  guildId String @unique
+
+  // Provider
+  aiProvider        String  @default("deepseek")
+  aiModel           String  @default("deepseek-chat")
+  aiBaseUrl         String?
+  aiApiKeyEncrypted String?
+
+  // Chatbot
+  chatbotEnabled       Boolean  @default(false)
+  chatbotName          String   @default("KorexAI")
+  chatbotPersonality   String   @default("helpful")
+  chatbotChannels      String[] @default([])
+  chatbotTriggerWords  String[] @default([])
+  chatbotIgnoreBots    Boolean  @default(true)
+  chatbotContextMsgs   Int      @default(5)
+
+  // Auto-moderation
+  autoModEnabled          Boolean  @default(false)
+  autoModLogChannelId     String?
+  autoModWhitelistRoles   String[] @default([])
+  autoModWhitelistChannels String[] @default([])
+  toxicityEnabled         Boolean  @default(true)
+  toxicityThreshold       Float    @default(0.7)
+  toxicityAction          String   @default("warn")
+  toxicityDuration        Int      @default(3600)
+  spamEnabled             Boolean  @default(true)
+  spamThreshold           Float    @default(0.8)
+  spamAction              String   @default("delete")
+  harassmentEnabled       Boolean  @default(true)
+  harassmentThreshold     Float    @default(0.9)
+  harassmentAction        String   @default("mute")
+  harassmentDuration      Int      @default(7200)
+  hateEnabled             Boolean  @default(true)
+  hateThreshold           Float    @default(0.9)
+  hateAction              String   @default("ban")
+
+  // Sentiment analysis
+  sentimentEnabled        Boolean  @default(false)
+  sentimentChannels       String[] @default([])
+  sentimentAlertChannelId String?
+  sentimentNegThreshold   Float    @default(-0.5)
+  sentimentAlertCooldown  Int      @default(3600)
+
+  // Summaries
+  summaryEnabled        Boolean  @default(false)
+  summaryChannels       String[] @default([])
+  summaryAutoEnabled    Boolean  @default(false)
+  summaryAutoMsgCount   Int      @default(100)
+
+  // Translation
+  translateEnabled      Boolean  @default(false)
+  translateEmoji        String   @default("🌐")
+  translateChannels     String[] @default([])
+  translateTargetLang   String   @default("es")
+
+  // Rate limits (customizable per guild)
+  limitGuildReqDay      Int @default(500)
+  limitGuildTokensDay   Int @default(50000)
+  limitUserReqDay       Int @default(20)
+  limitUserReqHour      Int @default(5)
+  limitCooldownSec      Int @default(10)
+  limitMaxContext       Int @default(5)
+  limitMaxRespTokens    Int @default(500)
+  limitConcurrent       Int @default(3)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  guild              Guild                  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  faqCategories      AiFaqCategory[]
+  usageLogs          AiUsageLog[]
+  moderationActions  AiModerationAction[]
+  sentimentSnapshots AiSentimentSnapshot[]
+  conversationContexts AiConversationContext[]
+
+  @@map("ai_assistant_configs")
+}
+
+model AiFaqCategory {
+  id          String  @id @default(cuid())
+  guildId     String
+  name        String
+  description String?
+  enabled     Boolean @default(true)
+  order       Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  config  AiAssistantConfig @relation(fields: [guildId], references: [guildId], onDelete: Cascade)
+  entries AiFaqEntry[]
+
+  @@index([guildId])
+  @@map("ai_faq_categories")
+}
+
+model AiFaqEntry {
+  id         String   @id @default(cuid())
+  categoryId String
+  guildId    String
+  triggers   String[]
+  response   String   @db.Text
+  enabled    Boolean  @default(true)
+  matchCount Int      @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  category AiFaqCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@index([categoryId])
+  @@index([guildId])
+  @@map("ai_faq_entries")
+}
+
+model AiUsageLog {
+  id           String @id @default(cuid())
+  guildId      String
+  userId       String
+  feature      String
+  date         String
+  hour         Int
+  requestCount Int    @default(0)
+  tokenCount   Int    @default(0)
+
+  config AiAssistantConfig @relation(fields: [guildId], references: [guildId], onDelete: Cascade)
+
+  @@unique([guildId, userId, feature, date])
+  @@index([guildId, date])
+  @@map("ai_usage_logs")
+}
+
+model AiConversationContext {
+  id        String @id @default(cuid())
+  guildId   String
+  channelId String
+  userId    String
+  messages  Json   @default("[]")
+  updatedAt DateTime @updatedAt
+
+  config AiAssistantConfig @relation(fields: [guildId], references: [guildId], onDelete: Cascade)
+
+  @@unique([guildId, channelId, userId])
+  @@index([guildId])
+  @@map("ai_conversation_contexts")
+}
+
+model AiSentimentSnapshot {
+  id           String   @id @default(cuid())
+  guildId      String
+  channelId    String?
+  score        Float
+  messageCount Int      @default(0)
+  period       String   @default("hourly")
+  recordedAt   DateTime @default(now())
+
+  config AiAssistantConfig @relation(fields: [guildId], references: [guildId], onDelete: Cascade)
+
+  @@index([guildId, recordedAt])
+  @@map("ai_sentiment_snapshots")
+}
+
+model AiModerationAction {
+  id             String   @id @default(cuid())
+  guildId        String
+  userId         String
+  channelId      String
+  messageId      String?
+  violationType  String
+  confidence     Float
+  action         String
+  duration       Int?
+  messageContent String   @db.Text
+  createdAt      DateTime @default(now())
+
+  config AiAssistantConfig @relation(fields: [guildId], references: [guildId], onDelete: Cascade)
+
+  @@index([guildId, createdAt])
+  @@index([guildId, userId])
+  @@map("ai_moderation_actions")
+}
+
+// ─── Store with Payments ──────────────────────────────────────────────────────
+
+model StoreConfig {
+  id      String @id @default(cuid())
+  guildId String @unique
+
+  // PayPal (v1)
+  paypalMode                  String  @default("sandbox")
+  paypalClientId              String?
+  paypalClientSecretEncrypted String?
+  paypalWebhookId             String?
+  paypalWebhookUrl            String?
+
+  // Store metadata
+  enabled          Boolean @default(false)
+  setupCompleted   Boolean @default(false)
+  storeName        String  @default("")
+  storeDescription String  @default("")
+  currency         String  @default("USD")
+  taxRate          Float   @default(0)
+
+  // Catalog (JSON arrays managed from dashboard)
+  products   Json @default("[]")
+  categories Json @default("[]")
+  coupons    Json @default("[]")
+
+  // Channels
+  salesChannelId String?
+  logsChannelId  String?
+
+  // Custom messages (null = use i18n defaults)
+  purchaseEmbedMsg    String?
+  refundEmbedMsg      String?
+  digitalRevealNote   String?
+
+  // Polling fallback
+  pollingEnabled    Boolean  @default(true)
+  pollingIntervalSec Int     @default(60)
+  pollingStartSec   Int     @default(120)
+  lastPolledAt      DateTime?
+
+  // Refund policy
+  autoRevoke     Boolean @default(true)
+  logUnrevokable Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  guild        Guild              @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  transactions StoreTransaction[]
+  webhookLogs  StoreWebhookLog[]
+
+  @@map("store_configs")
+}
+
+model StoreTransaction {
+  id        String @id @default(cuid())
+  guildId   String
+  userId    String
+  orderId   String
+  productId String
+
+  status   String @default("PENDING")
+  amount   Float
+  currency String
+
+  // Delivery tracking
+  deliveryType   String?
+  roleId         String?
+  channelIds     String[] @default([])
+  digitalType    String?
+  digitalClaimed Boolean  @default(false)
+  digitalClaimedAt DateTime?
+
+  // PayPal details
+  paypalStatus String?
+  captureId    String?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime?
+
+  config StoreConfig @relation(fields: [guildId], references: [guildId], onDelete: Cascade)
+
+  @@unique([guildId, orderId])
+  @@index([guildId, userId])
+  @@index([guildId, status])
+  @@index([createdAt])
+  @@map("store_transactions")
+}
+
+model StoreWebhookLog {
+  id        String  @id @default(cuid())
+  guildId   String
+  eventType String
+  paypalId  String?
+  payload   Json
+  processed Boolean @default(false)
+  error     String?
+
+  createdAt DateTime @default(now())
+
+  config StoreConfig @relation(fields: [guildId], references: [guildId], onDelete: Cascade)
+
+  @@index([guildId, processed])
+  @@index([guildId, createdAt])
+  @@map("store_webhook_logs")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ADDON: MUSIC DJ IA
+// ═══════════════════════════════════════════════════════════════
+
+model MusicProConfig {
+  id                  String   @id @default(cuid())
+  guildId             String   @unique
+  guild               Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  enabled             Boolean  @default(true)
+  mode247             Boolean  @default(false)
+  autoJoinChannelId   String?
+  announceChannelId   String?
+  djRoles             String[] @default([])
+  djOnlyMode          Boolean  @default(false)
+  maxQueueSize        Int      @default(0)
+  maxTrackDuration    Int      @default(10800)
+  defaultVolume       Int      @default(50)
+  volumePersist       Boolean  @default(true)
+  currentVolume       Int      @default(50)
+  activeFilter        String?
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@map("music_pro_configs")
+}
+
+model MusicPlaylist {
+  id          String   @id @default(cuid())
+  guildId     String
+  guild       Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  createdBy   String
+  name        String
+  description String?
+  isPublic    Boolean  @default(false)
+  tracks      Json     @default("[]")
+  playCount   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([guildId])
+  @@index([guildId, createdBy])
+  @@map("music_playlists")
+}
+
+model MusicHistory {
+  id          String   @id @default(cuid())
+  guildId     String
+  guild       Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  title       String
+  artist      String
+  url         String
+  duration    Int
+  source      String
+  requestedBy String
+  playedAt    DateTime @default(now())
+
+  @@index([guildId, playedAt])
+  @@map("music_history")
+}
+
+model MusicAIJob {
+  id            String   @id @default(cuid())
+  guildId       String
+  guild         Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  channelId     String
+  requestedBy   String
+  type          String
+  prompt        String
+  status        String   @default("PENDING")
+  musicgptJobId String?
+  resultUrl     String?
+  resultUrl2    String?
+  errorMessage  String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([guildId])
+  @@index([status])
+  @@index([musicgptJobId])
+  @@map("music_ai_jobs")
 }

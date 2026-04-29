@@ -122,17 +122,6 @@ export const ADDON_BUNDLES: AddonBundle[] = [
     popular: false
   },
   {
-    id: 'professional',
-    name: 'professional',
-    displayName: 'Professional Pack',
-    description: 'Para servidores serios que necesitan herramientas avanzadas',
-    addons: ['tickets', 'store', 'staff', 'forms', 'analytics-pro'],
-    price: 11.99,
-    discount: 20, // 5 addons × $2.99 = $14.95, bundle = $11.99
-    currency: 'USD',
-    popular: true
-  },
-  {
     id: 'complete',
     name: 'complete',
     displayName: 'Complete Bundle',
