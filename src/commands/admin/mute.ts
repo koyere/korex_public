@@ -17,6 +17,7 @@ export default class MuteCommand extends Command {
       category: 'admin',
       permissions: {
         user: [PermissionFlagsBits.ModerateMembers],
+        bot: [PermissionFlagsBits.ManageRoles],
       },
       cooldown: 3,
       guildOnly: true,

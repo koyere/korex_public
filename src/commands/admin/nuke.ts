@@ -26,7 +26,7 @@ export default class NukeCommand extends Command {
       category: 'admin',
       cooldown: 30,
       permissions: {
-        user: [PermissionFlagsBits.ManageChannels, PermissionFlagsBits.Administrator],
+        user: [PermissionFlagsBits.ManageChannels],
         bot: [PermissionFlagsBits.ManageChannels, PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks]
       }
     });

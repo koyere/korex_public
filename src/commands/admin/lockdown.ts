@@ -38,8 +38,8 @@ export default class LockdownCommand extends Command {
       category: 'admin',
       cooldown: 10,
       permissions: {
-        user: [PermissionFlagsBits.ManageChannels, PermissionFlagsBits.Administrator],
-        bot: [PermissionFlagsBits.ManageChannels, PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks]
+        user: [PermissionFlagsBits.ManageRoles],
+        bot: [PermissionFlagsBits.ManageRoles, PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks]
       }
     });
   }
@@ -48,7 +48,7 @@ export default class LockdownCommand extends Command {
     return new SlashCommandBuilder()
       .setName(this.name)
       .setDescription('Lock or unlock channels/server to prevent user activity')
-      .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels)
+      .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles)
       .addSubcommand(subcommand =>
         subcommand
           .setName('channel')

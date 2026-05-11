@@ -33,7 +33,7 @@ export default class StickyCommand extends Command {
       category: 'admin',
       cooldown: 5,
       permissions: {
-        user: [PermissionFlagsBits.ManageMessages, PermissionFlagsBits.Administrator],
+        user: [PermissionFlagsBits.ManageMessages],
         bot: [PermissionFlagsBits.ManageMessages, PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks]
       }
     });

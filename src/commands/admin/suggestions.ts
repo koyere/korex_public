@@ -23,7 +23,7 @@ export default class SuggestionsCommand extends Command {
       category: 'admin',
       permissions: {
         user: [PermissionFlagsBits.ManageGuild],
-        bot: [PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks, PermissionFlagsBits.ManageChannels]
+        bot: [PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks, PermissionFlagsBits.AddReactions]
       }
     });
   }
