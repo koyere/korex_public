@@ -112,13 +112,27 @@ export class VerificationService {
         emoji:       cfg.verificationEmoji,
       });
 
-      // Delete previous message if exists
+      // Delete previous message if exists (may be in a different channel if channel changed)
       if (cfg.verificationMessageId) {
         try {
           const old = await channel.messages.fetch(cfg.verificationMessageId);
           await old.delete();
-        } catch { /* message already deleted */ }
+        } catch {
+          // Message not in current channel — scan all text channels
+          try {
+            for (const [, ch] of guild.channels.cache) {
+              if (!ch.isTextBased() || ch.id === cfg.verificationChannel) continue;
+              try {
+                const old = await (ch as TextChannel).messages.fetch(cfg.verificationMessageId);
+                await old.delete();
+                break;
+              } catch { /* not here either */ }
+            }
+          } catch { /* ignore */ }
+        }
       }
+      // Clear the stored ID before sending so a crash/retry doesn't leave orphans
+      await this.saveConfig(guildId, { verificationMessageId: null });
 
       const components = row ? [row] : [];
       const msg = await channel.send({ embeds: [embed], components });
