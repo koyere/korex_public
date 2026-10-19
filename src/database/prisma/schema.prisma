@@ -989,321 +989,37 @@ enum AutoResponseActionType {
 // ADMIN PANEL — OPERATORS
 // ═══════════════════════════════════════════════════════════════
 
-model AdminUser {
-  id             String    @id @default(uuid())
-  email          String    @unique
-  passwordHash   String
-  name           String
-  role           String    @default("support") // super_admin | support | billing | developer | marketing
-  totpSecret     String?
-  totpEnabled    Boolean   @default(false)
-  webauthnCreds  Json      @default("[]")   // array of WebAuthn credentials (id, publicKey, counter, deviceType, backedUp, transports)
-  backupCodes    String[]  @default([])     // codes hashed with Argon2id
-  allowedIps     String[]  @default([])     // empty = no restriction
-  active         Boolean   @default(true)
-  lastLoginAt    DateTime?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-
-  sessions       AdminSession[]
-  auditLogs      AdminAuditLog[]
-  assignedTickets SupportTicket[] @relation("AssignedTickets")
-  replyTemplates  SupportReplyTemplate[]
-  createdCoupons  Coupon[]
-  clientNotes     ClientNote[]
-
-  @@map("admin_users")
-}
-
-model AdminSession {
-  id           String    @id @default(uuid())
-  adminUserId  String
-  sessionToken String    @unique  // SHA-256 of the real session ID (never store the ID in plain text)
-  ip           String?
-  userAgent    String?
-  expiresAt    DateTime
-  lastActiveAt DateTime  @default(now())
-  createdAt    DateTime  @default(now())
-
-  adminUser    AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
-
-  @@index([adminUserId])
-  @@index([expiresAt])
-  @@map("admin_sessions")
-}
-
-model AdminAuditLog {
-  id             String    @id @default(uuid())
-  operatorId     String?                       // admin_users.id or 'system' (null if the operator is deleted)
-  operatorEmail  String?                       // snapshot at that time
-  action         String                        // 'license.courtesy' | 'client.suspend' | etc.
-  targetType     String?                       // 'guild' | 'license' | 'coupon' | 'operator'
-  targetId       String?
-  payload        Json      @default("{}")      // data before/after the change
-  ip             String?
-  createdAt      DateTime  @default(now())
-
-  operator       AdminUser? @relation(fields: [operatorId], references: [id], onDelete: SetNull)
-
-  @@index([operatorId])
-  @@index([targetType, targetId])
-  @@index([createdAt(sort: Desc)])
-  @@map("admin_audit_log")
-}
-
 // ═══════════════════════════════════════════════════════════════
 // ADMIN PANEL — ADDON CATALOG
 // ═══════════════════════════════════════════════════════════════
-
-model AddonCatalog {
-  addonName    String    @id
-  displayName  String
-  description  String?   @db.Text
-  price        Decimal   @default(2.99) @db.Decimal(10, 2)
-  currency     String    @default("USD")
-  paypalPlanId String?
-  status       String    @default("available") // available | beta | soon | hidden
-  features     String[]  @default([])
-  changelog    Json      @default("[]")        // [{ version, date, notes }]
-  updatedAt    DateTime  @updatedAt
-
-  @@map("addon_catalog")
-}
 
 // ═══════════════════════════════════════════════════════════════
 // ADMIN PANEL — PAYMENT HISTORY
 // ═══════════════════════════════════════════════════════════════
 
-model PaymentTransaction {
-  id           String    @id @default(uuid())
-  guildId      String
-  addonName    String?
-  planId       String?
-  amount       Decimal   @db.Decimal(10, 2)
-  currency     String    @default("USD")
-  type         String                        // initial | renewal | refund
-  status       String                        // completed | failed | refunded | pending
-  paypalTxId   String?
-  paypalSubId  String?
-  refundReason String?
-  refundRef    String?
-  createdAt    DateTime  @default(now())
-
-  @@index([guildId])
-  @@index([createdAt(sort: Desc)])
-  @@index([paypalSubId])
-  @@map("payment_transactions")
-}
-
 // ═══════════════════════════════════════════════════════════════
 // ADMIN PANEL — COUPONS
 // ═══════════════════════════════════════════════════════════════
-
-model Coupon {
-  id            String    @id @default(uuid())
-  code          String    @unique
-  discountType  String                       // percent | fixed
-  discountValue Decimal   @db.Decimal(10, 2)
-  addonName     String?                      // null = applies to all
-  maxUses       Int?                         // null = unlimited
-  usedCount     Int       @default(0)
-  expiresAt     DateTime?
-  active        Boolean   @default(true)
-  createdBy     String
-  createdAt     DateTime  @default(now())
-
-  creator       AdminUser  @relation(fields: [createdBy], references: [id])
-  uses          CouponUse[]
-
-  @@map("coupons")
-}
-
-model CouponUse {
-  id        String    @id @default(uuid())
-  couponId  String
-  guildId   String
-  usedAt    DateTime  @default(now())
-  discount  Decimal   @db.Decimal(10, 2)
-
-  coupon    Coupon    @relation(fields: [couponId], references: [id])
-
-  @@unique([couponId, guildId])
-  @@map("coupon_uses")
-}
 
 // ═══════════════════════════════════════════════════════════════
 // ADMIN PANEL — INTERNAL SUPPORT TICKETS (guild owner → Korex)
 // ═══════════════════════════════════════════════════════════════
 
-model SupportTicket {
-  id                  String    @id @default(uuid())
-  guildId             String
-  userId              String                      // Discord user ID of the requester
-  subject             String
-  category            String    @default("other") // technical | configuration | billing | feature | bug | other
-  description         String    @db.Text
-  status              String    @default("open")  // open | in_progress | closed | waiting_customer
-  priority            String    @default("normal") // low | normal | high | urgent
-  assignedTo          String?                     // admin_users.id
-  addonName           String?
-  unreadGuild         Int       @default(0)        // unread new messages from the team
-  unreadAdmin         Int       @default(0)        // unread new messages from the guild
-  firstResponseAt     DateTime?
-  closedAt            DateTime?
-  firstResponseTime   Int?                        // seconds until first response
-  resolutionTime      Int?                        // seconds until closure
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
-
-  assignedOperator    AdminUser?              @relation("AssignedTickets", fields: [assignedTo], references: [id], onDelete: SetNull)
-  messages            SupportTicketMessage[]
-  attachments         SupportTicketAttachment[]
-
-  @@index([guildId])
-  @@index([status])
-  @@index([assignedTo])
-  @@index([createdAt(sort: Desc)])
-  @@map("support_tickets")
-}
-
-model SupportTicketMessage {
-  id         String    @id @default(uuid())
-  ticketId   String
-  senderId   String                          // admin_users.id OR Discord user ID
-  isStaff    Boolean   @default(false)
-  content    String    @db.Text
-  sentVia    String[]  @default([])          // ['dm', 'email']
-  createdAt  DateTime  @default(now())
-
-  ticket       SupportTicket             @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  attachments  SupportTicketAttachment[]
-
-  @@index([ticketId])
-  @@map("support_ticket_messages")
-}
-
-model SupportTicketAttachment {
-  id          String    @id @default(uuid())
-  ticketId    String
-  messageId   String?
-  filename    String
-  mimetype    String
-  sizeBytes   Int
-  storageType String    @default("disk")     // disk | r2
-  storageKey  String                         // disk path or R2 key
-  createdAt   DateTime  @default(now())
-
-  ticket      SupportTicket        @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  message     SupportTicketMessage? @relation(fields: [messageId], references: [id], onDelete: SetNull)
-
-  @@index([ticketId])
-  @@map("support_ticket_attachments")
-}
-
-model SupportReplyTemplate {
-  id        String    @id @default(uuid())
-  name      String
-  content   String    @db.Text
-  createdBy String
-  createdAt DateTime  @default(now())
-
-  creator   AdminUser @relation(fields: [createdBy], references: [id])
-
-  @@map("support_reply_templates")
-}
-
 // ═══════════════════════════════════════════════════════════════
 // ADMIN PANEL — CLIENT CONTACTS AND NOTES
 // ═══════════════════════════════════════════════════════════════
-
-model GuildContact {
-  guildId   String    @id
-  email     String?
-  discordId String                            // owner Discord ID
-  updatedAt DateTime  @updatedAt
-
-  @@map("guild_contacts")
-}
-
-model ClientNote {
-  guildId   String    @id
-  content   String    @default("") @db.Text
-  updatedBy String?                           // admin_users.id
-  updatedAt DateTime  @updatedAt
-
-  updater   AdminUser? @relation(fields: [updatedBy], references: [id], onDelete: SetNull)
-
-  @@map("client_notes")
-}
 
 // ═══════════════════════════════════════════════════════════════
 // ADMIN PANEL — MARKETING
 // ═══════════════════════════════════════════════════════════════
 
-model MarketingSegment {
-  id         String    @id @default(uuid())
-  name       String
-  conditions Json                             // [{field, operator, value}]
-  createdBy  String
-  createdAt  DateTime  @default(now())
-
-  campaigns  MarketingCampaign[]
-
-  @@map("marketing_segments")
-}
-
-model MarketingCampaign {
-  id          String    @id @default(uuid())
-  name        String
-  segmentId   String?
-  channel     String                         // email | discord_dm | both
-  subject     String?
-  content     String    @db.Text
-  status      String    @default("draft")    // draft | scheduled | sending | sent | failed
-  scheduledAt DateTime?
-  sentAt      DateTime?
-  sentCount   Int       @default(0)
-  failedCount Int       @default(0)
-  createdBy   String
-  createdAt   DateTime  @default(now())
-
-  segment     MarketingSegment? @relation(fields: [segmentId], references: [id], onDelete: SetNull)
-
-  @@map("marketing_campaigns")
-}
-
 // ═══════════════════════════════════════════════════════════════
 // ADMIN PANEL — EMAIL LOG
 // ═══════════════════════════════════════════════════════════════
 
-model EmailLog {
-  id         String    @id @default(uuid())
-  guildId    String?
-  recipient  String
-  templateId String
-  campaignId String?
-  status     String    @default("sent")      // sent | failed | opened
-  resendId   String?
-  error      String?
-  sentAt     DateTime  @default(now())
-
-  @@index([guildId])
-  @@map("email_log")
-}
-
 // ═══════════════════════════════════════════════════════════════
 // ADMIN PANEL — GUILD NOTIFICATION PREFERENCES
 // ═══════════════════════════════════════════════════════════════
-
-model GuildNotificationPref {
-  guildId      String    @id
-  supportEmail Boolean   @default(true)
-  supportDm    Boolean   @default(false)
-  supportBadge Boolean   @default(true)
-  updatedAt    DateTime  @updatedAt
-
-  @@map("guild_notification_prefs")
-}
 
 // ─────────────────────────────────────────────
 //  STARBOARD

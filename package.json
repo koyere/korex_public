@@ -22,7 +22,6 @@
     "db:migrate": "prisma migrate dev --schema=src/database/prisma/schema.prisma",
     "db:push": "prisma db push --schema=src/database/prisma/schema.prisma",
     "db:studio": "prisma studio --schema=src/database/prisma/schema.prisma",
-    "db:seed": "tsx src/database/prisma/seed.ts",
     "db:optimize": "tsx scripts/optimize-database.ts",
     "backup:create": "tsx scripts/create-backup.ts",
     "backup:restore": "tsx scripts/restore-backup.ts",
@@ -40,7 +39,7 @@
     "modular"
   ],
   "author": "Korex Team",
-  "license": "PROPRIETARY",
+  "license": "GPL-3.0",
   "engines": {
     "node": ">=18.0.0"
   },

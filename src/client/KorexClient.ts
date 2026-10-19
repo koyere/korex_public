@@ -44,10 +44,6 @@ import { GuildKickoutService } from '../services/GuildKickoutService';
 import { PrefixCommandHandler } from './prefix/PrefixCommandHandler';
 
 // Admin Panel Services
-import { AdminAuthService } from '../services/admin/AdminAuthService';
-import { EmailService } from '../services/admin/EmailService';
-import { TeamNotificationService } from '../services/admin/TeamNotificationService';
-import { SupportTicketService } from '../services/admin/SupportTicketService';
 
 // Production Services
 import { RateLimiter } from '../middleware/rateLimiting';
@@ -112,10 +108,6 @@ export class KorexClient extends Client {
   // ═══════════════════════════════════════════════════════════════
   // ADMIN PANEL SERVICES
   // ═══════════════════════════════════════════════════════════════
-  public adminAuthService: AdminAuthService;
-  public emailService: EmailService;
-  public teamNotification: TeamNotificationService;
-  public supportTicketService: SupportTicketService;
 
   // ═══════════════════════════════════════════════════════════════
   // PRODUCTION SERVICES
@@ -194,16 +186,6 @@ export class KorexClient extends Client {
     this.honeypot  = new HoneypotService(this);
     this.antiRaid  = new AntiRaidService(this);
 
-    // Admin Panel Services
-    this.adminAuthService    = new AdminAuthService(this.db, this.redis.getClient() as any);
-    this.emailService        = new EmailService(this.db);
-    this.teamNotification    = new TeamNotificationService(this);
-    this.supportTicketService = new SupportTicketService(
-      this.db,
-      this.redis.getClient() as any,
-      this.teamNotification,
-      this.emailService
-    );
 
     // Initialize services that require DatabaseManager
     this.licenses = LicenseService.getInstance(this.database);
