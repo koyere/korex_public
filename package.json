@@ -1,7 +1,7 @@
 {
   "name": "korex",
   "version": "1.0.0",
-  "description": "Bot de Discord profesional auto-alojado - The Core of Your Community",
+  "description": "Self-hosted, modular Discord bot - The Core of Your Community",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
@@ -45,14 +45,19 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
+    "@discord-player/extractor": "^7.2.0",
     "@discordjs/voice": "^0.18.0",
+    "@noble/hashes": "^1.8.0",
+    "@otplib/core": "^13.4.0",
     "@prisma/client": "^5.7.1",
+    "@scure/base": "^2.0.0",
     "@simplewebauthn/server": "^13.3.0",
     "@snazzah/davey": "^0.1.11",
     "@types/figlet": "^1.7.0",
     "argon2": "^0.44.0",
     "bcrypt": "^5.1.1",
     "canvas": "^3.2.0",
+    "chalk": "^4.1.2",
     "connect-redis": "^9.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -84,6 +89,7 @@
     "uuid": "^13.0.0",
     "winston": "^3.11.0",
     "winston-daily-rotate-file": "^4.7.1",
+    "winston-transport": "^4.9.0",
     "youtube-dl-exec": "^3.1.4",
     "zod": "^3.22.4"
   },
