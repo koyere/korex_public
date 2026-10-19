@@ -1,10 +1,6 @@
 # Korex — Open-Source Discord Bot Core
 
 <p align="center">
-  <img src="assets/banner.png" alt="Korex Bot" width="600" />
-</p>
-
-<p align="center">
   <a href="https://korex.dev">Website</a> ·
   <a href="https://panel.korex.dev">Dashboard</a> ·
   <a href="https://discord.gg/korex">Discord</a>
@@ -12,85 +8,97 @@
 
 ---
 
-**Korex** is a professional, production-ready Discord bot built with TypeScript and Discord.js v14. This repository contains the open-source core — moderation, economy, leveling, music, giveaways, polls, auto-responses, and the full addon infrastructure. Premium addon implementations are available exclusively on [korex.dev](https://korex.dev).
+**Korex** is a production-ready Discord bot built with TypeScript and Discord.js v14. This repository contains the open-source **core** of the bot: every free module (moderation, verification, auto-roles, economy, levels, music, giveaways, polls, suggestions, logging and more) plus the add-on infrastructure. Premium add-ons and the hosted web dashboard are not part of this repository; premium add-ons are available at [korex.dev](https://korex.dev).
 
 ---
 
 ## Features
 
-- **Moderation** — warn, mute, kick, ban, auto-mod, word/link/caps filters
-- **Economy** — currency, daily/weekly rewards, shop, inventory, bank
-- **Leveling** — XP system, level roles, leaderboards, voice XP
-- **Music** — SoundCloud playback via discord-player v7
-- **Giveaways** — full giveaway lifecycle with requirements and re-roll
-- **Polls** — multi-option polls with time limits and restrictions
-- **Auto-responses** — trigger-based responses (exact, contains, regex)
-- **Suggestions** — channel-based suggestion board with voting
-- **Reaction roles** — buttons and select menus, multiple assignment modes
-- **Welcome / Goodbye** — embeds, DMs, auto-role on join, verification flow
-- **Logging** — granular event logging across categorised channels
-- **Invite tracking** — tracks inviter per member join
-- **Premium addon system** — infrastructure to load, license-check, and manage optional premium modules per guild
+### Moderation and security
+- **Moderation** — `/warn`, `/mute`, `/unmute`, `/timeout`, `/kick`, `/ban`, `/unban`, `/tempban`, `/massban`, `/purge`, `/clear`, `/slowmode`, `/lockdown`, `/nuke`, `/modlogs`, with automatic warn escalation.
+- **Auto-moderation** — message spam, attachment spam, word, link and caps filters, ghost-ping protection, ignored channels and roles.
+- **Anti-raid** — detects join floods in a configurable window, optionally filters by account age, applies an action (alert, timeout, kick or ban) and can lock channels or force verification while raid mode lasts. Raid state is persisted, so the previous state is restored even after a restart. `/antiraid status` and `/antiraid end`.
+- **Honeypot** — trap channel, new-account filter and join-flood detection that act on bots and raid accounts.
+- **Verification** — button, reaction or **image captcha** verification (`/verification`), with attempt limits enforced atomically in Redis.
+
+### Community
+- **Welcome and goodbye** — embeds, DMs and generated welcome images (`/welcome-image`).
+- **Auto-roles** — join roles (with optional delay, persisted across restarts) and reaction / button / select-menu role panels (`/autoroles`), with role safety checks so dangerous roles cannot be self-assigned.
+- **Invite tracking and rewards** — tracks who invited each member, leaderboards, manual adjustments and **invite rewards**: roles granted automatically when a member reaches an invite threshold (`/invites`).
+- **Giveaways** — full lifecycle with requirements (roles, account age, invites) and re-rolls (`/giveaway`).
+- **Polls** — simple, multiple-choice, dropdown and ranking polls with time limits (`/poll`).
+- **Suggestions** — suggestion board with voting, categories, priorities and staff review (`/suggest`, `/suggestions`).
+- **Starboard** — reposts popular messages to a highlight channel (`/starboard`).
+- **Sticky messages** — messages that stay at the bottom of a channel (`/sticky`).
+- **Auto-responses** — trigger-based replies and actions (exact, contains, regex) (`/autoresponse`).
+
+### Engagement
+- **Levels** — text and voice XP, level roles, `/rank` and `/leaderboard`.
+- **Economy** — wallet and bank, `/daily`, `/weekly`, `/work`, `/pay`, `/deposit`, `/withdraw`, `/shop` and `/inventory`.
+- **Music** — playback via discord-player v7 (`/play`, `/pause`, `/skip`, `/stop`, `/queue`, `/nowplaying`, `/volume`) with button controls.
+- **Fun** — `/8ball`, `/coinflip`, `/dice`, `/rps`, `/guess`, `/joke`, `/meme`, `/advice`, `/cat`, `/dog`, `/hug`, `/pat`, `/kiss`, `/slap`, `/compliment`.
+- **Utility** — `/help`, `/ping`, `/botinfo`, `/serverinfo`, `/userinfo`, `/avatar`, `/stats`, `/timestamp`, `/invite`.
+
+### Platform
+- **Prefix and mention commands** — slash commands can also be used with a text prefix (default `!`) or by mentioning the bot. Arguments are parsed against the slash command definition, and the same permission checks, cooldowns and command pipeline are applied.
+- **Logging** — granular event logging to dedicated channels.
+- **i18n** — English and Spanish, per guild (`/language`). Slash command descriptions are in English with Spanish localizations.
+- **Add-on system** — infrastructure to load, license-check and enable optional modules per guild at runtime.
+- **Production tooling** — health monitor, structured logging, rate limiting, scheduled database backups and sharding.
+
+> Some settings (for example the custom prefix, honeypot or advanced anti-raid options) are edited from the hosted dashboard at korex.dev, which is not part of this repository. In a self-hosted deployment they use their defaults and are stored in the corresponding database columns.
 
 ---
 
-## Premium Addons
+## Premium add-ons
 
-The following premium addons extend the core bot and are sold as monthly subscriptions. Their source code is not included in this repository — see [korex.dev/addons](https://korex.dev/addons) for details.
-
-| Addon | Price | Description |
-|---|---|---|
-| Tickets | $2.99/mo | Advanced support ticket system with categories, SLA, transcripts |
-| Staff | $2.99/mo | Staff activity tracking, sessions, departments |
-| Forms | $2.99/mo | Custom form builder with approval workflows |
-| Links | $2.99/mo | Branded link shortener with analytics |
-| Paste | $2.99/mo | Code and text sharing with syntax highlighting |
-| Analytics Pro | $2.99/mo | Advanced guild analytics with AI insights |
-| Events | $2.99/mo | Event scheduling, RSVP, Google/Outlook calendar sync |
-| Store | $2.99/mo | Digital and physical product store with PayPal integration |
-| Music DJ IA | $4.99/mo | Enhanced music with AI-generated songs via MusicGPT |
-| AI Assistant | $4.99/mo | Chatbot, AI moderation, sentiment analysis, FAQ |
-| **Bundle** | **$14.99/mo** | All 8 core addons in one subscription |
+Premium add-ons extend the core and are sold as subscriptions at [korex.dev](https://korex.dev). Their source code is not included in this repository. The core only contains the infrastructure that loads them (`src/addons/types`, `AddonManager`, `AddonSyncService`).
 
 ---
 
-## Tech Stack
+## Tech stack
 
 | Layer | Technology |
 |---|---|
 | Runtime | Node.js 20 + TypeScript |
 | Discord | Discord.js v14 |
 | Database | PostgreSQL 15 + Prisma ORM |
-| Cache | Redis 7 |
-| Music | discord-player v7 + SoundCloud |
-| Process Manager | PM2 |
+| Cache / locks | Redis 7 |
+| Music | discord-player v7 |
+| Tests | Jest + ts-jest |
+| Process manager | PM2 |
 
 ---
 
-## Project Structure
+## Project structure
 
 ```
 src/
-├── addons/             # Addon infrastructure (types, loader — no premium source)
+├── addons/             # Add-on infrastructure (types only — no premium source)
+├── backup/             # Scheduled database backups
 ├── client/             # KorexClient, managers, base structures
-│   ├── managers/       # CommandManager, EventManager, AddonManager, etc.
-│   └── structures/     # Command, Event, Addon base classes
-├── commands/           # Core slash and prefix commands
-├── components/         # Discord component interaction handlers
-├── config/             # Bot configuration constants
-├── database/           # Prisma schema, migrations, Redis cache
+│   ├── managers/       # CommandManager, EventManager, AddonManager, ...
+│   ├── prefix/         # Prefix/mention command parser and permissions
+│   └── structures/     # Command, Event, Component, Addon base classes
+├── commands/           # Slash commands (also usable with a prefix)
+├── components/         # Button, select menu and modal handlers
+├── config/             # Bot configuration
+├── database/           # Prisma schema, Redis cache, optimizer
 ├── events/             # Discord.js event handlers
-├── languages/          # i18n strings (English + Spanish)
-├── middleware/         # Rate limiting
+├── languages/          # Locale files (en, es) and slash localizations
+├── logging/            # Production logger
+├── middleware/         # Rate limiting, add-on middleware
 ├── monitoring/         # Health monitor
-├── services/           # Business logic (economy, levels, moderation, etc.)
+├── services/           # Business logic (moderation, economy, levels, ...)
 ├── sharding/           # Sharding manager for large deployments
-└── utils/              # Logger, helpers, i18n loader
+└── utils/              # Logger, i18n loader, helpers
+prisma/migrations/      # SQL migrations
+tests/                  # Jest tests
 ```
 
 ---
 
-## Getting Started
+## Getting started
 
 ### Prerequisites
 
@@ -106,11 +114,11 @@ cd korex_public
 
 npm install
 
-# Copy and fill environment variables
+# Copy and fill in the environment variables
 cp .env.example .env
 ```
 
-### Environment Variables
+### Environment variables
 
 ```env
 # Required
@@ -118,25 +126,27 @@ DISCORD_TOKEN=your_bot_token
 DISCORD_CLIENT_ID=your_client_id
 DATABASE_URL=postgresql://user:pass@localhost:5432/korex
 REDIS_URL=redis://localhost:6379
-JWT_SECRET=your_64_char_hex_secret
-ENCRYPTION_KEY=your_32_char_hex_key
 
 # Optional
-API_PORT=3000
-DASHBOARD_URL=https://your-dashboard.com
+DISCORD_DEV_GUILD_ID=        # register commands instantly in one guild while developing
+DEFAULT_PREFIX=!
+DEFAULT_LANGUAGE=en
+MUSIC_ENABLED=true
 ENABLE_SHARDING=false
 ```
 
-### Database Setup
+See `.env.example` for the full list.
+
+### Database setup
 
 ```bash
-# Generate Prisma client
-npx prisma generate --schema src/database/prisma/schema.prisma
+# Generate the Prisma client
+npm run db:generate
 
-# Push schema to database (development)
-npx prisma db push --schema src/database/prisma/schema.prisma
+# Push the schema to the database (development)
+npm run db:push
 
-# Or run migrations (production)
+# Or apply the migrations (production)
 npx prisma migrate deploy --schema src/database/prisma/schema.prisma
 ```
 
@@ -150,32 +160,29 @@ npm run dev
 npm run build
 npm start
 
-# With sharding (2500+ guilds)
+# With sharding (2,500+ guilds)
 npm run start:sharding
 ```
 
 ---
 
-## Addon System
+## Add-on system
 
-Korex has a first-class addon system that allows optional modules to be loaded, licensed, and enabled per guild at runtime.
+Optional modules can be loaded, licensed and enabled per guild at runtime.
 
-### How it works
-
-1. Each addon lives in `src/addons/{addon-name}/` and exports an `Addon` class
-2. The `AddonManager` loads addons on startup, verifying an environment license key
-3. `AddonSyncService` uses Redis Pub/Sub to sync addon state across shards
-4. `AddonLicense` records in the database track per-guild activation and PayPal subscription IDs
-5. Addons can be enabled/disabled per guild without restarting the bot
-
-### Creating an addon
+1. Each add-on lives in `src/addons/<addon-name>/` with an `addon.config.ts` and an `index.ts` whose default export extends the `Addon` base class.
+2. On startup `AddonManager` loads every add-on folder and checks the license key from `ADDON_<NAME>_LICENSE`.
+3. `AddonSyncService` uses Redis Pub/Sub to keep add-on state in sync across shards.
+4. `AddonLicense` records track per-guild activation.
+5. Add-ons can be enabled or disabled per guild without restarting the bot.
 
 ```typescript
 // src/addons/my-addon/index.ts
-import { Addon } from '../types/addon.types';
+import { Addon } from '../../client/structures/Addon';
 
 export default class MyAddon extends Addon {
   async onLoad() { /* register commands and events */ }
+  async onUnload() { /* release resources */ }
   async onEnable(guildId: string) { /* guild-specific setup */ }
   async onDisable(guildId: string) { /* cleanup */ }
 }
@@ -183,33 +190,35 @@ export default class MyAddon extends Addon {
 
 ```typescript
 // src/addons/my-addon/addon.config.ts
-export const config = {
+import { AddonConfig } from '../types/addon.types';
+
+export const myAddonConfig: AddonConfig = {
   name: 'my-addon',
-  displayName: 'My Addon',
-  version: '1.0.0',
+  displayName: 'My Add-on',
   description: 'Does something useful.',
+  version: '1.0.0',
+  author: 'You',
+  // ...see AddonConfig for the remaining fields
 };
 ```
-
-Set the license key in `.env`: `ADDON_MY_ADDON_LICENSE=your-key`
 
 ---
 
 ## Sharding
 
-For bots in 2,500+ guilds, enable sharding:
+For bots in 2,500+ guilds:
 
 ```bash
 ENABLE_SHARDING=true npm run start:sharding
 ```
 
-The `ShardingManager` (`src/sharding/`) automatically calculates shard count, monitors health, and gracefully restarts failed shards.
+The `ShardingManager` (`src/sharding/`) calculates the shard count, monitors shard health and restarts failed shards.
 
 ---
 
 ## i18n
 
-Commands and bot messages support English and Spanish out of the box. Language files are in `src/languages/`. To add a new language, duplicate `en.json` and translate the values, then add the locale code to `src/utils/i18n.ts`.
+Bot messages are translated in `src/languages/en.json` and `src/languages/es.json`. Slash command descriptions are written in English in the code and localized to Spanish through `src/languages/slash/es.json`. To add a language, duplicate `en.json`, translate the values and register the locale in `src/utils/i18n.ts`.
 
 ---
 
@@ -221,29 +230,32 @@ Commands and bot messages support English and Spanish out of the box. Language f
 | `npm run build` | Compile TypeScript |
 | `npm run typecheck` | Type-check without emitting |
 | `npm run lint` | Run ESLint |
-| `npm run test` | Run Jest tests |
+| `npm test` | Run the Jest tests |
+| `npm run db:generate` | Generate the Prisma client |
 | `npm run db:studio` | Open Prisma Studio |
+
+The captcha Redis tests need a disposable Redis instance: `REDIS_TEST_URL=redis://127.0.0.1:6399 npm test`. Without it they are skipped.
 
 ---
 
 ## Contributing
 
-Pull requests are welcome for the core bot. Premium addon implementations are not accepted in this repository.
+Pull requests for the core are welcome. Premium add-on implementations are not accepted in this repository.
 
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feat/my-feature`
 3. Commit using conventional commits: `git commit -m "feat: add something"`
 4. Open a pull request
 
-Please ensure `npm run typecheck` and `npm run lint` pass before submitting.
+Please make sure `npm run typecheck`, `npm test` and `npm run lint` pass before submitting.
 
 ---
 
 ## License
 
-This project is licensed under the **MIT License** — see [LICENSE](LICENSE) for details.
+This project is licensed under the **GNU General Public License v3.0** — see [LICENSE](LICENSE) for details.
 
-Premium addons and the commercial Korex service are subject to separate terms at [korex.dev/terms](https://korex.dev/terms).
+Premium add-ons and the hosted Korex service are subject to separate terms at [korex.dev/terms](https://korex.dev/terms).
 
 ---
 
