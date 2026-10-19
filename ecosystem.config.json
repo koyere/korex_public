@@ -3,14 +3,14 @@
     {
       "name": "korex-bot",
       "script": "dist/index.js",
-      "cwd": "/home/ubuntu/Korex_Bot_UP",
+      "cwd": ".",
       "instances": 1,
       "exec_mode": "fork",
       "env": {
         "NODE_ENV": "production"
       },
-      "out_file": "/home/ubuntu/Korex_Bot_UP/logs/korex-bot-out.log",
-      "error_file": "/home/ubuntu/Korex_Bot_UP/logs/korex-bot-error.log",
+      "out_file": "./logs/korex-bot-out.log",
+      "error_file": "./logs/korex-bot-error.log",
       "log_date_format": "YYYY-MM-DD HH:mm:ss Z",
       "merge_logs": true,
       "restart_delay": 5000,
