@@ -2,7 +2,10 @@ import { Redis } from 'ioredis';
 import { KorexClient } from '../client/KorexClient';
 import { createLogger } from '../utils/Logger';
 
-/** Addons cubiertos por el paquete bundle ($14.99/mes). */
+/** Precio de referencia del bundle si el catálogo no tiene una fila 'bundle'. */
+export const BUNDLE_DEFAULT_PRICE = 14.99;
+
+/** Addons cubiertos por el paquete bundle. */
 export const BUNDLE_ADDONS = new Set([
   'tickets', 'store', 'staff', 'forms', 'links', 'paste', 'analytics-pro', 'events',
 ]);
@@ -197,12 +200,64 @@ export class AddonSyncService {
       });
 
       const isActive = !!license;
-      await this.redis.setex(cacheKey, 3600, String(isActive));
+      // Negativo con TTL corto: una compra/cortesía se refleja en ≤ 60 s aunque
+      // el flujo que la creó no invalide la caché.
+      await this.redis.setex(cacheKey, isActive ? 600 : 60, String(isActive));
       return isActive;
     } catch (error) {
       this.logger.error(`Error checking addon status for ${addonName} in guild ${guildId}:`, error);
       return false;
     }
+  }
+
+  /**
+   * ¿Tiene el servidor derecho de uso vigente sobre el addon? Consulta directa a la BD
+   * (sin caché): licencia propia ACTIVE no vencida o, para addons del bundle, bundle
+   * ACTIVE no vencido. Se usa antes de deshabilitar un addon para no quitar el acceso
+   * que sigue cubierto por otra vía (p. ej. licencia individual + bundle).
+   */
+  async hasEntitlement(guildId: string, addonName: string): Promise<boolean> {
+    const now = new Date();
+    const license = await this.client.db.addonLicense.findFirst({
+      where: { guildId, addonName, status: 'ACTIVE', expiresAt: { gt: now } },
+      select: { id: true },
+    });
+    if (license) return true;
+    if (!BUNDLE_ADDONS.has(addonName)) return false;
+    const bundle = await this.client.db.guildPremium.findFirst({
+      where: { guildId, planId: 'bundle', status: 'ACTIVE', expiresAt: { gt: now } },
+      select: { id: true },
+    });
+    return !!bundle;
+  }
+
+  /**
+   * Retira el acceso a un addon tras perder la licencia (cancelación vencida, expiración,
+   * suspensión, kickout, acción de admin): invalida la caché en todos los shards y quita
+   * el addon de enabledAddons, salvo que siga cubierto por otra licencia o el bundle.
+   * Devuelve true si el addon quedó deshabilitado.
+   */
+  async revokeAccess(guildId: string, addonName: string): Promise<boolean> {
+    await this.redis.del(`addon:${addonName}:guild_${guildId}`).catch(() => 0);
+    if (await this.hasEntitlement(guildId, addonName).catch(() => false)) return false;
+
+    await this.client.addons.disableAddon(guildId, addonName).catch(() => false);
+    await this.publishEvent({ type: 'ADDON_DEACTIVATED', guildId, addonName });
+    return true;
+  }
+
+  /** Retira el acceso del bundle: limpia su caché y deshabilita los addons que no tengan licencia propia. */
+  async revokeBundleAccess(guildId: string): Promise<string[]> {
+    await this.redis.del(`bundle:guild:${guildId}`).catch(() => 0);
+    const disabled: string[] = [];
+    for (const addonName of BUNDLE_ADDONS) {
+      try {
+        if (await this.revokeAccess(guildId, addonName)) disabled.push(addonName);
+      } catch (error) {
+        this.logger.error(`Error retirando ${addonName} del bundle en guild ${guildId}:`, error);
+      }
+    }
+    return disabled;
   }
 
   /**
@@ -285,10 +340,26 @@ export class AddonSyncService {
    * Activar addon para un servidor.
    * Usa upsert para manejar correctamente las reactivaciones tras una cancelación.
    */
-  async activateAddon(guildId: string, addonName: string, userId: string, plan: string = 'individual'): Promise<void> {
+  async activateAddon(
+    guildId: string,
+    addonName: string,
+    userId: string,
+    plan: string = 'individual',
+    pricing?: { price: number; currency: string },
+  ): Promise<void> {
     try {
       const expiresAt = new Date();
       expiresAt.setMonth(expiresAt.getMonth() + 1);
+
+      // Una licencia previa con días restantes (cancelada pero aún vigente, cortesía…)
+      // no se acorta: se conserva la fecha más lejana.
+      const previous = await this.client.db.addonLicense.findUnique({
+        where: { guildId_addonName: { guildId, addonName } },
+        select: { expiresAt: true },
+      });
+      if (previous?.expiresAt && previous.expiresAt > expiresAt) {
+        expiresAt.setTime(previous.expiresAt.getTime());
+      }
 
       // upsert: crea la licencia si no existe, o la reactiva si ya existía
       await this.client.db.addonLicense.upsert({
@@ -298,10 +369,14 @@ export class AddonSyncService {
           plan,
           status: 'ACTIVE',
           expiresAt,
+          courtesy: false,
           cancelledAt: null,
           suspendedAt: null,
+          kickoutAt: null,
           paymentFailures: 0,
           lastPaymentFailedAt: null,
+          dataWarnedAt: null,
+          ...(pricing ? { price: pricing.price, currency: pricing.currency } : {}),
         },
         create: {
           guildId,
@@ -310,6 +385,7 @@ export class AddonSyncService {
           plan,
           status: 'ACTIVE',
           expiresAt,
+          ...(pricing ? { price: pricing.price, currency: pricing.currency } : {}),
         },
       });
 

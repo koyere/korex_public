@@ -247,13 +247,13 @@ export default class NukeCommand extends Command {
       if (newChannel && newChannel.isTextBased()) {
         const successEmbed = new EmbedBuilder()
           .setColor(Colors.Green)
-          .setTitle('💥 Channel Nuked')
-          .setDescription(`This channel was nuked and recreated by ${interaction.user.toString()}`)
+          .setTitle(i18n.t('nuke.recreated.title', interaction.guildId!))
+          .setDescription(i18n.t('nuke.recreated.description', interaction.guildId!, { user: interaction.user.toString() }))
           .addFields(
-            { name: 'Reason', value: reason, inline: true },
-            { name: 'Timestamp', value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: true }
+            { name: i18n.t('moderation.log.reason', interaction.guildId!), value: reason.slice(0, 1024), inline: true },
+            { name: i18n.t('moderation.log.time', interaction.guildId!), value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: true }
           )
-          .setFooter({ text: 'Channel successfully recreated' })
+          .setFooter({ text: i18n.t('nuke.recreated.footer', interaction.guildId!) })
           .setTimestamp();
 
         await (newChannel as TextChannel).send({ embeds: [successEmbed] });
@@ -287,4 +287,4 @@ export default class NukeCommand extends Command {
         return i18n.t('nuke.channel_types.unknown', guildId);
     }
   }
-}
+}

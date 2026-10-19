@@ -86,7 +86,7 @@ export default class NowPlayingCommand extends Command {
           inline: true,
         },
         {
-          name: i18n.t('music.requested_by', interaction.guildId!),
+          name: i18n.t('music.requester', interaction.guildId!),
           value: track.requestedBy.mention,
           inline: true,
         },

@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { KorexClient } from '../KorexClient';
+import { STARTING_BALANCE } from '../../services/EconomyService';
 
 export class DatabaseManager {
   public client: KorexClient;
@@ -74,7 +75,7 @@ export class DatabaseManager {
   /**
    * Get or create guild configuration
    */
-  async getOrCreateGuild(guildId: string) {
+  async getOrCreateGuild(guildId: string, language?: string) {
     return await this.prisma.guild.upsert({
       where: { id: guildId },
       // New guilds are initialized with all core modules enabled so the
@@ -82,6 +83,7 @@ export class DatabaseManager {
       create: {
         id: guildId,
         enabledAddons: ['moderation', 'welcome', 'levels', 'music', 'logging', 'economy'],
+        ...(language && { language }),
       },
       update: {},
       include: {
@@ -117,6 +119,7 @@ export class DatabaseManager {
       create: {
         guildId,
         userId,
+        balance: STARTING_BALANCE,
       },
       update: {},
     });
@@ -134,16 +137,17 @@ export class DatabaseManager {
 
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const ninetyDaysAgo = new Date();
+    // Histórico diario de guild_analytics: 365 días (lo consulta Analytics Pro para comparativas anuales)
+    const oneYearAgo = new Date();
 
-    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+    oneYearAgo.setDate(oneYearAgo.getDate() - 365);
 
     try {
-      // Clean old analytics (more than 90 days)
+      // Clean old analytics (more than 365 days)
       const deletedAnalytics = await this.prisma.guildAnalytics.deleteMany({
         where: {
           date: {
-            lt: ninetyDaysAgo,
+            lt: oneYearAgo,
           },
         },
       });

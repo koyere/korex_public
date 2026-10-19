@@ -215,47 +215,44 @@ export default class ClearCommand extends Command {
 
         // Log the action to moderation logs
         try {
-          const config = await this.client.moderation.getModerationConfig(guildId);
+          const logChannel = await this.client.moderation.getModerationLogChannel(guild);
 
-          if (config.logChannelId) {
-            const logChannel = guild.channels.cache.get(config.logChannelId) as TextChannel;
-
-            if (logChannel && logChannel.id !== channel.id) {
-              const logEmbed = new EmbedBuilder()
-                .setTitle('🧹 Messages Cleared')
-                .setColor(Colors.Blue)
-                .setDescription(`${deletedCount} messages cleared in ${channel.toString()}`)
-                .addFields(
-                  {
-                    name: 'Moderator',
-                    value: `${interaction.user.toString()} (${interaction.user.tag})`,
-                    inline: true,
-                  },
-                  {
-                    name: 'Channel',
-                    value: channel.toString(),
-                    inline: true,
-                  },
-                  {
-                    name: 'Reason',
-                    value: reason,
-                    inline: false,
-                  }
-                )
-                .setTimestamp();
-
-              if (targetUser) {
-                logEmbed.addFields({
-                  name: 'Target User',
-                  value: `${targetUser.toString()} (${targetUser.tag})`,
+          if (logChannel && logChannel.id !== channel.id) {
+            const tl = (key: string, vars?: Record<string, string>) => i18n.t(key, guildId, vars);
+            const logEmbed = new EmbedBuilder()
+              .setTitle(tl('clear.log.title'))
+              .setColor(Colors.Blue)
+              .setDescription(tl('clear.log.description', { count: String(deletedCount), channel: channel.toString() }))
+              .addFields(
+                {
+                  name: tl('moderation.log.moderator'),
+                  value: `${interaction.user.toString()} (${interaction.user.tag})`,
                   inline: true,
-                });
-              }
+                },
+                {
+                  name: tl('clear.log.channel'),
+                  value: channel.toString(),
+                  inline: true,
+                },
+                {
+                  name: tl('moderation.log.reason'),
+                  value: reason.slice(0, 1024),
+                  inline: false,
+                }
+              )
+              .setTimestamp();
 
-              await logChannel.send({ embeds: [logEmbed] }).catch(err => {
-                this.client.logger.warn('Could not send log to moderation channel:', err.message);
+            if (targetUser) {
+              logEmbed.addFields({
+                name: tl('clear.log.target'),
+                value: `${targetUser.toString()} (${targetUser.tag})`,
+                inline: true,
               });
             }
+
+            await logChannel.send({ embeds: [logEmbed] }).catch(err => {
+              this.client.logger.warn('Could not send log to moderation channel:', err.message);
+            });
           }
         } catch (logError: any) {
           this.client.logger.warn('Error sending moderation log:', logError.message);
@@ -273,7 +270,7 @@ export default class ClearCommand extends Command {
           });
         } else {
           await interaction.editReply({
-            content: `❌ Error deleting messages: ${error.message}`,
+            content: `❌ ${i18n.t('clear.error', lang)}`,
           });
         }
       }

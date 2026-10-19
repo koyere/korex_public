@@ -14,6 +14,7 @@ import { KorexClient } from '../../client/KorexClient';
 import { i18n } from '../../utils/i18n';
 import { botConfig } from '../../config/bot.config';
 import type { Suggestion, SuggestionService } from '../../services/SuggestionService';
+import { buildSuggestionConfigButtons, buildSuggestionConfigEmbed } from '../../utils/suggestionConfigPanel';
 
 export default class SuggestionsCommand extends Command {
   constructor(client: KorexClient) {
@@ -113,66 +114,10 @@ export default class SuggestionsCommand extends Command {
     const guildId = interaction.guildId!;
     const config = await suggestionService.getConfig(guildId);
 
-    const embed = new EmbedBuilder()
-      .setColor(botConfig.colors.primary)
-      .setTitle(i18n.t('suggestions.config.title', guildId))
-      .setDescription(i18n.t('suggestions.config.description', guildId))
-      .addFields(
-        {
-          name: i18n.t('suggestions.config.enabled', guildId),
-          value: config.enabled ? '✅ Enabled' : '❌ Disabled',
-          inline: true
-        },
-        {
-          name: i18n.t('suggestions.config.channel', guildId),
-          value: config.channelId ? `<#${config.channelId}>` : i18n.t('common.none', guildId),
-          inline: true
-        },
-        {
-          name: i18n.t('suggestions.config.cooldown', guildId),
-          value: `${config.cooldown} seconds`,
-          inline: true
-        },
-        {
-          name: i18n.t('suggestions.config.auto_threads', guildId),
-          value: config.autoCreateThreads ? '✅ Yes' : '❌ No',
-          inline: true
-        },
-        {
-          name: i18n.t('suggestions.config.vote_threshold', guildId),
-          value: config.voteThreshold.toString(),
-          inline: true
-        },
-        {
-          name: i18n.t('suggestions.config.notify_author', guildId),
-          value: config.notifyAuthor ? '✅ Yes' : '❌ No',
-          inline: true
-        }
-      )
-      .setTimestamp();
-
-    const buttons = new ActionRowBuilder<ButtonBuilder>()
-      .addComponents(
-        new ButtonBuilder()
-          .setCustomId('suggestions_toggle')
-          .setLabel(config.enabled ? 'Disable' : 'Enable')
-          .setStyle(config.enabled ? ButtonStyle.Danger : ButtonStyle.Success)
-          .setEmoji(config.enabled ? '❌' : '✅'),
-        new ButtonBuilder()
-          .setCustomId('suggestions_settings')
-          .setLabel('Settings')
-          .setStyle(ButtonStyle.Secondary)
-          .setEmoji('⚙️'),
-        new ButtonBuilder()
-          .setCustomId('suggestions_roles')
-          .setLabel('Manage Roles')
-          .setStyle(ButtonStyle.Secondary)
-          .setEmoji('👥')
-      );
-
+    // Botones: activar/desactivar, ajustes y roles (SuggestionConfigComponents)
     await interaction.reply({
-      embeds: [embed],
-      components: [buttons],
+      embeds: [buildSuggestionConfigEmbed(guildId, config)],
+      components: [buildSuggestionConfigButtons(guildId, config)],
       ephemeral: true
     });
   }
@@ -261,8 +206,8 @@ export default class SuggestionsCommand extends Command {
     const status = interaction.options.get('status')?.value as Suggestion['status'] | undefined;
 
     const suggestions = status 
-      ? suggestionService.getSuggestionsByStatus(guildId, status)
-      : suggestionService.getSuggestionsByGuild(guildId);
+      ? await suggestionService.getSuggestionsByStatus(guildId, status)
+      : await suggestionService.getSuggestionsByGuild(guildId);
 
     if (suggestions.length === 0) {
       await interaction.reply({
@@ -313,7 +258,7 @@ export default class SuggestionsCommand extends Command {
 
   private async handleStats(interaction: ChatInputCommandInteraction, suggestionService: SuggestionService): Promise<void> {
     const guildId = interaction.guildId!;
-    const suggestions = suggestionService.getSuggestionsByGuild(guildId);
+    const suggestions = await suggestionService.getSuggestionsByGuild(guildId, 1000);
 
     if (suggestions.length === 0) {
       await interaction.reply({

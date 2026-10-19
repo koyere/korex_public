@@ -20,8 +20,12 @@ export default class GuildMemberUpdateEvent extends Event<'guildMemberUpdate'> {
 
       if (!wasBooster && isBooster) {
         // Member started boosting
-        await this.client.autoRole.handleMemberBoost(newMember);
+        await this.client.autoRole.handleMemberBoostChange(newMember, true);
         this.client.logger.info(`${newMember.user.tag} started boosting ${newMember.guild.name}`);
+      } else if (wasBooster && !isBooster && !oldMember.partial) {
+        // Dejó de hacer boost: quitar los roles de booster
+        await this.client.autoRole.handleMemberBoostChange(newMember, false);
+        this.client.logger.info(`${newMember.user.tag} stopped boosting ${newMember.guild.name}`);
       }
     } catch (error) {
       this.client.logger.error('Error handling guild member update event:', error);

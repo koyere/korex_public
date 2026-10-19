@@ -17,11 +17,14 @@ export default class ReadyEvent extends Event<'clientReady'> {
     // Llamar al método onReady del cliente
     await this.client.onReady();
 
+    // Caché de invitaciones para saber quién invitó a cada miembro (/invites)
+    this.client.inviteService.init().catch((err) => this.client.logger.warn('Invite tracking init failed:', err));
+
     // Configurar presencia del bot
     this.client.user?.setPresence({
       activities: [
         {
-          name: `${this.client.guilds.cache.size} servidores | !help`,
+          name: `${this.client.guilds.cache.size} servers | /help`,
           type: 3, // WATCHING
         },
       ],
@@ -88,9 +91,9 @@ export default class ReadyEvent extends Event<'clientReady'> {
     if (!this.client.user) return;
 
     const activities = [
-      `${this.client.guilds.cache.size} servidores`,
-      `${this.client.users.cache.size} usuarios`,
-      `!help para ayuda`,
+      `${this.client.guilds.cache.size} servers`,
+      `${this.client.users.cache.size} users`,
+      `/help`,
       `korex.dev`,
       `v${process.env.npm_package_version || '1.0.0'}`,
     ];
@@ -112,6 +115,20 @@ export default class ReadyEvent extends Event<'clientReady'> {
    * Configurar tareas periódicas
    */
   private setupPeriodicTasks(): void {
+    // Roles de entrada con retraso pendientes (persistidos en BD: sobreviven a reinicios)
+    try {
+      this.client.autoRole.startDelayedJoinRoleWorker(this.client);
+    } catch (error) {
+      this.client.logger.error('Error starting delayed join role worker:', error);
+    }
+
+    // Plazos de verificación pendientes (persistidos en Redis: sobreviven a reinicios)
+    try {
+      this.client.verificationService.startDeadlineWorker();
+    } catch (error) {
+      this.client.logger.error('Error starting verification deadline worker:', error);
+    }
+
     // Limpiar base de datos cada 24 horas
     setInterval(
       async () => {

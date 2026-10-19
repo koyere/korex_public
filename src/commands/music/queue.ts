@@ -70,134 +70,8 @@ export default class QueueCommand extends Command {
       return;
     }
 
-    const embed = new EmbedBuilder()
-      .setColor(Colors.Blue)
-      .setTitle(`📋 ${i18n.t('music.queue_title', interaction.guildId!)}`)
-      .setFooter({
-        text: i18n.t('music.queue_footer', interaction.guildId!, {
-          page: String(queueData.page),
-          totalPages: String(queueData.totalPages),
-          total: String(queueData.totalTracks),
-        }),
-      });
-
-    // Current track
-    if (queueData.currentTrack) {
-      const current = queueData.currentTrack;
-
-      embed.addFields({
-        name: `🎵 ${i18n.t('music.now_playing', interaction.guildId!)}`,
-        value: `**${current.title}**\n${current.artist} • ${this.formatDuration(current.duration)}\n${i18n.t('music.requested_by', interaction.guildId!, { user: current.requestedBy.displayName })}`,
-        inline: false,
-      });
-    }
-
-    // Queue tracks
-    if (queueData.tracks.length > 0) {
-      const queueList = queueData.tracks
-        .map((track, index: number) => {
-          const position = (queueData.page - 1) * 10 + index + 1;
-
-          return `**${position}.** ${track.title}\n${track.artist} • ${this.formatDuration(track.duration)} • ${track.requestedBy.displayName}`;
-        })
-        .join('\n\n');
-
-      embed.addFields({
-        name: `📋 ${i18n.t('music.up_next', interaction.guildId!)}`,
-        value: queueList,
-        inline: false,
-      });
-    } else if (!queueData.currentTrack) {
-      embed.setDescription(i18n.t('music.queue_empty', interaction.guildId!));
-    }
-
-    // Queue info
-    const infoFields: { name: string; value: string; inline: boolean }[] = [];
-
-    if (queueData.currentTrack || queueData.tracks.length > 0) {
-      infoFields.push(
-        {
-          name: i18n.t('music.volume', interaction.guildId!),
-          value: `${queueData.volume}%`,
-          inline: true,
-        },
-        {
-          name: i18n.t('music.loop', interaction.guildId!),
-          value: i18n.t(`music.loop_${queueData.loop}`, interaction.guildId!),
-          inline: true,
-        },
-        {
-          name: i18n.t('music.status', interaction.guildId!),
-          value: queueData.paused
-            ? i18n.t('music.paused', interaction.guildId!)
-            : i18n.t('music.playing', interaction.guildId!),
-          inline: true,
-        }
-      );
-    }
-
-    if (infoFields.length > 0) {
-      embed.addFields(infoFields);
-    }
-
-    // Navigation buttons
-    const components: ActionRowBuilder<ButtonBuilder>[] = [];
-
-    if (queueData.totalPages > 1) {
-      const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-        new ButtonBuilder()
-          .setCustomId(`queue_page_${Math.max(1, queueData.page - 1)}`)
-          .setLabel(i18n.t('common.previous', interaction.guildId!))
-          .setEmoji('⬅️')
-          .setStyle(ButtonStyle.Primary)
-          .setDisabled(queueData.page === 1),
-        new ButtonBuilder()
-          .setCustomId(`queue_page_${Math.min(queueData.totalPages, queueData.page + 1)}`)
-          .setLabel(i18n.t('common.next', interaction.guildId!))
-          .setEmoji('➡️')
-          .setStyle(ButtonStyle.Primary)
-          .setDisabled(queueData.page === queueData.totalPages)
-      );
-
-      components.push(row);
-    }
-
-    // Control buttons (if there's music playing)
-    if (queueData.currentTrack) {
-      const controlRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
-        new ButtonBuilder()
-          .setCustomId('music_pause')
-          .setLabel(
-            queueData.paused
-              ? i18n.t('music.resume', interaction.guildId!)
-              : i18n.t('music.pause', interaction.guildId!)
-          )
-          .setEmoji(queueData.paused ? '▶️' : '⏸️')
-          .setStyle(ButtonStyle.Primary),
-        new ButtonBuilder()
-          .setCustomId('music_skip')
-          .setLabel(i18n.t('music.skip', interaction.guildId!))
-          .setEmoji('⏭️')
-          .setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder()
-          .setCustomId('music_stop')
-          .setLabel(i18n.t('music.stop', interaction.guildId!))
-          .setEmoji('⏹️')
-          .setStyle(ButtonStyle.Danger),
-        new ButtonBuilder()
-          .setCustomId('music_shuffle')
-          .setLabel(i18n.t('music.shuffle', interaction.guildId!))
-          .setEmoji('🔀')
-          .setStyle(ButtonStyle.Secondary)
-      );
-
-      components.push(controlRow);
-    }
-
-    await interaction.editReply({
-      embeds: [embed],
-      components: components.length > 0 ? components : [],
-    });
+    const message = buildQueueMessage(this.client, interaction.guildId!, page)!;
+    await interaction.editReply(message);
   }
 
   private formatDuration(ms: number): string {
@@ -207,4 +81,144 @@ export default class QueueCommand extends Command {
 
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   }
+}
+
+/** Embed + botones de la cola (lo usan /queue y los botones de página). */
+export function buildQueueMessage(client: KorexClient, guildId: string, page: number) {
+  const queueData = client.music.getQueueDisplay(guildId, page);
+  if (!queueData) return null;
+
+  const embed = new EmbedBuilder()
+    .setColor(Colors.Blue)
+    .setTitle(`📋 ${i18n.t('music.queue_title', guildId)}`)
+    .setFooter({
+      text: i18n.t('music.queue_footer', guildId, {
+        page: String(queueData.page),
+        totalPages: String(queueData.totalPages),
+        total: String(queueData.totalTracks),
+      }),
+    });
+
+  // Current track
+  if (queueData.currentTrack) {
+    const current = queueData.currentTrack;
+
+    embed.addFields({
+      name: `🎵 ${i18n.t('music.now_playing', guildId)}`,
+      value: `**${current.title}**\n${current.artist} • ${formatQueueDuration(current.duration)}\n${`${i18n.t('music.requester', guildId)}: ${current.requestedBy.displayName}`}`,
+      inline: false,
+    });
+  }
+
+  // Queue tracks
+  if (queueData.tracks.length > 0) {
+    const queueList = queueData.tracks
+      .map((track, index: number) => {
+        const position = (queueData.page - 1) * 10 + index + 1;
+
+        return `**${position}.** ${track.title}\n${track.artist} • ${formatQueueDuration(track.duration)} • ${track.requestedBy.displayName}`;
+      })
+      .join('\n\n');
+
+    embed.addFields({
+      name: `📋 ${i18n.t('music.up_next', guildId)}`,
+      value: queueList,
+      inline: false,
+    });
+  } else if (!queueData.currentTrack) {
+    embed.setDescription(i18n.t('music.queue_empty', guildId));
+  }
+
+  // Queue info
+  const infoFields: { name: string; value: string; inline: boolean }[] = [];
+
+  if (queueData.currentTrack || queueData.tracks.length > 0) {
+    infoFields.push(
+      {
+        name: i18n.t('music.volume', guildId),
+        value: `${queueData.volume}%`,
+        inline: true,
+      },
+      {
+        name: i18n.t('music.loop', guildId),
+        value: i18n.t(`music.loop_${queueData.loop}`, guildId),
+        inline: true,
+      },
+      {
+        name: i18n.t('music.status', guildId),
+        value: queueData.paused
+          ? i18n.t('music.paused', guildId)
+          : i18n.t('music.playing', guildId),
+        inline: true,
+      }
+    );
+  }
+
+  if (infoFields.length > 0) {
+    embed.addFields(infoFields);
+  }
+
+  // Navigation buttons
+  const components: ActionRowBuilder<ButtonBuilder>[] = [];
+
+  if (queueData.totalPages > 1) {
+    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`queue_page_${Math.max(1, queueData.page - 1)}`)
+        .setLabel(i18n.t('common.previous', guildId))
+        .setEmoji('⬅️')
+        .setStyle(ButtonStyle.Primary)
+        .setDisabled(queueData.page === 1),
+      new ButtonBuilder()
+        .setCustomId(`queue_page_${Math.min(queueData.totalPages, queueData.page + 1)}`)
+        .setLabel(i18n.t('common.next', guildId))
+        .setEmoji('➡️')
+        .setStyle(ButtonStyle.Primary)
+        .setDisabled(queueData.page === queueData.totalPages)
+    );
+
+    components.push(row);
+  }
+
+  // Control buttons (if there's music playing)
+  if (queueData.currentTrack) {
+    const controlRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setCustomId('music_pause')
+        .setLabel(
+          queueData.paused
+            ? i18n.t('music.resume', guildId)
+            : i18n.t('music.pause', guildId)
+        )
+        .setEmoji(queueData.paused ? '▶️' : '⏸️')
+        .setStyle(ButtonStyle.Primary),
+      new ButtonBuilder()
+        .setCustomId('music_skip')
+        .setLabel(i18n.t('music.skip', guildId))
+        .setEmoji('⏭️')
+        .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder()
+        .setCustomId('music_stop')
+        .setLabel(i18n.t('music.stop', guildId))
+        .setEmoji('⏹️')
+        .setStyle(ButtonStyle.Danger),
+      new ButtonBuilder()
+        .setCustomId('music_shuffle')
+        .setLabel(i18n.t('music.shuffle', guildId))
+        .setEmoji('🔀')
+        .setStyle(ButtonStyle.Secondary)
+    );
+
+    components.push(controlRow);
+  }
+
+
+  return { embeds: [embed], components: components.length > 0 ? components : [] };
+}
+
+function formatQueueDuration(ms: number): string {
+  const totalSeconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }

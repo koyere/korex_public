@@ -76,6 +76,31 @@ export default class GiveawayCommand extends Command {
               .setDescription(i18n.t('commands.giveaway.create.options.title', 'global'))
               .setMaxLength(100)
           )
+          .addRoleOption(option =>
+            option
+              .setName('required_role')
+              .setDescription(i18n.t('commands.giveaway.create.options.required_role', 'global'))
+          )
+          .addIntegerOption(option =>
+            option
+              .setName('required_level')
+              .setDescription(i18n.t('commands.giveaway.create.options.required_level', 'global'))
+              .setMinValue(1)
+              .setMaxValue(1000)
+          )
+          .addIntegerOption(option =>
+            option
+              .setName('required_balance')
+              .setDescription(i18n.t('commands.giveaway.create.options.required_balance', 'global'))
+              .setMinValue(1)
+          )
+          .addIntegerOption(option =>
+            option
+              .setName('required_invites')
+              .setDescription(i18n.t('commands.giveaway.create.options.required_invites', 'global'))
+              .setMinValue(1)
+              .setMaxValue(10000)
+          )
       )
       .addSubcommand(subcommand =>
         subcommand
@@ -292,7 +317,13 @@ export default class GiveawayCommand extends Command {
 
     await interaction.deferReply({ ephemeral: true });
 
-    const success = await this.client.giveawayService.endGiveaway(giveawayId, true);
+    // Solo sorteos de este servidor y sin re-terminar uno ya acabado
+    const owned = await this.client.db.giveaway.findFirst({
+      where: { id: giveawayId, guildId },
+      select: { id: true },
+    });
+
+    const success = owned ? await this.client.giveawayService.endGiveaway(giveawayId) : false;
 
     if (success) {
       await interaction.editReply({
@@ -309,11 +340,20 @@ export default class GiveawayCommand extends Command {
     const guildId = interaction.guildId!;
     const giveawayId = interaction.options.get('id')?.value as string;
 
-    await interaction.reply({
-      content: i18n.t('commands.giveaway.reroll.not_implemented', guildId),
-      ephemeral: true
+    await interaction.deferReply({ ephemeral: true });
+
+    const owned = await this.client.db.giveaway.findFirst({ where: { id: giveawayId, guildId }, select: { id: true } });
+    const result = owned
+      ? await this.client.giveawayService.rerollGiveaway(giveawayId)
+      : { success: false, reason: 'not_found' as string };
+
+    await interaction.editReply({
+      content: result.success
+        ? i18n.t('commands.giveaway.reroll.success', guildId, { winners: (result.winners ?? []).map((id) => `<@${id}>`).join(', ') })
+        : i18n.t(`commands.giveaway.reroll.errors.${result.reason}`, guildId),
     });
   }
+
 
   private async handleList(interaction: ChatInputCommandInteraction): Promise<void> {
     const guildId = interaction.guildId!;
@@ -360,9 +400,12 @@ export default class GiveawayCommand extends Command {
     const guildId = interaction.guildId!;
     const giveawayId = interaction.options.get('id')?.value as string;
 
-    await interaction.reply({
-      content: i18n.t('commands.giveaway.info.not_implemented', guildId),
-      ephemeral: true
-    });
+    const embed = await this.client.giveawayService.buildInfoEmbed(giveawayId, guildId);
+    if (!embed) {
+      await interaction.reply({ content: i18n.t('commands.giveaway.reroll.errors.not_found', guildId), ephemeral: true });
+      return;
+    }
+    await interaction.reply({ embeds: [embed], ephemeral: true });
   }
-}
+
+}

@@ -2,12 +2,14 @@ import { logger } from '../utils/Logger';
 import { DatabaseManager } from '../client/managers/DatabaseManager';
 import { EconomyService } from './EconomyService';
 import { GuildMember } from 'discord.js';
+import { i18n } from '../utils/i18n';
 
 export interface ShopItem {
   id: string;
   guildId: string;
   name: string;
   description: string;
+  translationKey?: string | null;
   price: number;
   type: string;
   data: any;
@@ -50,6 +52,56 @@ export class ShopService {
     this.db = db;
   }
 
+  private static readonly DEFAULT_CATALOG = [
+    { translationKey: 'pizza',        name: 'Porción de Pizza',               emoji: '🍕', price: 50,    type: 'cosmetic',   description: 'Un trozo de pizza virtual. Nadie sabe cómo llegó aquí, pero se ve deliciosa.', stock: -1 },
+    { translationKey: 'dice',         name: 'Dado de la Suerte',              emoji: '🎲', price: 75,    type: 'cosmetic',   description: 'Lánzalo. No pasará nada, pero la sensación es increíble.', stock: -1 },
+    { translationKey: 'mystery_card', name: 'Carta Misteriosa',               emoji: '🃏', price: 100,   type: 'consumable', description: '¿Qué hay dentro? Nadie lo sabe. Ni tú después de abrirla.', stock: -1 },
+    { translationKey: 'gamer_cap',    name: 'Gorra Gamer',                    emoji: '🧢', price: 150,   type: 'cosmetic',   description: 'Equiparla te hace un 12% más gamer. Estadísticamente hablando.', stock: -1 },
+    { translationKey: 'crystal_ball', name: 'Bola de Cristal (Defectuosa)',   emoji: '🔮', price: 200,   type: 'consumable', description: 'Predice el futuro con un 0.3% de precisión. La garantía expiró.', stock: -1 },
+    { translationKey: 'certificate',  name: 'Certificado de Buena Persona',   emoji: '📜', price: 250,   type: 'cosmetic',   description: 'Firmado por nadie importante, pero queda bonito en el perfil.', stock: -1 },
+    { translationKey: 'magic_wand',   name: 'Varita de Hogwarts (Imitación)', emoji: '🪄', price: 350,   type: 'cosmetic',   description: 'No lanza hechizos, pero la onda es absolutamente increíble.', stock: -1 },
+    { translationKey: 'robot',        name: 'Asistente Robot (Versión Gratis)',emoji: '🤖',price: 450,   type: 'consumable', description: 'Hace exactamente lo que tú harías. Ni más ni menos.', stock: -1 },
+    { translationKey: 'wizard_hat',   name: 'Sombrero de Mago VIP',           emoji: '🎩', price: 600,   type: 'cosmetic',   description: 'Úsalo para parecer más inteligente en las reuniones de Discord.', stock: -1 },
+    { translationKey: 'power_taco',   name: 'Taco del Poder',                 emoji: '🌮', price: 750,   type: 'consumable', description: 'Se dice que quien lo come obtiene sabiduría infinita. Se dice.', stock: 50 },
+    { translationKey: 'unicorn',      name: 'Montura de Unicornio',           emoji: '🦄', price: 900,   type: 'cosmetic',   description: 'Solo válida en territorios imaginarios. Velocidad: absolutamente ridícula.', stock: -1 },
+    { translationKey: 'briefcase',    name: 'Maletín Ejecutivo Vacío',        emoji: '💼', price: 1200,  type: 'cosmetic',   description: 'Parece que sabes lo que haces. El secreto está en la pose.', stock: -1 },
+    { translationKey: 'rocket',       name: 'Cohete Personal (Sin Combustible)',emoji: '🚀',price: 1800, type: 'cosmetic',   description: 'Llega a las estrellas… teóricamente. Combustible vendido por separado.', stock: -1 },
+    { translationKey: 'shield',       name: 'Escudo Anti-Críticas',           emoji: '🛡️', price: 2200,  type: 'consumable', description: 'Absorbe hasta 3 críticas de tus amigos. Duración: un rato.', stock: 30 },
+    { translationKey: 'crown',        name: 'Corona del Servidor',            emoji: '👑', price: 2500,  type: 'cosmetic',   description: 'Símbolo de estatus máximo. No da poderes reales, solo respeto.', stock: -1 },
+    { translationKey: 'diamond',      name: 'Diamante de la Eternidad',       emoji: '💎', price: 4000,  type: 'cosmetic',   description: 'Raro, brillante y completamente inútil. Como toda buena obra de arte.', stock: -1 },
+    { translationKey: 'trophy',       name: 'Trofeo de Leyenda Absoluta',     emoji: '🏆', price: 6000,  type: 'cosmetic',   description: 'Para quien llegó hasta aquí. Eso ya merece respeto en sí mismo.', stock: -1 },
+    { translationKey: 'star',         name: 'Estrella del Servidor',          emoji: '🌟', price: 8000,  type: 'cosmetic',   description: 'Tu nombre en las estrellas. Bueno, en el inventario. Que es casi lo mismo.', stock: -1 },
+    { translationKey: 'lottery',      name: 'Ticket Dorado de Lotería',       emoji: '🎰', price: 10000, type: 'consumable', description: 'La suerte es para los valientes. O para los ricos. Tú decides.', stock: 10 },
+    { translationKey: 'suit',         name: 'Traje de Millonario',            emoji: '🤵', price: 12000, type: 'cosmetic',   description: 'Porque si ya tienes 12,000 monedas, claramente sabes lo que haces.', stock: -1 },
+    { translationKey: 'portal',       name: 'Portal Interdimensional',        emoji: '🌀', price: 15000, type: 'consumable', description: 'Se abre, te metes, apareces en el mismo servidor. Pero fue emocionante.', stock: 5 },
+  ];
+
+  /**
+   * Inserta el catálogo base en un guild nuevo (idempotente por nombre)
+   */
+  public async seedDefaultItems(guildId: string): Promise<void> {
+    if (!this.db) return;
+
+    try {
+      const existing = await this.db.prisma.shopItem.findMany({ where: { guildId }, select: { name: true } });
+      const existingNames = new Set(existing.map(i => i.name));
+
+      const toInsert = ShopService.DEFAULT_CATALOG.filter(item => !existingNames.has(item.name));
+
+      for (const item of toInsert) {
+        await this.db.prisma.shopItem.create({
+          data: { guildId, name: item.name, description: item.description, translationKey: item.translationKey, price: item.price, type: item.type, emoji: item.emoji, stock: item.stock, enabled: true },
+        });
+      }
+
+      if (toInsert.length > 0) {
+        this.logger.info(`Shop: ${toInsert.length} items insertados en guild ${guildId}`);
+      }
+    } catch (error) {
+      this.logger.error(`Error seeding shop items for guild ${guildId}:`, error);
+    }
+  }
+
   /**
    * Obtiene items de la tienda desde la BD
    */
@@ -66,6 +118,7 @@ export class ShopService {
         guildId: item.guildId,
         name: item.name,
         description: item.description,
+        translationKey: item.translationKey,
         price: item.price,
         type: item.type,
         data: item.roleId ? { roleId: item.roleId } : {},
@@ -84,12 +137,13 @@ export class ShopService {
   /**
    * Obtiene un item específico
    */
-  public async getItem(itemId: string): Promise<ShopItem | null> {
+  public async getItem(itemId: string, guildId: string): Promise<ShopItem | null> {
     if (!this.db) return null;
 
     try {
-      const item = await this.db.prisma.shopItem.findUnique({
-        where: { id: itemId }
+      // Siempre acotado al servidor y a items activos: el ID llega del usuario
+      const item = await this.db.prisma.shopItem.findFirst({
+        where: { id: itemId, guildId, enabled: true }
       });
 
       if (!item) return null;
@@ -99,6 +153,7 @@ export class ShopService {
         guildId: item.guildId,
         name: item.name,
         description: item.description,
+        translationKey: item.translationKey,
         price: item.price,
         type: item.type,
         data: item.roleId ? { roleId: item.roleId } : {},
@@ -112,6 +167,31 @@ export class ShopService {
 
       return null;
     }
+  }
+
+  /**
+   * Reserva una unidad de stock de forma atómica (stock -1 = ilimitado).
+   * Devuelve false si el item está agotado.
+   */
+  public async reserveStock(itemId: string, guildId: string): Promise<boolean> {
+    if (!this.db) return false;
+    const item = await this.db.prisma.shopItem.findFirst({ where: { id: itemId, guildId }, select: { stock: true } });
+    if (!item) return false;
+    if (item.stock < 0) return true;
+    const { count } = await this.db.prisma.shopItem.updateMany({
+      where: { id: itemId, guildId, stock: { gt: 0 } },
+      data: { stock: { decrement: 1 } },
+    });
+    return count === 1;
+  }
+
+  /** Devuelve una unidad reservada (compra fallida). */
+  public async releaseStock(itemId: string, guildId: string): Promise<void> {
+    if (!this.db) return;
+    await this.db.prisma.shopItem.updateMany({
+      where: { id: itemId, guildId, stock: { gte: 0 } },
+      data: { stock: { increment: 1 } },
+    }).catch(() => {});
   }
 
   /**
@@ -133,16 +213,6 @@ export class ShopService {
       } else {
         await this.db.prisma.userInventory.create({
           data: { guildId, userId, itemId }
-        });
-      }
-
-      // Reducir stock si no es ilimitado
-      const item = await this.db.prisma.shopItem.findUnique({ where: { id: itemId } });
-
-      if (item && item.stock > 0) {
-        await this.db.prisma.shopItem.update({
-          where: { id: itemId },
-          data: { stock: item.stock - 1 }
         });
       }
 
@@ -187,7 +257,7 @@ export class ShopService {
    * Equipa/desequipa un item cosmético
    */
   public async toggleEquip(guildId: string, userId: string, inventoryId: string): Promise<{ success: boolean; equipped: boolean; message: string }> {
-    if (!this.db) return { success: false, equipped: false, message: 'Base de datos no disponible' };
+    if (!this.db) return { success: false, equipped: false, message: i18n.t('shop.inv.unavailable', guildId) };
 
     try {
       const inv = await this.db.prisma.userInventory.findUnique({
@@ -196,11 +266,11 @@ export class ShopService {
       });
 
       if (!inv || inv.guildId !== guildId || inv.userId !== userId) {
-        return { success: false, equipped: false, message: 'Item no encontrado en tu inventario' };
+        return { success: false, equipped: false, message: i18n.t('shop.inv.not_found', guildId) };
       }
 
       if (inv.item.type !== 'cosmetic') {
-        return { success: false, equipped: false, message: 'Solo puedes equipar items cosméticos' };
+        return { success: false, equipped: false, message: i18n.t('shop.inv.only_cosmetic', guildId) };
       }
 
       // Si va a equipar, desequipar otros del mismo tipo
@@ -219,12 +289,14 @@ export class ShopService {
       return {
         success: true,
         equipped: updated.equipped,
-        message: updated.equipped ? `${inv.item.emoji || '📦'} ${inv.item.name} equipado` : `${inv.item.name} desequipado`
+        message: updated.equipped
+          ? i18n.t('shop.inv.equipped', guildId, { item: `${inv.item.emoji || '📦'} ${inv.item.name}` })
+          : i18n.t('shop.inv.unequipped', guildId, { item: inv.item.name })
       };
     } catch (error) {
       this.logger.error('Error toggling equip:', error);
 
-      return { success: false, equipped: false, message: 'Error al equipar item' };
+      return { success: false, equipped: false, message: i18n.t('shop.inv.equip_error', guildId) };
     }
   }
 
@@ -232,7 +304,7 @@ export class ShopService {
    * Usa un item consumible
    */
   public async useItem(guildId: string, userId: string, inventoryId: string): Promise<{ success: boolean; message: string }> {
-    if (!this.db) return { success: false, message: 'Base de datos no disponible' };
+    if (!this.db) return { success: false, message: i18n.t('shop.inv.unavailable', guildId) };
 
     try {
       const inv = await this.db.prisma.userInventory.findUnique({
@@ -241,11 +313,11 @@ export class ShopService {
       });
 
       if (!inv || inv.guildId !== guildId || inv.userId !== userId) {
-        return { success: false, message: 'Item no encontrado en tu inventario' };
+        return { success: false, message: i18n.t('shop.inv.not_found', guildId) };
       }
 
       if (inv.item.type !== 'consumable') {
-        return { success: false, message: 'Este item no es consumible' };
+        return { success: false, message: i18n.t('shop.inv.not_consumable', guildId) };
       }
 
       // Reducir cantidad o eliminar
@@ -262,12 +334,12 @@ export class ShopService {
 
       return {
         success: true,
-        message: `${inv.item.emoji || '📦'} Usaste ${inv.item.name}! ${inv.item.description}`
+        message: i18n.t('shop.inv.used', guildId, { item: `${inv.item.emoji || '📦'} ${inv.item.name}`, description: inv.item.description })
       };
     } catch (error) {
       this.logger.error('Error using item:', error);
 
-      return { success: false, message: 'Error al usar item' };
+      return { success: false, message: i18n.t('shop.inv.use_error', guildId) };
     }
   }
 

@@ -13,6 +13,7 @@ import { KorexClient } from '../../client/KorexClient';
 import { i18n } from '../../utils/i18n';
 import { botConfig } from '../../config/bot.config';
 import { AutoResponseTrigger } from '../../services/AutoResponseService';
+import { AutoResponseService } from '../../services/AutoResponseService';
 
 export default class AutoResponseCommand extends Command {
   constructor(client: KorexClient) {
@@ -485,13 +486,8 @@ export default class AutoResponseCommand extends Command {
           if (messageContent.endsWith(triggerText)) return true;
           break;
         case 'regex':
-          try {
-            const regex = new RegExp(triggerText, autoResponse.caseSensitive ? 'g' : 'gi');
-
-            if (regex.test(messageContent)) return true;
-          } catch {
-            return false;
-          }
+          if (!AutoResponseService.isSafeRegex(trigger)) return false;
+          if (new RegExp(trigger, autoResponse.caseSensitive ? '' : 'i').test(messageContent.slice(0, 2000))) return true;
           break;
       }
     }

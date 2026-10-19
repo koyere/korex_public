@@ -1,6 +1,10 @@
 import { logger } from '../utils/Logger';
 import { DatabaseManager } from '../client/managers/DatabaseManager';
-import { Guild, GuildMember, TextChannel, EmbedBuilder, Colors } from 'discord.js';
+import { Guild, GuildMember, TextChannel, EmbedBuilder, Colors, VoiceState } from 'discord.js';
+import { isCoreModuleEnabled } from '../config/coreModules';
+import { i18n } from '../utils/i18n';
+import { AutoRoleService } from './AutoRoleService';
+import { STARTING_BALANCE } from '../services/EconomyService';
 
 export interface LevelUser {
   guildId: string;
@@ -43,6 +47,11 @@ export class LevelService {
   private static instance: LevelService;
   private logger = logger;
   private db: DatabaseManager | null = null;
+
+  // AutoRoleService se inicializa en KorexClient antes de que haya mensajes
+  private get autoRoleService(): AutoRoleService | null {
+    try { return AutoRoleService.getInstance(); } catch { return null; }
+  }
   private userCache = new Map<string, LevelUser>();
   private cooldowns = new Map<string, number>();
 
@@ -126,6 +135,13 @@ export class LevelService {
       throw new Error('Database not available');
     }
 
+    // Ensure global User record exists before creating GuildUser (FK constraint)
+    await this.db.prisma.user.upsert({
+      where: { id: userId },
+      update: {},
+      create: { id: userId },
+    });
+
     const dbUser = await this.db.prisma.guildUser.upsert({
       where: {
         guildId_userId: {
@@ -142,6 +158,7 @@ export class LevelService {
         totalXp: 0,
         messages: 0,
         voiceMinutes: 0,
+        balance: STARTING_BALANCE,
       },
     });
 
@@ -198,8 +215,7 @@ export class LevelService {
       where: { id: guildId },
       select: { enabledAddons: true },
     });
-    if (!guild || guild.enabledAddons.length === 0) return true;
-    return guild.enabledAddons.includes(moduleName);
+    return isCoreModuleEnabled(guild?.enabledAddons, moduleName);
   }
 
   /**
@@ -261,7 +277,7 @@ export class LevelService {
       ignoredRoles: [],
       levelUpEnabled: true,
       levelUpChannelId: null,
-      levelUpMessage: '🎉 ¡{user} subió al nivel {level}!',
+      levelUpMessage: '',
       levelRoles: {},
       stackRoles: false,
     };
@@ -381,11 +397,46 @@ export class LevelService {
       result.roleRewards = await this.handleLevelUp(guild, member, newLevel, config);
 
       if (config.levelUpEnabled) {
-        await this.sendLevelUpMessage(guild, member, newLevel, config);
+        await this.sendLevelUpMessage(guild, member, newLevel, config, currentChannel);
       }
     }
 
     return result;
+  }
+
+  // Sesiones de voz en curso: guildId:userId → inicio (ms)
+  private voiceSessions = new Map<string, number>();
+
+  /**
+   * Seguimiento de tiempo en voz para la XP por minuto (voiceStateUpdate).
+   * No cuenta el canal AFK ni a los bots; al salir/cambiar se acreditan los minutos.
+   */
+  public async handleVoiceStateUpdate(oldState: VoiceState, newState: VoiceState): Promise<void> {
+    const member = newState.member ?? oldState.member;
+    if (!member || member.user.bot) return;
+
+    const key = `${member.guild.id}:${member.id}`;
+    const afkId = member.guild.afkChannelId;
+    const wasCounting = !!oldState.channelId && oldState.channelId !== afkId;
+    const isCounting = !!newState.channelId && newState.channelId !== afkId;
+
+    if (wasCounting && (!isCounting || oldState.channelId !== newState.channelId)) {
+      const started = this.voiceSessions.get(key);
+      this.voiceSessions.delete(key);
+      if (started) {
+        const minutes = Math.floor((Date.now() - started) / 60_000);
+        if (minutes >= 1) {
+          // Actividad de voz para Analíticas (minutos por día)
+          await this.db?.prisma.logEntry.create({
+            data: { guildId: member.guild.id, type: 'voice', userId: member.id, channelId: oldState.channelId, data: { minutes } },
+          }).catch(() => null);
+          await this.addVoiceXp(member.guild, member, Math.min(minutes, 24 * 60), oldState.channelId!);
+        }
+      }
+    }
+    if (isCounting && !this.voiceSessions.has(key)) {
+      this.voiceSessions.set(key, Date.now());
+    }
   }
 
   /**
@@ -394,11 +445,16 @@ export class LevelService {
   public async addVoiceXp(
     guild: Guild,
     member: GuildMember,
-    minutes: number
+    minutes: number,
+    channelId?: string
   ): Promise<LevelUpResult> {
     const config = await this.getConfig(guild.id);
+    const moduleEnabled = await this.isGuildModuleEnabled(guild.id, 'levels');
+    const ignored =
+      (channelId && config.ignoredChannels.includes(channelId)) ||
+      member.roles.cache.some((r) => config.ignoredRoles.includes(r.id));
 
-    if (!config.enabled) {
+    if (!config.enabled || !moduleEnabled || ignored || config.xpPerVoiceMinute <= 0) {
       return {
         leveledUp: false,
         oldLevel: 0,
@@ -485,41 +541,50 @@ export class LevelService {
   ): Promise<string[]> {
     const roleRewards: string[] = [];
 
-    if (!config.levelRoles) {
-      return roleRewards;
-    }
+    // Roles por nivel de Niveles (dashboard → Niveles → Recompensas)
+    if (config.levelRoles && Object.keys(config.levelRoles).length > 0) {
+      try {
+        const botTop = guild.members.me?.roles.highest;
+        // Todos los niveles alcanzados (cubre saltos de varios niveles a la vez)
+        const earned = Object.entries(config.levelRoles)
+          .map(([level, roleId]) => ({ level: parseInt(level, 10), roleId: String(roleId) }))
+          .filter((r) => Number.isFinite(r.level) && r.level <= newLevel)
+          .sort((a, b) => b.level - a.level);
 
-    try {
-      // Buscar roles para este nivel
-      const roleId = config.levelRoles[newLevel];
-
-      if (roleId) {
-        const role = guild.roles.cache.get(roleId);
-
-        if (role) {
-          await member.roles.add(role, `Level up reward - Level ${newLevel}`);
-          roleRewards.push(role.name);
-
-          // Si no se apilan roles, quitar roles de niveles anteriores
-          if (!config.stackRoles) {
-            for (const [level, oldRoleId] of Object.entries(config.levelRoles)) {
-              if (parseInt(level) < newLevel && oldRoleId !== roleId) {
-                const oldRole = guild.roles.cache.get(oldRoleId);
-
-                if (oldRole && member.roles.cache.has(oldRole.id)) {
-                  await member.roles.remove(oldRole, `Level up - removing old level role`);
-                }
-              }
-            }
+        const toGrant = config.stackRoles ? earned : earned.slice(0, 1);
+        for (const { roleId } of toGrant) {
+          const role = guild.roles.cache.get(roleId);
+          if (!role || role.managed || (botTop && role.comparePositionTo(botTop) >= 0)) continue;
+          if (!member.roles.cache.has(role.id)) {
+            await member.roles.add(role, `Level up reward - Level ${newLevel}`);
+            roleRewards.push(role.name);
           }
         }
+
+        // Si no se apilan roles, quitar los de niveles inferiores
+        if (!config.stackRoles && toGrant.length > 0) {
+          const keep = toGrant[0].roleId;
+          const remove = Object.values(config.levelRoles)
+            .map(String)
+            .filter((id) => id !== keep && member.roles.cache.has(id));
+          if (remove.length > 0) await member.roles.remove(remove, 'Level up - removing old level roles');
+        }
+      } catch (error) {
+        this.logger.error('Error handling level up roles:', error);
       }
-    } catch (error) {
-      this.logger.error('Error handling level up roles:', error);
     }
+
+    // Roles por nivel configurados con /autoroles level
+    await this.autoRoleService?.handleLevelUp(member, newLevel);
+
+    // Subida de nivel para Analíticas
+    await this.db?.prisma.logEntry.create({
+      data: { guildId: guild.id, type: 'levelup', userId: member.id, data: { level: newLevel } },
+    }).catch(() => null);
 
     return roleRewards;
   }
+
 
   /**
    * Envía mensaje de subida de nivel
@@ -544,19 +609,6 @@ export class LevelService {
         channel = currentChannel;
       }
 
-      // 3. Buscar canal general como último recurso
-      if (!channel) {
-        channel = guild.channels.cache.find(
-          (ch) => ch.type === 0 && 
-          (ch.name.includes('general') || ch.name.includes('chat') || ch.name.includes('principal'))
-        ) as TextChannel;
-      }
-
-      // 4. Usar el primer canal de texto disponible
-      if (!channel) {
-        channel = guild.channels.cache.find(ch => ch.type === 0) as TextChannel;
-      }
-
       if (!channel) {
         this.logger.warn(`No suitable channel found for level up message in guild ${guild.id}`);
 
@@ -572,20 +624,29 @@ export class LevelService {
         return;
       }
 
-      // Formatear mensaje
-      const message = config.levelUpMessage
-        .replace('{user}', member.toString())
-        .replace('{level}', newLevel.toString())
-        .replace('{username}', member.user.username)
-        .replace('{displayName}', member.displayName);
+      // Formatear mensaje (todas las apariciones de cada variable)
+      const t = (key: string, vars?: Record<string, string>) => i18n.t(key, guild.id, vars);
+      // El valor por defecto del esquema está en español: se trata como "sin personalizar"
+      const SCHEMA_DEFAULT = '🎉 ¡{user} subió al nivel {level}!';
+      const custom = config.levelUpMessage?.trim();
+      const template = custom && custom !== SCHEMA_DEFAULT ? custom : t('levels.levelup.default_message');
+      const message = template
+        .replaceAll('{user}', member.toString())
+        .replaceAll('{level}', newLevel.toString())
+        .replaceAll('{username}', member.user.username)
+        .replaceAll('{displayName}', member.displayName)
+        .slice(0, 4096);
 
       const embed = new EmbedBuilder()
         .setColor(Colors.Gold)
-        .setTitle('🎉 ¡Subida de Nivel!')
+        .setTitle(t('levels.levelup.title'))
         .setDescription(message)
         .addFields({
-          name: '📊 Progreso',
-          value: `**Nivel:** ${newLevel}\n**XP Total:** ${(await this.getUser(guild.id, member.id)).totalXp}`,
+          name: t('levels.levelup.progress'),
+          value: t('levels.levelup.progress_value', {
+            level: String(newLevel),
+            xp: String((await this.getUser(guild.id, member.id)).totalXp),
+          }),
           inline: true,
         })
         .setThumbnail(member.user.displayAvatarURL())
@@ -600,15 +661,16 @@ export class LevelService {
   /**
    * Obtiene el leaderboard de niveles
    */
-  public async getLeaderboard(guildId: string, limit: number = 10): Promise<LevelUser[]> {
+  public async getLeaderboard(guildId: string, limit: number = 10, offset: number = 0): Promise<LevelUser[]> {
     try {
       if (!this.db) {
         return [];
       }
 
       const users = await this.db.prisma.guildUser.findMany({
-        where: { guildId },
+        where: { guildId, totalXp: { gt: 0 } },
         orderBy: [{ level: 'desc' }, { totalXp: 'desc' }],
+        skip: offset,
         take: limit,
       });
 
@@ -671,6 +733,12 @@ export class LevelService {
     reason: string = 'Manual addition'
   ): Promise<LevelUpResult> {
     try {
+      // Respeta el sistema de niveles (config y toggle del módulo), p. ej. XP por invitaciones
+      const levelConfig = await this.getConfig(guild.id);
+      if (!levelConfig.enabled || !(await this.isGuildModuleEnabled(guild.id, 'levels'))) {
+        return { leveledUp: false, oldLevel: 0, newLevel: 0, xpGained: 0 };
+      }
+
       const user = await this.getUser(guild.id, userId);
       const oldLevel = user.level;
 

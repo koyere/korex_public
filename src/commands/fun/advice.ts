@@ -52,7 +52,7 @@ export default class AdviceCommand extends Command {
 
     // English guilds: try external API, fall back to local list
     try {
-      const response = await fetch('https://api.adviceslip.com/advice');
+      const response = await fetch('https://api.adviceslip.com/advice', { signal: AbortSignal.timeout(5000) });
 
       if (!response.ok) throw new Error('API error');
 
@@ -70,4 +70,4 @@ export default class AdviceCommand extends Command {
       await interaction.editReply({ embeds: [buildEmbed(randomAdvice)] });
     }
   }
-}
+}

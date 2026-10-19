@@ -140,7 +140,11 @@ export default class TimeoutCommand extends Command {
       // Perform the timeout
       await member.timeout(duration * 60 * 1000, reason);
 
-      // The timeout is logged automatically by Discord, no need for manual logging
+      // Registrar el caso para el historial (/modlogs y dashboard)
+      await this.client.moderation.createCase({
+        guildId, action: 'TIMEOUT', targetId: user.id, moderatorId: interaction.user.id,
+        reason, duration, expiresAt: timeoutEnd, active: true,
+      }).catch((err) => this.client.logger.error('Error recording timeout case:', err));
 
       // Success response
       const embed = new EmbedBuilder()

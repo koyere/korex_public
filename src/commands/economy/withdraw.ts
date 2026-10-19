@@ -33,6 +33,7 @@ export default class WithdrawCommand extends Command {
       const userId = interaction.user.id;
       const amountInput = interaction.options.getString('amount', true);
       const lang = i18n.getGuildLanguage(guildId);
+      const { currencySymbol } = await this.client.economy.getConfig(guildId);
 
       // Get user's current bank balance
       const economyUser = await this.client.economy.getUser(guildId, userId);
@@ -79,24 +80,24 @@ export default class WithdrawCommand extends Command {
         .setTitle(i18n.t('withdraw.success_title', lang))
         .setColor(Colors.Green)
         .setDescription(
-          i18n.t('withdraw.success_description', lang, {
+          i18n.t('withdraw.success_description', lang, { symbol: currencySymbol,
             amount: amount.toString(),
           })
         )
         .addFields(
           {
             name: i18n.t('withdraw.wallet_balance', lang),
-            value: i18n.t('balance.amount', lang, { amount: updatedUser.balance.toString() }),
+            value: i18n.t('balance.amount', lang, { symbol: currencySymbol, amount: updatedUser.balance.toString() }),
             inline: true,
           },
           {
             name: i18n.t('withdraw.bank_balance', lang),
-            value: i18n.t('balance.amount', lang, { amount: updatedUser.bank.toString() }),
+            value: i18n.t('balance.amount', lang, { symbol: currencySymbol, amount: updatedUser.bank.toString() }),
             inline: true,
           },
           {
             name: i18n.t('withdraw.total_balance', lang),
-            value: i18n.t('balance.amount', lang, {
+            value: i18n.t('balance.amount', lang, { symbol: currencySymbol,
               amount: (updatedUser.balance + updatedUser.bank).toString(),
             }),
             inline: true,

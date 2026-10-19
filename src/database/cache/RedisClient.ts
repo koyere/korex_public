@@ -171,6 +171,10 @@ export class RedisClient {
     } catch (error) {
       this.client.logger.error(`Error verificando existencia de ${key}:`, error);
 
+      // Fail closed for security-sensitive keys (token blacklist).
+      // If Redis is down we cannot verify revocation, so treat as revoked.
+      if (key.includes('blacklist')) return true;
+
       return false;
     }
   }

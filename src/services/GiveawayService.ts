@@ -11,8 +11,10 @@ import {
 import { Prisma, PrismaClient } from '@prisma/client';
 import { KorexClient } from '../client/KorexClient';
 import { i18n } from '../utils/i18n';
+import { randomInt } from 'crypto';
 import { logger } from '../utils/Logger';
 import { botConfig } from '../config/bot.config';
+import { setLongTimeout, LongTimeout } from '../utils/longTimeout';
 
 export interface GiveawayRequirement {
   type: 'role' | 'level' | 'invites' | 'messages' | 'balance' | 'account_age';
@@ -42,6 +44,7 @@ export interface GiveawayData {
   remindersSent: string[]; // Track which reminders have been sent
   allowAltAccounts: boolean;
   minAccountAge: number; // Days
+  participantEntries: Record<string, number>; // entradas por participante (bonus por rol)
 }
 
 export interface GiveawayStats {
@@ -57,6 +60,7 @@ interface GiveawayRequirementsData {
   requirements?: GiveawayRequirement[];
   bonusEntries?: { roleId: string; entries: number }[];
   participants?: string[];
+  participantEntries?: Record<string, number>;
   entries?: number;
   remindersSent?: string[];
   allowAltAccounts?: boolean;
@@ -68,8 +72,20 @@ interface GiveawayRequirementsData {
 export class GiveawayService {
   private client: KorexClient;
   private prisma: PrismaClient;
-  private activeGiveaways: Map<string, NodeJS.Timeout> = new Map();
-  private reminderTimeouts: Map<string, NodeJS.Timeout[]> = new Map();
+  private activeGiveaways: Map<string, LongTimeout> = new Map();
+  private reminderTimeouts: Map<string, LongTimeout[]> = new Map();
+
+  // Serializa las escrituras por sorteo (unirse/salir/recordatorio/terminar):
+  // cada operación relee el sorteo y guarda el JSON completo, así no se pisan.
+  private locks = new Map<string, Promise<unknown>>();
+
+  private withLock<T>(giveawayId: string, fn: () => Promise<T>): Promise<T> {
+    const previous = this.locks.get(giveawayId) ?? Promise.resolve();
+    const run = previous.catch(() => undefined).then(fn);
+    this.locks.set(giveawayId, run);
+    run.finally(() => { if (this.locks.get(giveawayId) === run) this.locks.delete(giveawayId); }).catch(() => undefined);
+    return run;
+  }
 
   constructor(client: KorexClient) {
     this.client = client;
@@ -109,15 +125,15 @@ export class GiveawayService {
       { time: 10 * 60 * 1000, key: '10m' }      // 10 minutes
     ];
 
-    const timeouts: NodeJS.Timeout[] = [];
+    const timeouts: LongTimeout[] = [];
 
     for (const reminder of reminders) {
       const reminderTime = endTime - reminder.time;
       const timeUntilReminder = reminderTime - now;
 
       if (timeUntilReminder > 0 && !giveaway.remindersSent.includes(reminder.key)) {
-        const timeout = setTimeout(async () => {
-          await this.sendReminder(giveaway, reminder.key);
+        const timeout = setLongTimeout(async () => {
+          await this.sendReminder(giveaway.id, reminder.key);
         }, timeUntilReminder);
 
         timeouts.push(timeout);
@@ -132,7 +148,16 @@ export class GiveawayService {
   /**
    * Send reminder notification
    */
-  private async sendReminder(giveaway: GiveawayData, reminderType: string): Promise<void> {
+  private async sendReminder(giveawayId: string, reminderType: string): Promise<void> {
+    return this.withLock(giveawayId, () => this.sendReminderLocked(giveawayId, reminderType));
+  }
+
+  private async sendReminderLocked(giveawayId: string, reminderType: string): Promise<void> {
+    // Releer de BD: el objeto capturado al programar tiene los participantes de
+    // ese momento y al guardarlo borraba a todos los que se unieron después.
+    const giveaway = await this.getGiveaway(giveawayId);
+    if (!giveaway || giveaway.ended || giveaway.remindersSent.includes(reminderType)) return;
+
     try {
       const guild = this.client.guilds.cache.get(giveaway.guildId);
 
@@ -167,7 +192,7 @@ export class GiveawayService {
 
       logger.info(`Sent ${reminderType} reminder for giveaway ${giveaway.id}`);
     } catch (error) {
-      logger.error(`Failed to send reminder for giveaway ${giveaway.id}:`, error);
+      logger.error(`Failed to send reminder for giveaway ${giveawayId}:`, error);
     }
   }
 
@@ -425,6 +450,14 @@ export class GiveawayService {
     user: User,
     member: GuildMember
   ): Promise<{ success: boolean; reason?: string; entries?: number }> {
+    return this.withLock(giveawayId, () => this.joinGiveawayLocked(giveawayId, user, member));
+  }
+
+  private async joinGiveawayLocked(
+    giveawayId: string,
+    user: User,
+    member: GuildMember
+  ): Promise<{ success: boolean; reason?: string; entries?: number }> {
     try {
       const giveaway = await this.getGiveaway(giveawayId);
 
@@ -461,6 +494,7 @@ export class GiveawayService {
 
       // Add participant
       giveaway.participants.push(user.id);
+      giveaway.participantEntries[user.id] = entries;
       giveaway.entries += entries;
 
       // Update database
@@ -485,6 +519,14 @@ export class GiveawayService {
     user: User,
     member: GuildMember
   ): Promise<{ success: boolean; reason?: string }> {
+    return this.withLock(giveawayId, () => this.leaveGiveawayLocked(giveawayId, user, member));
+  }
+
+  private async leaveGiveawayLocked(
+    giveawayId: string,
+    user: User,
+    member: GuildMember
+  ): Promise<{ success: boolean; reason?: string }> {
     try {
       const giveaway = await this.getGiveaway(giveawayId);
 
@@ -502,11 +544,12 @@ export class GiveawayService {
         return { success: false, reason: 'Not participating' };
       }
 
-      // Calculate entries to remove
-      const entries = await this.calculateEntries(giveaway, member);
+      // Quitar las entradas que tenía al unirse
+      const entries = giveaway.participantEntries[user.id] ?? await this.calculateEntries(giveaway, member);
 
       // Remove participant
       giveaway.participants.splice(participantIndex, 1);
+      delete giveaway.participantEntries[user.id];
       giveaway.entries = Math.max(0, giveaway.entries - entries);
 
       // Update database
@@ -527,7 +570,19 @@ export class GiveawayService {
   /**
    * End a giveaway and pick winners
    */
+  /** Cancela los temporizadores (fin y recordatorios) de un sorteo. */
+  clearSchedules(giveawayId: string): void {
+    this.activeGiveaways.get(giveawayId)?.clear();
+    this.activeGiveaways.delete(giveawayId);
+    this.reminderTimeouts.get(giveawayId)?.forEach((t) => t.clear());
+    this.reminderTimeouts.delete(giveawayId);
+  }
+
   async endGiveaway(giveawayId: string, force: boolean = false): Promise<boolean> {
+    return this.withLock(giveawayId, () => this.endGiveawayLocked(giveawayId, force));
+  }
+
+  private async endGiveawayLocked(giveawayId: string, force: boolean): Promise<boolean> {
     try {
       const giveaway = await this.getGiveaway(giveawayId);
 
@@ -554,14 +609,14 @@ export class GiveawayService {
       const timeout = this.activeGiveaways.get(giveawayId);
 
       if (timeout) {
-        clearTimeout(timeout);
+        timeout.clear();
         this.activeGiveaways.delete(giveawayId);
       }
 
       const reminderTimeouts = this.reminderTimeouts.get(giveawayId);
 
       if (reminderTimeouts) {
-        reminderTimeouts.forEach(timeout => clearTimeout(timeout));
+        reminderTimeouts.forEach(timeout => timeout.clear());
         this.reminderTimeouts.delete(giveawayId);
       }
 
@@ -579,16 +634,21 @@ export class GiveawayService {
   /**
    * Get active giveaways for a guild
    */
-  async getGuildGiveaways(_guildId: string): Promise<GiveawayData[]> {
+  async getGuildGiveaways(guildId: string): Promise<GiveawayData[]> {
     try {
-      // This would fetch from database - placeholder implementation
-      return [];
+      const rows = await this.prisma.giveaway.findMany({
+        where: { guildId },
+        orderBy: [{ ended: 'asc' }, { endsAt: 'desc' }],
+        take: 25,
+      });
+      return rows.map((g) => this.mapPrismaToGiveawayData(g));
     } catch (error) {
       logger.error('Failed to get guild giveaways:', error);
 
       return [];
     }
   }
+
 
   /**
    * Check if user meets giveaway requirements
@@ -601,7 +661,7 @@ export class GiveawayService {
       switch (requirement.type) {
         case 'role':
           if (!member.roles.cache.has(requirement.value as string)) {
-            return { passed: false, reason: 'Missing required role' };
+            return { passed: false, reason: i18n.t('giveaways.join.req.role', member.guild.id) };
           }
           break;
 
@@ -609,7 +669,7 @@ export class GiveawayService {
           const userLevel = await this.getUserLevel(member.id, member.guild.id);
 
           if (userLevel < (requirement.value as number)) {
-            return { passed: false, reason: `Minimum level ${requirement.value} required` };
+            return { passed: false, reason: i18n.t('giveaways.join.req.level', member.guild.id, { value: String(requirement.value) }) };
           }
           break;
         }
@@ -618,7 +678,7 @@ export class GiveawayService {
           const messageCount = await this.getUserMessageCount(member.id, member.guild.id);
 
           if (messageCount < (requirement.value as number)) {
-            return { passed: false, reason: `Minimum ${requirement.value} messages required` };
+            return { passed: false, reason: i18n.t('giveaways.join.req.messages', member.guild.id, { value: String(requirement.value) }) };
           }
           break;
         }
@@ -627,7 +687,7 @@ export class GiveawayService {
           const balance = await this.getUserBalance(member.id, member.guild.id);
 
           if (balance < (requirement.value as number)) {
-            return { passed: false, reason: `Minimum balance of ${requirement.value} coins required` };
+            return { passed: false, reason: i18n.t('giveaways.join.req.balance', member.guild.id, { value: String(requirement.value) }) };
           }
           break;
         }
@@ -637,7 +697,16 @@ export class GiveawayService {
           const accountAgeDays = accountAge / (1000 * 60 * 60 * 24);
 
           if (accountAgeDays < (requirement.value as number)) {
-            return { passed: false, reason: `Account must be at least ${requirement.value} days old` };
+            return { passed: false, reason: i18n.t('giveaways.join.req.account_age', member.guild.id, { value: String(requirement.value) }) };
+          }
+          break;
+        }
+
+        case 'invites': {
+          const userInvites = await this.getUserInviteCount(member.id, member.guild.id);
+
+          if (userInvites < (requirement.value as number)) {
+            return { passed: false, reason: i18n.t('giveaways.join.req.invites', member.guild.id, { value: String(requirement.value) }) };
           }
           break;
         }
@@ -665,26 +734,71 @@ export class GiveawayService {
   /**
    * Pick random winners from participants
    */
-  private pickWinners(giveaway: GiveawayData): { id: string; entries: number }[] {
-    if (giveaway.participants.length === 0) return [];
+  /** Sorteo ponderado por entradas (bonus por rol) con aleatoriedad criptográfica. */
+  private pickWinners(giveaway: GiveawayData, exclude: string[] = [], count?: number): { id: string; entries: number }[] {
+    const pool = giveaway.participants
+      .filter((id) => !exclude.includes(id))
+      .map((id) => ({ id, entries: Math.max(1, giveaway.participantEntries[id] ?? 1) }));
+    if (pool.length === 0) return [];
 
     const winners: { id: string; entries: number }[] = [];
-    const participants = [...giveaway.participants];
-
-    const winnersCount = Math.min(giveaway.winners, participants.length);
+    const winnersCount = Math.min(count ?? giveaway.winners, pool.length);
 
     for (let i = 0; i < winnersCount; i++) {
-      const randomIndex = Math.floor(Math.random() * participants.length);
-      const winnerId = participants.splice(randomIndex, 1)[0];
-      
-      winners.push({
-        id: winnerId,
-        entries: 1 // Would calculate actual entries
-      });
+      const total = pool.reduce((sum, p) => sum + p.entries, 0);
+      let ticket = randomInt(total);
+      const index = pool.findIndex((p) => (ticket -= p.entries) < 0);
+      winners.push(pool.splice(index, 1)[0]);
     }
 
     return winners;
   }
+
+  /** Embed con el estado de un sorteo de este servidor (null si no existe). */
+  async buildInfoEmbed(giveawayId: string, guildId: string): Promise<EmbedBuilder | null> {
+    const giveaway = await this.getGiveaway(giveawayId);
+    if (!giveaway || giveaway.guildId !== guildId) return null;
+    const t = (key: string, vars?: Record<string, string>) => i18n.t(key, guildId, vars);
+
+    const embed = new EmbedBuilder()
+      .setColor(giveaway.ended ? botConfig.colors.error : botConfig.colors.primary)
+      .setTitle(`🎉 ${giveaway.title}`.slice(0, 256))
+      .addFields(
+        { name: t('giveaways.embed.prize'), value: giveaway.prize.slice(0, 1024), inline: true },
+        { name: t('giveaways.embed.winners'), value: String(giveaway.winners), inline: true },
+        { name: t('giveaways.embed.participants'), value: String(giveaway.participants.length), inline: true },
+        { name: t('giveaways.embed.entries'), value: String(giveaway.entries), inline: true },
+        { name: t('giveaways.embed.hostedBy'), value: `<@${giveaway.hostId}>`, inline: true },
+        { name: t('giveaways.embed.ends'), value: `<t:${Math.floor(giveaway.endsAt.getTime() / 1000)}:R>`, inline: true },
+      )
+      .setFooter({ text: t('giveaways.embed.footer', { id: giveaway.id }) });
+
+    if (giveaway.ended) {
+      embed.addFields({
+        name: t('giveaways.info.winners_list'),
+        value: giveaway.winnerIds.length > 0 ? giveaway.winnerIds.map((id) => `<@${id}>`).join(', ') : t('giveaways.info.no_winners'),
+      });
+    }
+    return embed;
+  }
+
+  /** Vuelve a sortear entre quienes no ganaron (sorteo ya terminado). */
+  async rerollGiveaway(giveawayId: string, count: number = 1): Promise<{ success: boolean; reason?: string; winners?: string[] }> {
+    return this.withLock(giveawayId, async () => {
+      const giveaway = await this.getGiveaway(giveawayId);
+      if (!giveaway) return { success: false, reason: 'not_found' };
+      if (!giveaway.ended) return { success: false, reason: 'not_ended' };
+
+      const winners = this.pickWinners(giveaway, giveaway.winnerIds, count);
+      if (winners.length === 0) return { success: false, reason: 'no_participants' };
+
+      giveaway.winnerIds = [...giveaway.winnerIds, ...winners.map((w) => w.id)];
+      await this.updateGiveaway(giveaway);
+      await this.announceWinners(giveaway, winners);
+      return { success: true, winners: winners.map((w) => w.id) };
+    });
+  }
+
 
   /**
    * Create giveaway embed
@@ -713,7 +827,12 @@ export class GiveawayService {
         {
           name: i18n.t('giveaways.embed.ends', guildId),
           value: `<t:${Math.floor(giveaway.endsAt.getTime() / 1000)}:R>`,
-          inline: false
+          inline: true
+        },
+        {
+          name: i18n.t('giveaways.embed.hostedBy', guildId),
+          value: `<@${giveaway.hostId}>`,
+          inline: true
         }
       )
       .setTimestamp();
@@ -742,6 +861,8 @@ export class GiveawayService {
             return `• ${i18n.t('giveaways.requirements.balance', guildId, { amount: req.value.toString() })}`;
           case 'account_age':
             return `• ${i18n.t('giveaways.requirements.account_age', guildId, { days: req.value.toString() })}`;
+          case 'invites':
+            return `• ${i18n.t('giveaways.requirements.invites', guildId, { count: req.value.toString() })}`;
           default:
             return '';
         }
@@ -788,13 +909,10 @@ export class GiveawayService {
 
   private async getActiveGiveaways(): Promise<GiveawayData[]> {
     try {
+      // Incluye los vencidos mientras el bot estaba apagado:
+      // scheduleGiveawayEnd los finaliza de inmediato.
       const giveaways = await this.prisma.giveaway.findMany({
-        where: {
-          ended: false,
-          endsAt: {
-            gt: new Date()
-          }
-        }
+        where: { ended: false }
       });
 
       return giveaways.map(g => this.mapPrismaToGiveawayData(g));
@@ -840,6 +958,7 @@ export class GiveawayService {
         requirements: giveaway.requirements,
         bonusEntries: giveaway.bonusEntries,
         participants: giveaway.participants,
+        participantEntries: giveaway.participantEntries,
         entries: giveaway.entries,
         remindersSent: giveaway.remindersSent,
         allowAltAccounts: giveaway.allowAltAccounts,
@@ -875,6 +994,7 @@ export class GiveawayService {
         requirements: giveaway.requirements,
         bonusEntries: giveaway.bonusEntries,
         participants: giveaway.participants,
+        participantEntries: giveaway.participantEntries,
         entries: giveaway.entries,
         remindersSent: giveaway.remindersSent,
         allowAltAccounts: giveaway.allowAltAccounts,
@@ -947,7 +1067,8 @@ export class GiveawayService {
       createdAt: prismaGiveaway.createdAt,
       remindersSent: parsedData.remindersSent || [],
       allowAltAccounts: parsedData.allowAltAccounts || false,
-      minAccountAge: parsedData.minAccountAge || 7
+      minAccountAge: parsedData.minAccountAge || 7,
+      participantEntries: parsedData.participantEntries || {}
     };
   }
 
@@ -1061,7 +1182,7 @@ export class GiveawayService {
       return;
     }
 
-    const timeout = setTimeout(() => {
+    const timeout = setLongTimeout(() => {
       this.endGiveaway(giveaway.id);
     }, timeUntilEnd);
 
@@ -1094,6 +1215,20 @@ export class GiveawayService {
       const user = await this.client.economy.getUser(guildId, userId);
 
       return user.balance;
+    } catch (error) {
+      return 0;
+    }
+  }
+
+  private async getUserInviteCount(userId: string, guildId: string): Promise<number> {
+    try {
+      // Lectura directa de invite_stats (válidas + extra), sin calcular el ranking completo
+      const row = await this.client.db.inviteStats.findUnique({
+        where: { guildId_userId: { guildId, userId } },
+        select: { validInvites: true, bonusInvites: true }
+      });
+
+      return row ? row.validInvites + row.bonusInvites : 0;
     } catch (error) {
       return 0;
     }

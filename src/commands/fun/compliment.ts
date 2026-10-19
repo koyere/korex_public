@@ -40,7 +40,8 @@ export default class ComplimentCommand extends Command {
     const target = interaction.options.getUser('user');
     const author = interaction.user;
 
-    const compliments = i18n.t('fun.compliment.list', guildId) as unknown as string[];
+    // i18n.t solo devuelve strings: las listas se leen con getList
+    const compliments = i18n.getList('fun.compliment.list', guildId);
     const randomCompliment = compliments[Math.floor(Math.random() * compliments.length)];
 
     let description: string;
@@ -78,4 +79,4 @@ export default class ComplimentCommand extends Command {
 
     await interaction.reply({ embeds: [embed] });
   }
-}
+}

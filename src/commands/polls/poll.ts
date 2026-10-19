@@ -187,13 +187,34 @@ export default class PollCommand extends Command {
     await interaction.showModal(modal);
   }
 
+
+  /**
+   * Una encuesta solo la puede cerrar o exportar quien la creó o alguien con
+   * Gestionar mensajes, y siempre del mismo servidor.
+   */
+  private async canManagePoll(interaction: ChatInputCommandInteraction, pollId: string): Promise<boolean> {
+    const poll = await this.client.db.poll.findFirst({
+      where: { id: pollId, guildId: interaction.guildId! },
+      select: { creatorId: true },
+    });
+    if (!poll) return false;
+    const isAuthor = poll.creatorId === interaction.user.id;
+    const isMod = interaction.memberPermissions?.has(PermissionFlagsBits.ManageMessages) ?? false;
+    return isAuthor || isMod;
+  }
+
   private async handleEnd(interaction: ChatInputCommandInteraction): Promise<void> {
     const guildId = interaction.guildId!;
     const pollId = interaction.options.getString('id', true);
 
     await interaction.deferReply({ ephemeral: true });
 
-    const success = await this.client.pollService.endPoll(pollId, true);
+    if (!(await this.canManagePoll(interaction, pollId))) {
+      await interaction.editReply({ content: i18n.t('commands.poll.end.error', guildId) });
+      return;
+    }
+
+    const success = await this.client.pollService.endPoll(pollId);
 
     if (success) {
       await interaction.editReply({
@@ -212,6 +233,11 @@ export default class PollCommand extends Command {
     const format = interaction.options.getString('format') || 'json';
 
     await interaction.deferReply({ ephemeral: true });
+
+    if (!(await this.canManagePoll(interaction, pollId))) {
+      await interaction.editReply({ content: i18n.t('commands.poll.results.not_found', guildId) });
+      return;
+    }
 
     try {
       const results = await this.client.pollService.exportPollResults(pollId, format as any);
@@ -331,4 +357,4 @@ export default class PollCommand extends Command {
 
     return options;
   }
-}
+}

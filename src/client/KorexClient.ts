@@ -35,9 +35,13 @@ import { PremiumService } from '../services/PremiumService';
 import { AddonSyncService } from '../services/AddonSyncService';
 import { AnalyticsService } from '../services/AnalyticsService';
 import { AutoModService } from '../services/AutoModService';
+import { StarboardService } from '../services/StarboardService';
+import { HoneypotService } from '../services/HoneypotService';
+import { AntiRaidService } from '../services/AntiRaidService';
 
 import { LicenseExpiryJob } from '../services/LicenseExpiryJob';
 import { GuildKickoutService } from '../services/GuildKickoutService';
+import { PrefixCommandHandler } from './prefix/PrefixCommandHandler';
 
 // Admin Panel Services
 import { AdminAuthService } from '../services/admin/AdminAuthService';
@@ -101,6 +105,9 @@ export class KorexClient extends Client {
   public addonSync: AddonSyncService;
   public analytics: AnalyticsService;
   public autoMod: AutoModService;
+  public starboard: StarboardService;
+  public honeypot: HoneypotService;
+  public antiRaid: AntiRaidService;
 
   // ═══════════════════════════════════════════════════════════════
   // ADMIN PANEL SERVICES
@@ -120,6 +127,7 @@ export class KorexClient extends Client {
   public databaseOptimizer: DatabaseOptimizer;
   public licenseExpiryJob: LicenseExpiryJob;
   public kickoutService: GuildKickoutService;
+  public prefixCommands: PrefixCommandHandler;
   public statusPage: StatusPageService;
 
   public services: {
@@ -182,6 +190,9 @@ export class KorexClient extends Client {
     this.addonSync = new AddonSyncService(this);
     this.analytics = new AnalyticsService(this);
     this.autoMod = new AutoModService(this);
+    this.starboard = new StarboardService(this);
+    this.honeypot  = new HoneypotService(this);
+    this.antiRaid  = new AntiRaidService(this);
 
     // Admin Panel Services
     this.adminAuthService    = new AdminAuthService(this.db, this.redis.getClient() as any);
@@ -206,6 +217,7 @@ export class KorexClient extends Client {
     // Configurar la base de datos en los servicios
     this.errorHandler.setDatabase(this.database);
     this.economy.setDatabase(this.database);
+    this.economy.setRedis(this.redis.getClient() as any); // contador "transacciones hoy"
     this.levels.setDatabase(this.database);
     this.shop.setDatabase(this.database);
 
@@ -218,6 +230,7 @@ export class KorexClient extends Client {
     this.databaseOptimizer = new DatabaseOptimizer(this.db);
     this.licenseExpiryJob = new LicenseExpiryJob(this);
     this.kickoutService = new GuildKickoutService(this);
+    this.prefixCommands = new PrefixCommandHandler(this);
 
     // Configurar owners
     this.setupOwners();
@@ -273,8 +286,50 @@ export class KorexClient extends Client {
         await this.startProductionServices();
       }
 
-      // 10. Conectar a Discord
-      await this.login(process.env.DISCORD_TOKEN);
+      // 10. Conectar a Discord con reintentos para errores transitorios.
+      // Discord.js internal REST library retries 429s indefinitely — we wrap
+      // each login attempt with a hard timeout via Promise.race to guarantee
+      // the outer retry loop gets control.
+      let loginAttempts = 0;
+      const maxLoginRetries = 10;
+      const loginTimeoutMs = 20_000;
+      const baseLoginDelay = 5_000;
+
+      while (loginAttempts < maxLoginRetries) {
+        try {
+          await Promise.race([
+            this.login(process.env.DISCORD_TOKEN),
+            new Promise((_, reject) =>
+              setTimeout(
+                () => reject(new Error('Login timeout — REST internal retry loop may be stuck on rate limit')),
+                loginTimeoutMs
+              )
+            ),
+          ]);
+          break;
+        } catch (loginError: any) {
+          loginAttempts++;
+          const isTransient =
+            loginError?.status === 429 ||
+            loginError?.status === 503 ||
+            loginError?.status === 502 ||
+            loginError?.code === 'ECONNRESET' ||
+            loginError?.code === 'ETIMEDOUT' ||
+            loginError?.message?.includes('Service Unavailable') ||
+            loginError?.message?.includes('timeout');
+
+          if (isTransient && loginAttempts < maxLoginRetries) {
+            const delay = baseLoginDelay * Math.pow(2, Math.min(loginAttempts - 1, 4));
+            this.logger.warn(
+              `Discord login attempt ${loginAttempts}/${maxLoginRetries} failed (${loginError?.status || loginError?.code || loginError?.message}). Retrying in ${delay / 1000}s...`
+            );
+            await this.destroy();  // cleanup internal state before next attempt
+            await new Promise(resolve => setTimeout(resolve, delay));
+          } else {
+            throw loginError;
+          }
+        }
+      }
 
       this.logger.info('🎉 Korex iniciado exitosamente');
     } catch (error) {

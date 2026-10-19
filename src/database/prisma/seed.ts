@@ -13,7 +13,11 @@ const ARGON2_OPTIONS: argon2.Options & { raw: false } = {
 
 async function main() {
   const email = process.env.ADMIN_EMAIL || 'admin@korex.dev';
-  const password = process.env.ADMIN_PASSWORD || 'H8BnwAPlYg3L02kBMG72';
+  if (!process.env.ADMIN_PASSWORD) {
+    console.error('❌ ADMIN_PASSWORD env var is required — refusing to seed with a hardcoded default password');
+    process.exit(1);
+  }
+  const password = process.env.ADMIN_PASSWORD;
   const name = process.env.ADMIN_NAME || 'Super Admin';
 
   const existing = await prisma.adminUser.findUnique({ where: { email } });
@@ -37,7 +41,7 @@ async function main() {
   console.log(`   ID:       ${user.id}`);
   console.log(`   Email:    ${user.email}`);
   console.log(`   Nombre:   ${user.name}`);
-  console.log(`   Password: ${password}`);
+  console.log('   Password: [set via ADMIN_PASSWORD env var — not logged]');
   console.log('');
   console.log('⚠️  Cambia la contraseña en el panel lo antes posible.');
 }

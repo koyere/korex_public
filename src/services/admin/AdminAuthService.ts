@@ -18,9 +18,25 @@
 
 import * as argon2 from 'argon2';
 import { TOTP } from 'otplib';
+import { createCryptoPlugin, createBase32Plugin } from '@otplib/core';
+import { hmac } from '@noble/hashes/hmac';
+import { sha1 } from '@noble/hashes/sha1';
+import { randomBytes as nobleRandomBytes } from '@noble/hashes/utils';
+import { base32 } from '@scure/base';
 import * as QRCode from 'qrcode';
 
-const authenticator = new TOTP();
+const authenticator = new TOTP({
+  crypto: createCryptoPlugin({
+    name: 'noble',
+    hmac: (_algorithm: string, key: Uint8Array, data: Uint8Array) => hmac(sha1, key, data),
+    randomBytes: (size: number) => nobleRandomBytes(size),
+  }),
+  base32: createBase32Plugin({
+    name: 'scure',
+    encode: (data: Uint8Array) => base32.encode(data),
+    decode: (str: string) => base32.decode(str),
+  }),
+});
 import {
   generateRegistrationOptions,
   verifyRegistrationResponse,
@@ -60,6 +76,9 @@ const USER_BLOCK_BASE_SECONDS = 60;             // backoff progresivo: 1 min, 2 
 const RL_IP_KEY   = (ip: string)    => `admin:rl:ip:${ip}`;
 const RL_USER_KEY = (email: string) => `admin:rl:user:${email}`;
 const SESSION_KEY = (token: string) => `admin:session:${token}`;
+const STEP_UP_KEY = (tokenHash: string) => `admin:stepup:${tokenHash}`;
+/** Validez de una verificación reforzada (step-up) para acciones sensibles */
+const STEP_UP_TTL_SECONDS = 10 * 60;
 const WEBAUTHN_CHALLENGE_KEY = (userId: string, action: 'reg' | 'auth') =>
   `admin:webauthn:${action}:${userId}`;
 
@@ -74,6 +93,7 @@ export interface AdminSessionData {
   userAgent: string;
   createdAt: number;
   lastActiveAt: number;
+  allowedIps: string[];
 }
 
 export interface LoginResult {
@@ -88,6 +108,7 @@ export interface TotpSetupResult {
   secret: string;
   qrDataUrl: string;
   manualKey: string;
+  uri: string;
 }
 
 // ─── Utilidades internas ─────────────────────────────────────────────────────
@@ -215,6 +236,7 @@ export class AdminAuthService {
       userAgent,
       createdAt: now,
       lastActiveAt: now,
+      allowedIps: (adminUser as any).allowedIps ?? [],
     };
 
     // Guardar en Redis con TTL absoluto
@@ -246,7 +268,7 @@ export class AdminAuthService {
     return token; // Sólo se entrega al cliente UNA vez — se guarda en cookie HttpOnly
   }
 
-  async validateSession(token: string): Promise<AdminSessionData | null> {
+  async validateSession(token: string, requestIp?: string): Promise<AdminSessionData | null> {
     if (!token) return null;
 
     const tokenHash = hashSessionToken(token);
@@ -258,6 +280,14 @@ export class AdminAuthService {
 
     // Idle timeout
     if (now - data.lastActiveAt > SESSION_IDLE_TTL_SECONDS * 1000) {
+      await this.destroySession(token);
+      return null;
+    }
+
+    // Per-request IP whitelist enforcement — if the operator has an IP restriction
+    // and the current request comes from a different IP, destroy the session.
+    if (requestIp && data.allowedIps?.length > 0 && !data.allowedIps.includes(requestIp)) {
+      logger.warn(`Session blocked by IP whitelist: ${data.email} from ${requestIp} (allowed: ${data.allowedIps.join(', ')})`);
       await this.destroySession(token);
       return null;
     }
@@ -278,6 +308,7 @@ export class AdminAuthService {
     const tokenHash = hashSessionToken(token);
     await Promise.all([
       this.redis.del(SESSION_KEY(tokenHash)),
+      this.redis.del(STEP_UP_KEY(tokenHash)),
       this.db.adminSession.deleteMany({ where: { sessionToken: tokenHash } }),
     ]);
   }
@@ -409,6 +440,10 @@ export class AdminAuthService {
     const pendingRaw = await this.redis.get(`admin:pending_mfa:${userId}`);
     if (!pendingRaw) return { success: false, error: 'session_expired' };
 
+    // Misma comprobación que el TOTP: la fase 2 debe venir de la IP de la fase 1
+    const pending = JSON.parse(pendingRaw);
+    if (pending.ip !== ip) return { success: false, error: 'credentials_invalid' };
+
     const user = await this.db.adminUser.findUnique({ where: { id: userId } });
     if (!user) return { success: false, error: 'credentials_invalid' };
 
@@ -454,7 +489,7 @@ export class AdminAuthService {
     const qrDataUrl = await QRCode.toDataURL(otpauthUrl);
     const manualKey = secret.match(/.{1,4}/g)!.join(' ');
 
-    return { secret, qrDataUrl, manualKey };
+    return { secret, qrDataUrl, manualKey, uri: otpauthUrl };
   }
 
   async confirmTotp(adminUserId: string, code: string): Promise<{ success: boolean; backupCodes?: string[] }> {
@@ -677,6 +712,18 @@ export class AdminAuthService {
     return user;
   }
 
+  async changePasswordWithVerification(
+    adminUserId: string,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<{ success: boolean; error?: string }> {
+    const user = await this.db.adminUser.findUniqueOrThrow({ where: { id: adminUserId } });
+    const valid = await argon2.verify(user.passwordHash, currentPassword);
+    if (!valid) return { success: false, error: 'invalid_current_password' };
+    await this.changePassword(adminUserId, newPassword);
+    return { success: true };
+  }
+
   async changePassword(adminUserId: string, newPassword: string): Promise<void> {
     const hash = await this.hashPassword(newPassword);
     await this.db.adminUser.update({
@@ -686,6 +733,68 @@ export class AdminAuthService {
     // Invalida todas las sesiones activas
     await this.destroyAllSessionsForUser(adminUserId);
     logger.info(`Password changed for admin user: ${adminUserId}`);
+  }
+
+  // ─── Verificación reforzada (step-up) ─────────────────────────────────────
+
+  /** Comprueba un código TOTP del operador (false si no tiene TOTP activo). */
+  async verifyTotpCode(adminUserId: string, code: string): Promise<boolean> {
+    if (!code || typeof code !== 'string') return false;
+    const user = await this.db.adminUser.findUnique({
+      where: { id: adminUserId },
+      select: { totpEnabled: true, totpSecret: true },
+    });
+    if (!user?.totpEnabled || !user.totpSecret) return false;
+    const result = await authenticator.verify(code.replace(/\s+/g, ''), { secret: user.totpSecret });
+    return !!result.valid;
+  }
+
+  /**
+   * Verificación reforzada antes de una acción sensible: código TOTP si el operador
+   * tiene 2FA; si no, su contraseña actual. Si es correcta, la sesión queda
+   * verificada durante STEP_UP_TTL_SECONDS para no pedirla en cada acción.
+   */
+  async verifyStepUp(adminUserId: string, sessionToken: string, credential: string): Promise<boolean> {
+    if (!credential || typeof credential !== 'string' || credential.length > 256) return false;
+    const user = await this.db.adminUser.findUnique({
+      where: { id: adminUserId },
+      select: { totpEnabled: true, passwordHash: true },
+    });
+    if (!user) return false;
+
+    const ok = user.totpEnabled
+      ? await this.verifyTotpCode(adminUserId, credential)
+      : await this.verifyPassword(user.passwordHash, credential);
+    if (!ok) {
+      logger.warn(`Step-up verification failed for admin user: ${adminUserId}`);
+      return false;
+    }
+    await this.redis.setex(STEP_UP_KEY(hashSessionToken(sessionToken)), STEP_UP_TTL_SECONDS, '1');
+    return true;
+  }
+
+  /**
+   * 2FA obligatorio: el operador tiene al menos un segundo factor activo
+   * (TOTP confirmado o una llave WebAuthn registrada). Fail-closed ante error.
+   */
+  async hasMfaEnrolled(adminUserId: string): Promise<boolean> {
+    try {
+      const user = await this.db.adminUser.findUnique({
+        where: { id: adminUserId },
+        select: { totpEnabled: true, webauthnCreds: true },
+      });
+      if (!user) return false;
+      const creds = Array.isArray(user.webauthnCreds) ? user.webauthnCreds : [];
+      return user.totpEnabled || creds.length > 0;
+    } catch (err) {
+      logger.error(`MFA enrollment check failed for admin user ${adminUserId}:`, err);
+      return false;
+    }
+  }
+
+  async hasRecentStepUp(sessionToken: string): Promise<boolean> {
+    if (!sessionToken) return false;
+    return (await this.redis.get(STEP_UP_KEY(hashSessionToken(sessionToken)))) === '1';
   }
 
   async regenerateBackupCodes(adminUserId: string): Promise<string[]> {

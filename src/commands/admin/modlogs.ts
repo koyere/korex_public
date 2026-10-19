@@ -70,21 +70,22 @@ export default class ModLogsCommand extends Command {
         .setThumbnail(user.displayAvatarURL())
         .setDescription(i18n.t('modlogs.description', lang, { count: actions.length.toString() }));
 
+      const t = (key: string, vars?: Record<string, string>) => i18n.t(key, lang, vars);
       for (const action of actions) {
         const moderator = await this.client.users.fetch(action.moderatorId).catch(() => null);
         const timestamp = `<t:${Math.floor(action.createdAt.getTime() / 1000)}:R>`;
 
-        let value = `**Moderator:** ${moderator?.tag || 'Unknown'}\n`;
+        let value = `**${t('moderation.log.moderator')}:** ${moderator?.tag || t('moderation.log.unknown')}\n`;
 
-        value += `**Reason:** ${action.reason}\n`;
-        value += `**Time:** ${timestamp}`;
+        value += `**${t('moderation.log.reason')}:** ${(action.reason || '—').slice(0, 300)}\n`;
+        value += `**${t('moderation.log.time')}:** ${timestamp}`;
 
         if (action.duration) {
-          value += `\n**Duration:** ${action.duration} minutes`;
+          value += `\n**${t('moderation.log.duration')}:** ${t('moderation.log.minutes', { minutes: String(action.duration) })}`;
         }
 
         embed.addFields({
-          name: `${this.getActionEmoji(action.type)} ${action.type}`,
+          name: `${this.getActionEmoji(action.type)} ${t(`moderation.action_types.${action.type}`)} · ${t('moderation.log.case', { number: String(action.caseNumber) })}`,
           value,
           inline: false,
         });
@@ -109,6 +110,8 @@ export default class ModLogsCommand extends Command {
     const emojis: Record<string, string> = {
       WARN: '⚠️',
       MUTE: '🔇',
+      TIMEOUT: '⏱️',
+      TEMPBAN: '⏳',
       KICK: '👢',
       BAN: '🔨',
       UNBAN: '🔓',

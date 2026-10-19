@@ -1,3 +1,4 @@
+import { randomInt } from 'crypto';
 import { logger } from '../utils/Logger';
 import { DatabaseManager } from '../client/managers/DatabaseManager';
 import { i18n } from '../utils/i18n';
@@ -33,7 +34,18 @@ export interface EconomyConfig {
 export interface TransactionResult {
   success: boolean;
   newBalance?: number;
+  /** Cantidad ganada (daily/weekly/work) para mostrarla sin parsear el mensaje */
+  amount?: number;
   message: string;
+}
+
+/** Saldo con el que empieza cada usuario en un servidor. */
+export const STARTING_BALANCE = 100;
+
+class TransferError extends Error {
+  constructor(public readonly reason: 'insufficient' | 'receiver_limit') {
+    super(reason);
+  }
 }
 
 export class EconomyService {
@@ -57,6 +69,38 @@ export class EconomyService {
    */
   public setDatabase(db: DatabaseManager): void {
     this.db = db;
+  }
+
+  /**
+   * Contador diario de transacciones (dashboard → Economía → "Transacciones hoy").
+   * No hay tabla de transacciones: se cuenta en Redis por servidor y día UTC (TTL 3 días).
+   */
+  private redis: { incr(key: string): Promise<number>; expire(key: string, seconds: number): Promise<number>; get(key: string): Promise<string | null> } | null = null;
+
+  public setRedis(redis: EconomyService['redis']): void {
+    this.redis = redis;
+  }
+
+  private transactionKey(guildId: string, day: string = new Date().toISOString().slice(0, 10)): string {
+    return `economy:tx:${guildId}:${day}`;
+  }
+
+  private recordTransaction(guildId: string): void {
+    if (!this.redis) return;
+    const key = this.transactionKey(guildId);
+    this.redis.incr(key)
+      .then((count) => (count === 1 ? this.redis!.expire(key, 3 * 24 * 60 * 60) : 0))
+      .catch(() => { /* el contador es informativo: nunca bloquea una transacción */ });
+  }
+
+  /** Transacciones correctas de hoy (UTC) en el servidor; 0 si Redis no está disponible */
+  public async getTransactionsToday(guildId: string): Promise<number> {
+    if (!this.redis) return 0;
+    try {
+      return Number(await this.redis.get(this.transactionKey(guildId))) || 0;
+    } catch {
+      return 0;
+    }
   }
 
   /**
@@ -140,7 +184,7 @@ export class EconomyService {
       create: {
         guildId,
         userId,
-        balance: 100, // Balance inicial
+        balance: STARTING_BALANCE,
         bank: 0,
         dailyStreak: 0,
       },
@@ -156,37 +200,6 @@ export class EconomyService {
       lastWeekly: dbUser.lastWeekly || null,
       lastWork: dbUser.lastWork || null,
     };
-  }
-
-  /**
-   * Actualiza los datos de un usuario
-   */
-  private async updateUser(user: EconomyUser): Promise<void> {
-    if (!this.db) {
-      throw new Error('Database not available');
-    }
-
-    await this.db.prisma.guildUser.update({
-      where: {
-        guildId_userId: {
-          guildId: user.guildId,
-          userId: user.userId,
-        },
-      },
-      data: {
-        balance: user.balance,
-        bank: user.bank,
-        dailyStreak: user.dailyStreak,
-        lastDaily: user.lastDaily || null,
-        lastWeekly: user.lastWeekly || null,
-        lastWork: user.lastWork || null,
-      },
-    });
-
-    // Actualizar caché
-    const cacheKey = `${user.guildId}:${user.userId}`;
-
-    this.userCache.set(cacheKey, user);
   }
 
   /**
@@ -251,6 +264,44 @@ export class EconomyService {
   /**
    * Añade dinero a un usuario
    */
+  // ─── Operaciones atómicas ───────────────────────────────────────────────
+  // Cada movimiento es un único UPDATE condicional (saldo, límites y cooldown
+  // se comprueban en el WHERE) que devuelve la fila resultante. Así dos
+  // operaciones simultáneas nunca se pisan ni dejan saldos negativos.
+
+  private toEconomyUser(row: any): EconomyUser {
+    return {
+      guildId: row.guildId,
+      userId: row.userId,
+      balance: Number(row.balance),
+      bank: Number(row.bank),
+      dailyStreak: Number(row.dailyStreak),
+      lastDaily: row.lastDaily ?? null,
+      lastWeekly: row.lastWeekly ?? null,
+      lastWork: row.lastWork ?? null,
+    };
+  }
+
+  /** Guarda en caché el estado devuelto por la BD tras una operación. */
+  private remember(row: any): EconomyUser {
+    const user = this.toEconomyUser(row);
+    this.userCache.set(`${user.guildId}:${user.userId}`, user);
+    return user;
+  }
+
+  /** Lee el estado real (sin caché) para explicar por qué falló una operación. */
+  private async freshUser(guildId: string, userId: string): Promise<EconomyUser> {
+    this.userCache.delete(`${guildId}:${userId}`);
+    return this.getUser(guildId, userId);
+  }
+
+  private invalidAmount(amount: number): boolean {
+    return !Number.isSafeInteger(amount) || amount <= 0;
+  }
+
+  /**
+   * Añade dinero a un usuario
+   */
   public async addMoney(
     guildId: string,
     userId: string,
@@ -258,44 +309,44 @@ export class EconomyService {
     reason: string = 'Unknown'
   ): Promise<TransactionResult> {
     try {
+      // Un importe negativo invertiría la operación (p. ej. precio < 0 sumaría dinero)
+      if (this.invalidAmount(amount)) {
+        return { success: false, message: i18n.t('economy.errors.invalid_amount', guildId) };
+      }
+
       const config = await this.getConfig(guildId);
 
       if (!config.enabled) {
+        return { success: false, message: i18n.t('economy.tx.disabled', guildId) };
+      }
+
+      await this.getUser(guildId, userId); // crea la fila si no existe
+      const rows = await this.db!.prisma.$queryRaw<any[]>`
+        UPDATE guild_users SET balance = balance + ${amount}, "updatedAt" = NOW()
+        WHERE "guildId" = ${guildId} AND "userId" = ${userId} AND balance + ${amount} <= ${config.maxBalance}
+        RETURNING *`;
+
+      if (rows.length === 0) {
         return {
           success: false,
-          message: 'El sistema económico está deshabilitado en este servidor.',
+          message: i18n.t('economy.tx.max_balance', guildId, { max: String(config.maxBalance), currency: config.currencyName }),
         };
       }
 
-      const user = await this.getUser(guildId, userId);
-      const newBalance = user.balance + amount;
+      const user = this.remember(rows[0]);
+      this.logger.info(`Added ${amount} ${config.currencyName} to user ${userId} in guild ${guildId}. Reason: ${reason}`);
 
-      if (newBalance > config.maxBalance) {
-        return {
-          success: false,
-          message: `No puedes tener más de ${config.maxBalance} ${config.currencyName}.`,
-        };
-      }
-
-      user.balance = newBalance;
-      await this.updateUser(user);
-
-      this.logger.info(
-        `Added ${amount} ${config.currencyName} to user ${userId} in guild ${guildId}. Reason: ${reason}`
-      );
+      this.recordTransaction(guildId);
 
       return {
         success: true,
         newBalance: user.balance,
-        message: `Se añadieron ${amount} ${config.currencySymbol} a tu balance.`,
+        message: i18n.t('economy.tx.added', guildId, { amount: String(amount), symbol: config.currencySymbol }),
       };
     } catch (error) {
       this.logger.error('Error adding money:', error);
 
-      return {
-        success: false,
-        message: 'Error al procesar la transacción.',
-      };
+      return { success: false, message: i18n.t('economy.tx.error', guildId) };
     }
   }
 
@@ -309,48 +360,48 @@ export class EconomyService {
     reason: string = 'Unknown'
   ): Promise<TransactionResult> {
     try {
+      if (this.invalidAmount(amount)) {
+        return { success: false, message: i18n.t('economy.errors.invalid_amount', guildId) };
+      }
+
       const config = await this.getConfig(guildId);
 
       if (!config.enabled) {
+        return { success: false, message: i18n.t('economy.tx.disabled', guildId) };
+      }
+
+      await this.getUser(guildId, userId);
+      const rows = await this.db!.prisma.$queryRaw<any[]>`
+        UPDATE guild_users SET balance = balance - ${amount}, "updatedAt" = NOW()
+        WHERE "guildId" = ${guildId} AND "userId" = ${userId} AND balance >= ${amount}
+        RETURNING *`;
+
+      if (rows.length === 0) {
         return {
           success: false,
-          message: 'El sistema económico está deshabilitado en este servidor.',
+          message: i18n.t('economy.tx.insufficient', guildId, { currency: config.currencyName }),
         };
       }
 
-      const user = await this.getUser(guildId, userId);
+      const user = this.remember(rows[0]);
+      this.logger.info(`Removed ${amount} ${config.currencyName} from user ${userId} in guild ${guildId}. Reason: ${reason}`);
 
-      if (user.balance < amount) {
-        return {
-          success: false,
-          message: `No tienes suficientes ${config.currencyName}.`,
-        };
-      }
-
-      user.balance -= amount;
-      await this.updateUser(user);
-
-      this.logger.info(
-        `Removed ${amount} ${config.currencyName} from user ${userId} in guild ${guildId}. Reason: ${reason}`
-      );
+      this.recordTransaction(guildId);
 
       return {
         success: true,
         newBalance: user.balance,
-        message: `Se quitaron ${amount} ${config.currencySymbol} de tu balance.`,
+        message: i18n.t('economy.tx.removed', guildId, { amount: String(amount), symbol: config.currencySymbol }),
       };
     } catch (error) {
       this.logger.error('Error removing money:', error);
 
-      return {
-        success: false,
-        message: 'Error al procesar la transacción.',
-      };
+      return { success: false, message: i18n.t('economy.tx.error', guildId) };
     }
   }
 
   /**
-   * Transfiere dinero entre usuarios
+   * Transfiere dinero entre usuarios (débito y crédito en una sola transacción)
    */
   public async transferMoney(
     guildId: string,
@@ -359,66 +410,69 @@ export class EconomyService {
     amount: number
   ): Promise<TransactionResult> {
     try {
+      if (this.invalidAmount(amount)) {
+        return { success: false, message: i18n.t('economy.errors.invalid_amount', guildId) };
+      }
+
       const config = await this.getConfig(guildId);
 
       if (!config.enabled) {
-        return {
-          success: false,
-          message: 'El sistema económico está deshabilitado en este servidor.',
-        };
+        return { success: false, message: i18n.t('economy.tx.disabled', guildId) };
       }
 
       if (fromUserId === toUserId) {
-        return {
-          success: false,
-          message: 'No puedes transferir dinero a ti mismo.',
-        };
+        return { success: false, message: i18n.t('economy.tx.self_transfer', guildId) };
       }
 
-      const fromUser = await this.getUser(guildId, fromUserId);
-      const toUser = await this.getUser(guildId, toUserId);
+      await this.getUser(guildId, fromUserId);
+      await this.getUser(guildId, toUserId);
 
-      if (fromUser.balance < amount) {
-        return {
-          success: false,
-          message: `No tienes suficientes ${config.currencyName}.`,
-        };
+      const outcome = await this.db!.prisma.$transaction(async (tx) => {
+        const debited = await tx.$queryRaw<any[]>`
+          UPDATE guild_users SET balance = balance - ${amount}, "updatedAt" = NOW()
+          WHERE "guildId" = ${guildId} AND "userId" = ${fromUserId} AND balance >= ${amount}
+          RETURNING *`;
+        if (debited.length === 0) throw new TransferError('insufficient');
+
+        const credited = await tx.$queryRaw<any[]>`
+          UPDATE guild_users SET balance = balance + ${amount}, "updatedAt" = NOW()
+          WHERE "guildId" = ${guildId} AND "userId" = ${toUserId} AND balance + ${amount} <= ${config.maxBalance}
+          RETURNING *`;
+        if (credited.length === 0) throw new TransferError('receiver_limit');
+
+        return { from: debited[0], to: credited[0] };
+      }).catch((err) => {
+        if (err instanceof TransferError) return err.reason;
+        throw err;
+      });
+
+      if (outcome === 'insufficient') {
+        return { success: false, message: i18n.t('economy.tx.insufficient', guildId, { currency: config.currencyName }) };
+      }
+      if (outcome === 'receiver_limit') {
+        return { success: false, message: i18n.t('economy.tx.receiver_limit', guildId, { max: String(config.maxBalance) }) };
       }
 
-      if (toUser.balance + amount > config.maxBalance) {
-        return {
-          success: false,
-          message: `El usuario receptor no puede recibir esa cantidad (límite: ${config.maxBalance}).`,
-        };
-      }
+      const fromUser = this.remember(outcome.from);
+      this.remember(outcome.to);
+      this.logger.info(`Transferred ${amount} ${config.currencyName} from ${fromUserId} to ${toUserId} in guild ${guildId}`);
 
-      fromUser.balance -= amount;
-      toUser.balance += amount;
-
-      await this.updateUser(fromUser);
-      await this.updateUser(toUser);
-
-      this.logger.info(
-        `Transferred ${amount} ${config.currencyName} from ${fromUserId} to ${toUserId} in guild ${guildId}`
-      );
+      this.recordTransaction(guildId);
 
       return {
         success: true,
         newBalance: fromUser.balance,
-        message: `Transferiste ${amount} ${config.currencySymbol} exitosamente.`,
+        message: i18n.t('economy.tx.transferred', guildId, { amount: String(amount), symbol: config.currencySymbol }),
       };
     } catch (error) {
       this.logger.error('Error transferring money:', error);
 
-      return {
-        success: false,
-        message: 'Error al procesar la transferencia.',
-      };
+      return { success: false, message: i18n.t('economy.tx.transfer_error', guildId) };
     }
   }
 
   /**
-   * Reclama recompensa diaria
+   * Reclama recompensa diaria (racha: +1 si la anterior fue hace menos de 48 h)
    */
   public async claimDaily(guildId: string, userId: string): Promise<TransactionResult> {
     const lang = i18n.getGuildLanguage(guildId);
@@ -427,57 +481,46 @@ export class EconomyService {
       const config = await this.getConfig(guildId);
 
       if (!config.enabled) {
-        return {
-          success: false,
-          message: i18n.t('economy.disabled', lang),
-        };
+        return { success: false, message: i18n.t('economy.disabled', lang) };
       }
 
-      const user = await this.getUser(guildId, userId);
-      const now = new Date();
+      await this.getUser(guildId, userId);
+      // Racha y recompensa se calculan dentro del UPDATE (bono = 10 por día, máx. 200)
+      const rows = await this.db!.prisma.$queryRaw<any[]>`
+        WITH next AS (
+          SELECT CASE WHEN "lastDaily" IS NOT NULL AND "lastDaily" > NOW() - INTERVAL '48 hours'
+                      THEN "dailyStreak" + 1 ELSE 1 END AS streak
+          FROM guild_users WHERE "guildId" = ${guildId} AND "userId" = ${userId}
+        )
+        UPDATE guild_users g
+        SET "dailyStreak" = next.streak,
+            balance = LEAST(g.balance + ${config.dailyReward} + LEAST(next.streak * 10, 200), ${config.maxBalance}),
+            "lastDaily" = NOW(),
+            "updatedAt" = NOW()
+        FROM next
+        WHERE g."guildId" = ${guildId} AND g."userId" = ${userId}
+          AND (g."lastDaily" IS NULL OR g."lastDaily" <= NOW() - INTERVAL '24 hours')
+        RETURNING g.*`;
 
-      // Verificar si ya reclamó hoy
-      if (user.lastDaily) {
-        const lastDaily = new Date(user.lastDaily);
-        const timeDiff = now.getTime() - lastDaily.getTime();
-        const hoursDiff = timeDiff / (1000 * 60 * 60);
-
-        if (hoursDiff < 24) {
-          const hoursLeft = Math.ceil(24 - hoursDiff);
-
-          return {
-            success: false,
-            message: i18n.t('economy.daily.cooldown', lang, { hours: hoursLeft.toString() }),
-          };
-        }
-
-        // Verificar racha
-        if (hoursDiff <= 48) {
-          user.dailyStreak += 1;
-        } else {
-          user.dailyStreak = 1;
-        }
-      } else {
-        user.dailyStreak = 1;
+      if (rows.length === 0) {
+        const current = await this.freshUser(guildId, userId);
+        const hoursLeft = current.lastDaily
+          ? Math.max(1, Math.ceil(24 - (Date.now() - new Date(current.lastDaily).getTime()) / 3_600_000))
+          : 1;
+        return { success: false, message: i18n.t('economy.daily.cooldown', lang, { hours: hoursLeft.toString() }) };
       }
 
+      const user = this.remember(rows[0]);
       const streakBonus = Math.min(user.dailyStreak * 10, 200);
-      const totalReward = config.dailyReward + streakBonus;
 
-      user.balance += totalReward;
-      user.lastDaily = now;
-
-      if (user.balance > config.maxBalance) {
-        user.balance = config.maxBalance;
-      }
-
-      await this.updateUser(user);
+      this.recordTransaction(guildId);
 
       return {
         success: true,
         newBalance: user.balance,
+        amount: config.dailyReward + streakBonus,
         message: i18n.t('economy.daily.success', lang, {
-          amount: totalReward.toString(),
+          amount: (config.dailyReward + streakBonus).toString(),
           symbol: config.currencySymbol,
           base: config.dailyReward.toString(),
           bonus: streakBonus.toString(),
@@ -487,10 +530,7 @@ export class EconomyService {
     } catch (error) {
       this.logger.error('Error claiming daily:', error);
 
-      return {
-        success: false,
-        message: i18n.t('economy.daily.error', lang),
-      };
+      return { success: false, message: i18n.t('economy.daily.error', lang) };
     }
   }
 
@@ -507,33 +547,30 @@ export class EconomyService {
         return { success: false, message: i18n.t('economy.disabled', lang) };
       }
 
-      const user = await this.getUser(guildId, userId);
-      const now = new Date();
+      await this.getUser(guildId, userId);
+      const rows = await this.db!.prisma.$queryRaw<any[]>`
+        UPDATE guild_users
+        SET balance = LEAST(balance + ${config.weeklyReward}, ${config.maxBalance}), "lastWeekly" = NOW(), "updatedAt" = NOW()
+        WHERE "guildId" = ${guildId} AND "userId" = ${userId}
+          AND ("lastWeekly" IS NULL OR "lastWeekly" <= NOW() - INTERVAL '7 days')
+        RETURNING *`;
 
-      if (user.lastWeekly) {
-        const lastWeekly = new Date(user.lastWeekly);
-        const timeDiff = now.getTime() - lastWeekly.getTime();
-        const daysDiff = timeDiff / (1000 * 60 * 60 * 24);
-
-        if (daysDiff < 7) {
-          const daysLeft = Math.ceil(7 - daysDiff);
-
-          return { success: false, message: i18n.t('economy.weekly.cooldown', lang, { days: daysLeft.toString() }) };
-        }
+      if (rows.length === 0) {
+        const current = await this.freshUser(guildId, userId);
+        const daysLeft = current.lastWeekly
+          ? Math.max(1, Math.ceil(7 - (Date.now() - new Date(current.lastWeekly).getTime()) / 86_400_000))
+          : 1;
+        return { success: false, message: i18n.t('economy.weekly.cooldown', lang, { days: daysLeft.toString() }) };
       }
 
-      user.balance += config.weeklyReward;
-      user.lastWeekly = now;
+      const user = this.remember(rows[0]);
 
-      if (user.balance > config.maxBalance) {
-        user.balance = config.maxBalance;
-      }
-
-      await this.updateUser(user);
+      this.recordTransaction(guildId);
 
       return {
         success: true,
         newBalance: user.balance,
+        amount: config.weeklyReward,
         message: i18n.t('economy.weekly.success', lang, { amount: config.weeklyReward.toString(), symbol: config.currencySymbol }),
       };
     } catch (error) {
@@ -556,37 +593,34 @@ export class EconomyService {
         return { success: false, message: i18n.t('economy.disabled', lang) };
       }
 
-      const user = await this.getUser(guildId, userId);
-      const now = new Date();
+      const min = Math.min(config.workMinReward, config.workMaxReward);
+      const max = Math.max(config.workMinReward, config.workMaxReward);
+      const reward = randomInt(min, max + 1);
 
-      if (user.lastWork) {
-        const lastWork = new Date(user.lastWork);
-        const timeDiff = now.getTime() - lastWork.getTime();
-        const secondsDiff = timeDiff / 1000;
+      await this.getUser(guildId, userId);
+      const rows = await this.db!.prisma.$queryRaw<any[]>`
+        UPDATE guild_users
+        SET balance = LEAST(balance + ${reward}, ${config.maxBalance}), "lastWork" = NOW(), "updatedAt" = NOW()
+        WHERE "guildId" = ${guildId} AND "userId" = ${userId}
+          AND ("lastWork" IS NULL OR "lastWork" <= NOW() - make_interval(secs => ${config.workCooldown}))
+        RETURNING *`;
 
-        if (secondsDiff < config.workCooldown) {
-          const minutesLeft = Math.ceil((config.workCooldown - secondsDiff) / 60);
-
-          return { success: false, message: i18n.t('economy.work.cooldown', lang, { minutes: minutesLeft.toString() }) };
-        }
+      if (rows.length === 0) {
+        const current = await this.freshUser(guildId, userId);
+        const secondsLeft = current.lastWork
+          ? config.workCooldown - (Date.now() - new Date(current.lastWork).getTime()) / 1000
+          : 60;
+        return { success: false, message: i18n.t('economy.work.cooldown', lang, { minutes: Math.max(1, Math.ceil(secondsLeft / 60)).toString() }) };
       }
 
-      const reward = Math.floor(
-        Math.random() * (config.workMaxReward - config.workMinReward + 1) + config.workMinReward
-      );
+      const user = this.remember(rows[0]);
 
-      user.balance += reward;
-      user.lastWork = now;
-
-      if (user.balance > config.maxBalance) {
-        user.balance = config.maxBalance;
-      }
-
-      await this.updateUser(user);
+      this.recordTransaction(guildId);
 
       return {
         success: true,
         newBalance: user.balance,
+        amount: reward,
         message: i18n.t('economy.work.success', lang, { amount: reward.toString(), symbol: config.currencySymbol }),
       };
     } catch (error) {
@@ -605,48 +639,46 @@ export class EconomyService {
     amount: number
   ): Promise<TransactionResult> {
     try {
+      if (this.invalidAmount(amount)) {
+        return { success: false, message: i18n.t('economy.errors.invalid_amount', guildId) };
+      }
+
       const config = await this.getConfig(guildId);
 
       if (!config.enabled) {
+        return { success: false, message: i18n.t('economy.tx.disabled', guildId) };
+      }
+
+      await this.getUser(guildId, userId);
+      const rows = await this.db!.prisma.$queryRaw<any[]>`
+        UPDATE guild_users SET balance = balance - ${amount}, bank = bank + ${amount}, "updatedAt" = NOW()
+        WHERE "guildId" = ${guildId} AND "userId" = ${userId}
+          AND balance >= ${amount} AND bank + ${amount} <= ${config.maxBank}
+        RETURNING *`;
+
+      if (rows.length === 0) {
+        const current = await this.freshUser(guildId, userId);
         return {
           success: false,
-          message: 'El sistema económico está deshabilitado en este servidor.',
+          message: current.balance < amount
+            ? i18n.t('economy.tx.insufficient_wallet', guildId, { currency: config.currencyName })
+            : i18n.t('economy.tx.max_bank', guildId, { max: String(config.maxBank), currency: config.currencyName }),
         };
       }
 
-      const user = await this.getUser(guildId, userId);
+      const user = this.remember(rows[0]);
 
-      if (user.balance < amount) {
-        return {
-          success: false,
-          message: `No tienes suficientes ${config.currencyName} en tu balance.`,
-        };
-      }
-
-      if (user.bank + amount > config.maxBank) {
-        return {
-          success: false,
-          message: `No puedes depositar más de ${config.maxBank} ${config.currencyName} en el banco.`,
-        };
-      }
-
-      user.balance -= amount;
-      user.bank += amount;
-
-      await this.updateUser(user);
+      this.recordTransaction(guildId);
 
       return {
         success: true,
         newBalance: user.balance,
-        message: `Depositaste ${amount} ${config.currencySymbol} en el banco.`,
+        message: i18n.t('economy.tx.deposited', guildId, { amount: String(amount), symbol: config.currencySymbol }),
       };
     } catch (error) {
       this.logger.error('Error depositing:', error);
 
-      return {
-        success: false,
-        message: 'Error al depositar.',
-      };
+      return { success: false, message: i18n.t('economy.tx.deposit_error', guildId) };
     }
   }
 
@@ -659,65 +691,69 @@ export class EconomyService {
     amount: number
   ): Promise<TransactionResult> {
     try {
+      if (this.invalidAmount(amount)) {
+        return { success: false, message: i18n.t('economy.errors.invalid_amount', guildId) };
+      }
+
       const config = await this.getConfig(guildId);
 
       if (!config.enabled) {
+        return { success: false, message: i18n.t('economy.tx.disabled', guildId) };
+      }
+
+      await this.getUser(guildId, userId);
+      const rows = await this.db!.prisma.$queryRaw<any[]>`
+        UPDATE guild_users SET bank = bank - ${amount}, balance = balance + ${amount}, "updatedAt" = NOW()
+        WHERE "guildId" = ${guildId} AND "userId" = ${userId}
+          AND bank >= ${amount} AND balance + ${amount} <= ${config.maxBalance}
+        RETURNING *`;
+
+      if (rows.length === 0) {
+        const current = await this.freshUser(guildId, userId);
         return {
           success: false,
-          message: 'El sistema económico está deshabilitado en este servidor.',
+          message: current.bank < amount
+            ? i18n.t('economy.tx.insufficient_bank', guildId, { currency: config.currencyName })
+            : i18n.t('economy.tx.max_wallet', guildId, { max: String(config.maxBalance), currency: config.currencyName }),
         };
       }
 
-      const user = await this.getUser(guildId, userId);
+      const user = this.remember(rows[0]);
 
-      if (user.bank < amount) {
-        return {
-          success: false,
-          message: `No tienes suficientes ${config.currencyName} en el banco.`,
-        };
-      }
-
-      if (user.balance + amount > config.maxBalance) {
-        return {
-          success: false,
-          message: `No puedes tener más de ${config.maxBalance} ${config.currencyName} en tu balance.`,
-        };
-      }
-
-      user.bank -= amount;
-      user.balance += amount;
-
-      await this.updateUser(user);
+      this.recordTransaction(guildId);
 
       return {
         success: true,
         newBalance: user.balance,
-        message: `Retiraste ${amount} ${config.currencySymbol} del banco.`,
+        message: i18n.t('economy.tx.withdrew', guildId, { amount: String(amount), symbol: config.currencySymbol }),
       };
     } catch (error) {
       this.logger.error('Error withdrawing:', error);
 
-      return {
-        success: false,
-        message: 'Error al retirar.',
-      };
+      return { success: false, message: i18n.t('economy.tx.withdraw_error', guildId) };
     }
   }
 
   /**
    * Obtiene el leaderboard de dinero
    */
-  public async getLeaderboard(guildId: string, limit: number = 10): Promise<EconomyUser[]> {
+  public async getLeaderboard(guildId: string, limit: number = 10, offset: number = 0): Promise<EconomyUser[]> {
     try {
       if (!this.db) {
         return [];
       }
 
-      const users = await this.db.prisma.guildUser.findMany({
-        where: { guildId },
-        orderBy: [{ balance: 'desc' }, { bank: 'desc' }],
-        take: limit,
-      });
+      // Ordenado por riqueza total (cartera + banco); se omiten usuarios sin dinero
+      const users = await this.db.prisma.$queryRaw<Array<{
+        guildId: string; userId: string; balance: number; bank: number; dailyStreak: number;
+        lastDaily: Date | null; lastWeekly: Date | null; lastWork: Date | null;
+      }>>`
+        SELECT "guildId", "userId", balance, bank, "dailyStreak", "lastDaily", "lastWeekly", "lastWork"
+        FROM guild_users
+        WHERE "guildId" = ${guildId} AND (balance + bank) > 0
+        ORDER BY (balance::bigint + bank::bigint) DESC
+        LIMIT ${limit} OFFSET ${offset}
+      `;
 
       return users.map((user) => ({
         guildId: user.guildId,

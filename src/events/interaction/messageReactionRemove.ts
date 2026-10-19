@@ -18,6 +18,8 @@ export default class MessageReactionRemoveEvent extends Event<'messageReactionRe
     try {
       // Handle reaction roles
       await this.client.autoRole.handleReactionRemove(reaction, user);
+      // Handle starboard
+      await this.client.starboard.handleReactionRemove(reaction, user);
     } catch (error) {
       this.client.logger.error('Error handling message reaction remove event:', error);
     }

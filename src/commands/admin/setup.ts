@@ -9,10 +9,14 @@ import {
   ComponentType,
   ChannelType,
   Role,
+  ButtonBuilder,
+  ButtonStyle,
+  MessageFlags,
 } from 'discord.js';
 import { Command } from '../../client/structures/Command';
 import { KorexClient } from '../../client/KorexClient';
 import { i18n } from '../../utils/i18n';
+import { readWarnEscalation, WarnEscalationStep } from '../../utils/warnEscalation';
 
 export default class SetupCommand extends Command {
   constructor(client: KorexClient) {
@@ -47,72 +51,72 @@ export default class SetupCommand extends Command {
         .setDescription(i18n.t('setup.description', lang))
         .addFields(
           {
-            name: '🛡️ Moderation',
-            value: 'Configure moderation settings',
+            name: i18n.t('commands.setup.menu.moderation_name', guildId),
+            value: i18n.t('commands.setup.menu.moderation_value', guildId),
             inline: true,
           },
           {
-            name: '📝 Logging',
-            value: 'Set up log channels',
+            name: i18n.t('commands.setup.menu.logging_name', guildId),
+            value: i18n.t('commands.setup.menu.logging_value', guildId),
             inline: true,
           },
           {
-            name: '🎵 Music',
-            value: 'Configure music settings',
+            name: i18n.t('commands.setup.menu.music_name', guildId),
+            value: i18n.t('commands.setup.menu.music_value', guildId),
             inline: true,
           },
           {
-            name: '💰 Economy',
-            value: 'Set up economy system',
+            name: i18n.t('commands.setup.menu.economy_name', guildId),
+            value: i18n.t('commands.setup.menu.economy_value', guildId),
             inline: true,
           },
           {
-            name: '📊 Levels',
-            value: 'Configure leveling system',
+            name: i18n.t('commands.setup.menu.levels_name', guildId),
+            value: i18n.t('commands.setup.menu.levels_value', guildId),
             inline: true,
           },
           {
-            name: '🎉 Welcome',
-            value: 'Set up welcome messages',
+            name: i18n.t('commands.setup.menu.welcome_name', guildId),
+            value: i18n.t('commands.setup.menu.welcome_value', guildId),
             inline: true,
           }
         )
         .setFooter({
-          text: 'Use individual commands to configure each module',
+          text: i18n.t('commands.setup.menu.footer', guildId),
           iconURL: this.client.user!.displayAvatarURL(),
         });
 
       const selectMenu = new StringSelectMenuBuilder()
         .setCustomId('setup_menu')
-        .setPlaceholder('Select a module to configure')
+        .setPlaceholder(i18n.t('commands.setup.menu.placeholder', guildId))
         .addOptions([
           {
-            label: 'Moderation',
-            description: 'Configure moderation settings',
+            label: i18n.t('commands.setup.menu.option_moderation_label', guildId),
+            description: i18n.t('commands.setup.menu.option_moderation_description', guildId),
             value: 'moderation',
             emoji: '🛡️',
           },
           {
-            label: 'Logging',
-            description: 'Set up log channels',
+            label: i18n.t('commands.setup.menu.option_logging_label', guildId),
+            description: i18n.t('commands.setup.menu.option_logging_description', guildId),
             value: 'logging',
             emoji: '📝',
           },
           {
-            label: 'Auto-Roles',
-            description: 'Configure auto-roles',
+            label: i18n.t('commands.setup.menu.option_autoroles_label', guildId),
+            description: i18n.t('commands.setup.menu.option_autoroles_description', guildId),
             value: 'autoroles',
             emoji: '🎭',
           },
           {
-            label: 'Welcome',
-            description: 'Configure welcome messages',
+            label: i18n.t('commands.setup.menu.option_welcome_label', guildId),
+            description: i18n.t('commands.setup.menu.option_welcome_description', guildId),
             value: 'welcome',
             emoji: '👋',
           },
           {
-            label: 'Check Configuration',
-            description: 'Review all current configuration',
+            label: i18n.t('commands.setup.menu.option_check_label', guildId),
+            description: i18n.t('commands.setup.menu.option_check_description', guildId),
             value: 'check',
             emoji: '🔍',
           },
@@ -162,6 +166,20 @@ export default class SetupCommand extends Command {
         }
       });
 
+      // Botón del escalado por avisos (resultado de la opción Moderación)
+      const buttonCollector = response.createMessageComponentCollector({
+        componentType: ComponentType.Button,
+        time: 300000,
+      });
+      buttonCollector.on('collect', async (btn) => {
+        if (btn.user.id !== interaction.user.id) {
+          await btn.reply({ content: i18n.t('errors.no_permission', guild.id), flags: MessageFlags.Ephemeral }).catch(() => {});
+          return;
+        }
+        if (btn.customId !== 'setup_escalation_on' && btn.customId !== 'setup_escalation_off') return;
+        await this.toggleEscalation(btn, btn.customId === 'setup_escalation_on');
+      });
+
       collector.on('end', async () => {
         try {
           await interaction.editReply({
@@ -176,6 +194,10 @@ export default class SetupCommand extends Command {
         command: 'setup',
       });
     }
+  }
+
+  private dashboardUrl(): string {
+    return process.env.DASHBOARD_URL || 'https://panel.korex.dev';
   }
 
   private async setupModeration(interaction: any): Promise<void> {
@@ -242,7 +264,7 @@ export default class SetupCommand extends Command {
         logChannel = await guild.channels.create({
           name: 'mod-logs',
           type: ChannelType.GuildText,
-          topic: 'Moderation logs channel - KOREX',
+          topic: i18n.t('commands.setup.moderation.log_channel_topic', guild.id),
           reason: 'Log channel created by KOREX',
         });
       } catch (error) {
@@ -272,13 +294,27 @@ export default class SetupCommand extends Command {
           muteRoleId: muteRole?.id,
           maxWarnings: 3,
           warningExpireDays: 30,
-          autoActions: [
-            { warnings: 3, action: 'MUTE', duration: 60 },
-            { warnings: 5, action: 'KICK' },
-            { warnings: 7, action: 'BAN', duration: 1440 },
-          ],
         },
       });
+
+      // El AutoMod y los logs de moderación leen estas tablas (las mismas que el dashboard)
+      const modConfig = await this.client.db.moderationConfig.upsert({
+        where: { guildId: guild.id },
+        update: { autoModEnabled: true },
+        create: { guildId: guild.id, autoModEnabled: true },
+      });
+      if (logChannel) {
+        await this.client.db.loggingConfig.upsert({
+          where: { guildId: guild.id },
+          update: { moderationLogChannel: logChannel.id },
+          create: { guildId: guild.id, moderationLogChannel: logChannel.id },
+        });
+      }
+      this.client.autoMod.clearCache(guild.id);
+
+      const escalation = await this.getEscalationState(guild.id);
+      const notConfigured = `❌ ${i18n.t('commands.setup.not_configured', guild.id)}`;
+      const escalationAction = { timeout: 'TIMEOUT', kick: 'KICK', ban: 'BAN' }[modConfig.warnAction] ?? 'TIMEOUT';
 
       embed.setColor(Colors.Green);
       embed.setDescription(i18n.t('commands.setup.moderation.success', guild.id));
@@ -286,30 +322,88 @@ export default class SetupCommand extends Command {
         {
           name: i18n.t('commands.setup.moderation.configuration', guild.id),
           value: [
-            `**${i18n.t('commands.setup.moderation.mute_role', guild.id)}:** ${muteRole ? muteRole.toString() : '❌ Not configured'}`,
-            `**${i18n.t('commands.setup.moderation.log_channel', guild.id)}:** ${logChannel ? logChannel.toString() : '❌ Not configured'}`,
+            `**${i18n.t('commands.setup.moderation.mute_role', guild.id)}:** ${muteRole ? muteRole.toString() : notConfigured}`,
+            `**${i18n.t('commands.setup.moderation.log_channel', guild.id)}:** ${logChannel ? logChannel.toString() : notConfigured}`,
             `**${i18n.t('commands.setup.moderation.auto_mod', guild.id)}:** ✅ ${i18n.t('common.enabled', guild.id)}`,
             `**${i18n.t('commands.setup.moderation.max_warnings', guild.id)}:** 3`,
-            `**${i18n.t('commands.setup.moderation.warning_expiry', guild.id)}:** 30 days`,
+            `**${i18n.t('commands.setup.moderation.warning_expiry', guild.id)}:** ${i18n.t('commands.setup.days', guild.id, { days: '30' })}`,
           ].join('\n'),
           inline: false,
         },
         {
           name: i18n.t('commands.setup.moderation.auto_actions', guild.id),
-          value: [
-            i18n.t('commands.setup.moderation.action_3_warnings', guild.id),
-            i18n.t('commands.setup.moderation.action_5_warnings', guild.id),
-            i18n.t('commands.setup.moderation.action_7_warnings', guild.id),
-          ].join('\n'),
+          value: i18n.t('commands.setup.moderation.auto_action_current', guild.id, {
+            count: String(modConfig.warnThreshold),
+            action: i18n.t(`moderation.action_types.${escalationAction}`, guild.id),
+          }),
           inline: false,
-        }
+        },
+        this.escalationField(guild.id, escalation.enabled, escalation.steps),
       );
+      await interaction.editReply({ embeds: [embed], components: [this.escalationRow(guild.id, escalation.enabled)] });
+      return;
     } catch (error) {
       embed.setColor(Colors.Red);
-      embed.setDescription('❌ Error saving configuration to database');
+      this.client.logger.error('Error saving setup moderation config:', error);
+      embed.setDescription(`❌ ${i18n.t('commands.setup.save_error', guild.id)}`);
     }
 
     await interaction.editReply({ embeds: [embed], components: [] });
+  }
+
+  // ── Escalado por avisos (3 → silencio, 5 → expulsión, 7 → baneo; desactivado por defecto) ──
+
+  private async getEscalationState(guildId: string): Promise<{ enabled: boolean; steps: WarnEscalationStep[] }> {
+    // Columnas aditivas de moderation_configs: acceso sin tipar
+    const cfg: any = await (this.client.db as any).moderationConfig.findUnique({ where: { guildId } }).catch(() => null);
+    return { enabled: cfg?.warnEscalationEnabled === true, steps: readWarnEscalation(cfg?.warnEscalationSteps) };
+  }
+
+  private escalationField(guildId: string, enabled: boolean, steps: WarnEscalationStep[]) {
+    const lines = steps.map(step => {
+      const action = i18n.t(`commands.setup.moderation.escalation_action_${step.action}`, guildId, {
+        minutes: String(step.duration ?? 0),
+      });
+      return i18n.t('commands.setup.moderation.escalation_step', guildId, { count: String(step.warnings), action });
+    });
+    return {
+      name: i18n.t('commands.setup.moderation.escalation_title', guildId),
+      value: [
+        enabled ? `✅ ${i18n.t('common.enabled', guildId)}` : `❌ ${i18n.t('commands.setup.moderation.escalation_off', guildId)}`,
+        ...lines,
+        i18n.t('commands.setup.moderation.escalation_hint', guildId),
+      ].join('\n').slice(0, 1024),
+      inline: false,
+    };
+  }
+
+  private escalationRow(guildId: string, enabled: boolean) {
+    return new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setCustomId(enabled ? 'setup_escalation_off' : 'setup_escalation_on')
+        .setStyle(enabled ? ButtonStyle.Secondary : ButtonStyle.Primary)
+        .setLabel(i18n.t(enabled ? 'commands.setup.moderation.escalation_disable' : 'commands.setup.moderation.escalation_enable', guildId)),
+    );
+  }
+
+  private async toggleEscalation(interaction: any, enable: boolean): Promise<void> {
+    const guild = interaction.guild!;
+    try {
+      await (this.client.db as any).moderationConfig.upsert({
+        where: { guildId: guild.id },
+        update: { warnEscalationEnabled: enable },
+        create: { guildId: guild.id, warnEscalationEnabled: enable },
+      });
+    } catch (error) {
+      this.client.logger.error('Error toggling warn escalation:', error);
+      await interaction.reply({ content: `❌ ${i18n.t('commands.setup.save_error', guild.id)}`, flags: MessageFlags.Ephemeral }).catch(() => {});
+      return;
+    }
+    const state = await this.getEscalationState(guild.id);
+    const embed = EmbedBuilder.from(interaction.message.embeds[0]);
+    const fields = (embed.data.fields ?? []).filter(f => f.name !== i18n.t('commands.setup.moderation.escalation_title', guild.id));
+    embed.setFields(...fields, this.escalationField(guild.id, state.enabled, state.steps));
+    await interaction.update({ embeds: [embed], components: [this.escalationRow(guild.id, state.enabled)] });
   }
 
   private async setupLogging(interaction: any): Promise<void> {
@@ -319,12 +413,7 @@ export default class SetupCommand extends Command {
     const embed = new EmbedBuilder()
       .setColor(Colors.Blue)
       .setTitle(i18n.t('commands.setup.logging.title', guild.id))
-      .setDescription('This feature will be available when LoggingService is implemented.')
-      .addFields({
-        name: i18n.t('commands.setup.logging.in_development', guild.id),
-        value: i18n.t('commands.setup.logging.description', guild.id),
-        inline: false,
-      })
+      .setDescription(i18n.t('commands.setup.logging.dashboard_hint', guild.id, { url: this.dashboardUrl() }))
       .setTimestamp();
 
     await interaction.editReply({ embeds: [embed], components: [] });
@@ -337,12 +426,7 @@ export default class SetupCommand extends Command {
     const embed = new EmbedBuilder()
       .setColor(Colors.Purple)
       .setTitle(i18n.t('commands.setup.autoroles.title', guild.id))
-      .setDescription('This feature will be available when auto-roles system is implemented.')
-      .addFields({
-        name: i18n.t('commands.setup.autoroles.in_development', guild.id),
-        value: i18n.t('commands.setup.autoroles.description', guild.id),
-        inline: false,
-      })
+      .setDescription(i18n.t('commands.setup.autoroles.dashboard_hint', guild.id, { url: this.dashboardUrl() }))
       .setTimestamp();
 
     await interaction.editReply({ embeds: [embed], components: [] });
@@ -355,12 +439,7 @@ export default class SetupCommand extends Command {
     const embed = new EmbedBuilder()
       .setColor(Colors.Gold)
       .setTitle(i18n.t('commands.setup.welcome.title', guild.id))
-      .setDescription('This feature will be available when WelcomeService is implemented.')
-      .addFields({
-        name: i18n.t('commands.setup.welcome.in_development', guild.id),
-        value: i18n.t('commands.setup.welcome.description', guild.id),
-        inline: false,
-      })
+      .setDescription(i18n.t('commands.setup.welcome.dashboard_hint', guild.id, { url: this.dashboardUrl() }))
       .setTimestamp();
 
     await interaction.editReply({ embeds: [embed], components: [] });
@@ -371,6 +450,7 @@ export default class SetupCommand extends Command {
 
     const guild = interaction.guild!;
     const config = await this.client.moderation.getModerationConfig(guild.id);
+    const notConfigured = `❌ ${i18n.t('commands.setup.not_configured', guild.id)}`;
 
     const embed = new EmbedBuilder()
       .setColor(Colors.Blurple)
@@ -380,20 +460,20 @@ export default class SetupCommand extends Command {
         {
           name: `🛡️ ${i18n.t('commands.setup.moderation.title', guild.id).replace('🛡️ ', '')}`,
           value: [
-            `**Status:** ${config.autoModEnabled ? `✅ ${i18n.t('common.enabled', guild.id)}` : `❌ ${i18n.t('common.disabled', guild.id)}`}`,
-            `**${i18n.t('commands.setup.moderation.log_channel', guild.id)}:** ${config.logChannelId ? `<#${config.logChannelId}>` : '❌ Not configured'}`,
-            `**${i18n.t('commands.setup.moderation.mute_role', guild.id)}:** ${config.muteRoleId ? `<@&${config.muteRoleId}>` : '❌ Not configured'}`,
+            `**${i18n.t('commands.setup.check.status', guild.id)}:** ${config.autoModEnabled ? `✅ ${i18n.t('common.enabled', guild.id)}` : `❌ ${i18n.t('common.disabled', guild.id)}`}`,
+            `**${i18n.t('commands.setup.moderation.log_channel', guild.id)}:** ${config.logChannelId ? `<#${config.logChannelId}>` : notConfigured}`,
+            `**${i18n.t('commands.setup.moderation.mute_role', guild.id)}:** ${config.muteRoleId ? `<@&${config.muteRoleId}>` : notConfigured}`,
             `**${i18n.t('commands.setup.moderation.max_warnings', guild.id)}:** ${config.maxWarnings}`,
-            `**${i18n.t('commands.setup.moderation.warning_expiry', guild.id)}:** ${config.warningExpireDays} days`,
+            `**${i18n.t('commands.setup.moderation.warning_expiry', guild.id)}:** ${i18n.t('commands.setup.days', guild.id, { days: String(config.warningExpireDays) })}`,
           ].join('\n'),
           inline: true,
         },
         {
           name: i18n.t('commands.setup.check.bot_info', guild.id),
           value: [
-            `**Commands:** ${this.client.commands.commands.size}`,
-            `**Events:** ${this.client.events.events.size}`,
-            `**Addons:** ${this.client.addons.addons.size}`,
+            `**${i18n.t('commands.setup.check.commands', guild.id)}:** ${this.client.commands.commands.size}`,
+            `**${i18n.t('commands.setup.check.events', guild.id)}:** ${this.client.events.events.size}`,
+            `**${i18n.t('commands.setup.check.addons', guild.id)}:** ${this.client.addons.addons.size}`,
             `**${i18n.t('commands.setup.check.uptime', guild.id)}:** <t:${Math.floor((Date.now() - this.client.uptime!) / 1000)}:R>`,
             `**${i18n.t('commands.setup.check.latency', guild.id)}:** ${this.client.ws.ping}ms`,
           ].join('\n'),

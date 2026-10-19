@@ -15,6 +15,7 @@ import { KorexClient } from '../client/KorexClient';
 import { i18n } from '../utils/i18n';
 import { logger } from '../utils/Logger';
 import { botConfig } from '../config/bot.config';
+import { setLongTimeout, LongTimeout } from '../utils/longTimeout';
 
 export type PollType = 'simple' | 'multiple' | 'dropdown' | 'ranking';
 
@@ -48,7 +49,10 @@ export interface PollData {
     maxChoices?: number;
     showResults: 'always' | 'after_vote' | 'after_end';
     allowChangeVote: boolean;
-    duration?: number; // Add duration property for creation
+    duration?: number;
+    imageUrl?: string;
+    footerText?: string;
+    color?: number;
   };
   hostId: string;
   endsAt?: Date;
@@ -86,7 +90,8 @@ type PollActionRow = ActionRowBuilder<ButtonBuilder> | ActionRowBuilder<StringSe
 export class PollService {
   private client: KorexClient;
   private prisma: PrismaClient;
-  private activePolls: Map<string, NodeJS.Timeout> = new Map();
+  private activePolls: Map<string, LongTimeout> = new Map();
+  private voteLocks = new Map<string, Promise<unknown>>();
 
   constructor(client: KorexClient) {
     this.client = client;
@@ -151,12 +156,12 @@ export class PollService {
         })),
         restrictions: data.restrictions || [],
         settings: {
-          anonymous: data.settings?.anonymous || false,
-          multipleChoice: data.settings?.multipleChoice || false,
+          ...data.settings,
+          anonymous: data.settings?.anonymous ?? false,
+          multipleChoice: data.settings?.multipleChoice ?? false,
           maxChoices: data.settings?.maxChoices || undefined,
-          showResults: data.settings?.showResults || 'always',
-          allowChangeVote: data.settings?.allowChangeVote || true,
-          ...data.settings
+          showResults: data.settings?.showResults ?? 'always',
+          allowChangeVote: data.settings?.allowChangeVote ?? true,
         },
         hostId: host.id,
         endsAt,
@@ -200,6 +205,20 @@ export class PollService {
    * Vote in a poll
    */
   async vote(
+    pollId: string,
+    user: User,
+    member: GuildMember,
+    optionIds: string[]
+  ): Promise<{ success: boolean; reason?: string; results?: PollResults | null }> {
+    // Un voto a la vez por encuesta: evita perder votos o votar dos veces con clics rápidos
+    const previous = this.voteLocks.get(pollId) ?? Promise.resolve();
+    const run = previous.catch(() => undefined).then(() => this.voteLocked(pollId, user, member, optionIds));
+    this.voteLocks.set(pollId, run);
+    run.finally(() => { if (this.voteLocks.get(pollId) === run) this.voteLocks.delete(pollId); }).catch(() => undefined);
+    return run;
+  }
+
+  private async voteLocked(
     pollId: string,
     user: User,
     member: GuildMember,
@@ -249,9 +268,9 @@ export class PollService {
         const option = poll.options.find(o => o.id === optionId);
 
         if (option) {
-          if (!poll.settings.anonymous) {
-            option.voters.push(user.id);
-          }
+          // Los votantes se guardan siempre (para poder cambiar el voto y evitar
+          // votos duplicados); el anonimato se aplica al mostrar/exportar.
+          option.voters.push(user.id);
           option.votes++;
         }
       }
@@ -282,6 +301,12 @@ export class PollService {
   /**
    * End a poll and show final results
    */
+  /** Cancela el temporizador de cierre de una encuesta. */
+  clearSchedule(pollId: string): void {
+    this.activePolls.get(pollId)?.clear();
+    this.activePolls.delete(pollId);
+  }
+
   async endPoll(pollId: string, force: boolean = false): Promise<boolean> {
     try {
       const poll = await this.getPoll(pollId);
@@ -305,7 +330,7 @@ export class PollService {
       const timeout = this.activePolls.get(pollId);
 
       if (timeout) {
-        clearTimeout(timeout);
+        timeout.clear();
         this.activePolls.delete(pollId);
       }
 
@@ -495,7 +520,9 @@ export class PollService {
     // Determine winner(s)
     if (totalVotes > 0) {
       const maxVotes = Math.max(...poll.options.map(o => o.votes));
-      const winners = poll.options.filter(o => o.votes === maxVotes);
+      const winners = poll.options
+        .filter(o => o.votes === maxVotes)
+        .map(o => poll.settings.anonymous ? { ...o, voters: [] } : o);
       
       if (winners.length === 1) {
         results.winner = {
@@ -517,11 +544,16 @@ export class PollService {
    * Create poll embed
    */
   private createPollEmbed(poll: PollData, guildId: string): EmbedBuilder {
+    const embedColor = poll.settings?.color ?? botConfig.colors.primary;
     const embed = new EmbedBuilder()
-      .setColor(botConfig.colors.primary)
+      .setColor(embedColor)
       .setTitle(`📊 ${poll.title}`)
       .setDescription(poll.description || i18n.t('polls.embed.description', guildId))
       .setTimestamp();
+
+    if (poll.settings?.imageUrl) {
+      embed.setImage(poll.settings.imageUrl);
+    }
 
     // Add poll options
     if (poll.options.length > 0) {
@@ -576,15 +608,14 @@ export class PollService {
       });
     }
 
+    const footerText = poll.settings?.footerText
+      ? `${poll.settings.footerText} • ${i18n.t('polls.embed.footer', guildId, { id: poll.id })}`
+      : i18n.t('polls.embed.footer', guildId, { id: poll.id });
+
     if (this.client.user?.displayAvatarURL()) {
-      embed.setFooter({
-        text: i18n.t('polls.embed.footer', guildId, { id: poll.id }),
-        iconURL: this.client.user.displayAvatarURL()
-      });
+      embed.setFooter({ text: footerText, iconURL: this.client.user.displayAvatarURL() });
     } else {
-      embed.setFooter({
-        text: i18n.t('polls.embed.footer', guildId, { id: poll.id })
-      });
+      embed.setFooter({ text: footerText });
     }
 
     return embed;
@@ -795,6 +826,7 @@ export class PollService {
         voters: Array.isArray(o.voters) ? o.voters : [],
       })),
       settings: {
+        ...settings, // conserva imageUrl, footerText, color, etc.
         anonymous: settings.anonymous ?? row.anonymous ?? false,
         multipleChoice: settings.multipleChoice ?? false,
         maxChoices: settings.maxChoices,
@@ -873,6 +905,7 @@ export class PollService {
       data: {
         options: poll.options as any,
         participants: poll.participants as any,
+        settings: poll.settings as any,
         active: !poll.ended,
         endTime: poll.endsAt,
         messageId: poll.messageId,
@@ -913,20 +946,27 @@ export class PollService {
       return;
     }
 
-    const timeout = setTimeout(() => {
+    const timeout = setLongTimeout(() => {
       this.endPoll(poll.id);
     }, timeUntilEnd);
 
     this.activePolls.set(poll.id, timeout);
   }
 
-  private async getUserLevel(_userId: string, _guildId: string): Promise<number> {
-    // Placeholder - would integrate with LevelService
-    return 1;
+  private async getUserLevel(userId: string, guildId: string): Promise<number> {
+    try {
+      return (await this.client.levels.getUser(guildId, userId)).level;
+    } catch {
+      return 0;
+    }
   }
 
-  private async getUserMessageCount(_userId: string, _guildId: string): Promise<number> {
-    // Placeholder - would get from database
-    return 0;
+  private async getUserMessageCount(userId: string, guildId: string): Promise<number> {
+    try {
+      return (await this.client.levels.getUser(guildId, userId)).messages;
+    } catch {
+      return 0;
+    }
   }
+
 }

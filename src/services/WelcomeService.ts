@@ -13,6 +13,8 @@ import { logger } from '../utils/Logger';
 import { DatabaseManager } from '../client/managers/DatabaseManager';
 import { i18n } from '../utils/i18n';
 import { WelcomeImageService } from './WelcomeImageService';
+import { isCoreModuleEnabled } from '../config/coreModules';
+import type { WelcomeConfig as WelcomeConfigRow } from '@prisma/client';
 
 export interface WelcomeConfig {
   guildId: string;
@@ -78,32 +80,32 @@ export class WelcomeService {
   }
 
   /**
-   * Handle member join - send welcome message and assign auto-role
+   * Handle member join - send welcome message, DM and auto-roles
    */
   public async handleMemberJoin(member: GuildMember): Promise<void> {
     try {
-      const config = await this.getWelcomeConfig(member.guild.id);
+      const [moduleEnabled, config] = await Promise.all([
+        this.isGuildModuleEnabled(member.guild.id, 'welcome'),
+        this.db.prisma.welcomeConfig.findUnique({ where: { guildId: member.guild.id } }),
+      ]);
 
-      if (!config.enabled) {
+      if (!moduleEnabled || !config) {
         return;
       }
 
-      // Send welcome message to channel
-      if (config.channelId) {
-        await this.sendWelcomeMessage(member, config);
+      if (config.welcomeEnabled) {
+        const built = await this.buildMessage(member, 'welcome', config);
+        if (built) await built.channel.send(built.options);
+
+        if (config.welcomeDM && config.welcomeDMMessage) {
+          await this.sendWelcomeDM(member, config.welcomeDMMessage);
+        }
       }
 
-      // Send DM to user
-      if (config.dmEnabled && config.dmMessage) {
-        await this.sendWelcomeDM(member, config);
+      // Roles automáticos (pestaña Autoroles de Bienvenida): independientes del mensaje
+      if (config.autoRoleEnabled && config.autoRoles.length > 0) {
+        await this.assignAutoRoles(member, config.autoRoles);
       }
-
-      // Assign auto-role
-      if (config.roleId) {
-        await this.assignAutoRole(member, config.roleId);
-      }
-
-      this.logger.info(`Welcome message sent for ${member.user.tag} in ${member.guild.name}`);
     } catch (error) {
       this.logger.error('Error handling member join:', error);
     }
@@ -114,138 +116,94 @@ export class WelcomeService {
    */
   public async handleMemberLeave(member: GuildMember): Promise<void> {
     try {
-      const config = await this.getGoodbyeConfig(member.guild.id);
+      const [moduleEnabled, config] = await Promise.all([
+        this.isGuildModuleEnabled(member.guild.id, 'welcome'),
+        this.db.prisma.welcomeConfig.findUnique({ where: { guildId: member.guild.id } }),
+      ]);
 
-      if (!config.enabled || !config.channelId) {
+      if (!moduleEnabled || !config?.goodbyeEnabled) {
         return;
       }
 
-      const channel = member.guild.channels.cache.get(config.channelId) as TextChannel;
-
-      if (!channel) {
-        return;
-      }
-
-      if (config.embedEnabled) {
-        const embed = new EmbedBuilder()
-          .setColor((config.embedColor as any) || Colors.Red)
-          .setTitle(this.replacePlaceholders(config.embedTitle, member))
-          .setDescription(this.replacePlaceholders(config.embedDescription, member))
-          .setTimestamp();
-
-        await channel.send({ embeds: [embed] });
-      } else {
-        const message = this.replacePlaceholders(config.message, member);
-
-        await channel.send(message);
-      }
-
-      this.logger.info(`Goodbye message sent for ${member.user.tag} in ${member.guild.name}`);
+      const built = await this.buildMessage(member, 'goodbye', config);
+      if (built) await built.channel.send(built.options);
     } catch (error) {
       this.logger.error('Error handling member leave:', error);
     }
   }
 
   /**
-   * Send welcome message to channel
+   * Construye el mensaje de bienvenida o despedida. Lo usan el evento real y el
+   * botón "Probar" del dashboard, para que la prueba sea fiel a lo que se envía.
+   * Devuelve null si no hay canal de texto configurado.
    */
-  private async sendWelcomeMessage(member: GuildMember, config: WelcomeConfig): Promise<void> {
-    try {
-      const channel = member.guild.channels.cache.get(config.channelId!) as TextChannel;
+  public async buildMessage(
+    member: GuildMember,
+    kind: 'welcome' | 'goodbye',
+    config: WelcomeConfigRow,
+    opts: { test?: boolean } = {}
+  ): Promise<{ channel: TextChannel; options: { content?: string; embeds?: EmbedBuilder[]; files?: any[] } } | null> {
+    const guildId = member.guild.id;
+    const channelId = kind === 'welcome' ? config.welcomeChannelId : config.goodbyeChannelId;
+    if (!channelId) return null;
 
-      if (!channel) {
-        return;
-      }
+    const channel = (member.guild.channels.cache.get(channelId)
+      ?? await member.guild.channels.fetch(channelId).catch(() => null)) as TextChannel | null;
+    if (!channel?.isTextBased()) return null;
 
-      const messageOptions: any = {};
+    const rawMessage = (kind === 'welcome' ? config.welcomeMessage : config.goodbyeMessage)
+      || i18n.t(kind === 'welcome' ? 'welcome.default_message' : 'goodbye.default_message', guildId);
+    const message = this.replacePlaceholders(rawMessage, member);
+    const embedData = ((kind === 'welcome' ? config.welcomeEmbed : config.goodbyeEmbed) ?? {}) as Record<string, any>;
+    const testPrefix = opts.test ? `**${i18n.t('welcome.test_prefix', guildId)}**` : undefined;
 
-      if (config.embedEnabled) {
-        const embed = new EmbedBuilder()
-          .setColor((config.embedColor as any) || Colors.Green)
-          .setTitle(this.replacePlaceholders(config.embedTitle, member))
-          .setDescription(this.replacePlaceholders(config.embedDescription, member))
-          .setTimestamp();
+    const options: { content?: string; embeds?: EmbedBuilder[]; files?: any[] } = {};
 
-        if (config.embedThumbnail) {
-          embed.setThumbnail(member.user.displayAvatarURL());
-        }
+    if (embedData.enabled) {
+      const color = /^#[0-9a-fA-F]{6}$/.test(embedData.color ?? '')
+        ? embedData.color
+        : (kind === 'welcome' ? '#00ff00' : '#ff0000');
+      const description = this.replacePlaceholders(embedData.description || rawMessage, member).slice(0, 4096);
+      // setTitle/setDescription lanzan con string vacío: solo se usan si hay texto
+      const embed = new EmbedBuilder().setColor(color as any).setTimestamp();
+      if (description.trim()) embed.setDescription(description);
+      if (embedData.title?.trim()) embed.setTitle(this.replacePlaceholders(embedData.title, member).slice(0, 256));
+      if (embedData.footer?.trim()) embed.setFooter({ text: this.replacePlaceholders(embedData.footer, member).slice(0, 2048) });
+      if (embedData.thumbnail !== false) embed.setThumbnail(member.user.displayAvatarURL());
 
-        if (config.embedFooter) {
-          embed.setFooter({ text: this.replacePlaceholders(config.embedFooter, member) });
-        }
-
-        messageOptions.embeds = [embed];
-      } else {
-        messageOptions.content = this.replacePlaceholders(config.message, member);
-      }
-
-      // Add buttons if enabled
-      if (config.buttonsEnabled && config.buttons.length > 0) {
-        const row = new ActionRowBuilder<ButtonBuilder>();
-
-        for (const buttonConfig of config.buttons.slice(0, 5)) {
-          // Max 5 buttons per row
-          const button = new ButtonBuilder()
-            .setLabel(buttonConfig.label)
-            .setStyle(this.getButtonStyle(buttonConfig.style));
-
-          if (buttonConfig.emoji) {
-            button.setEmoji(buttonConfig.emoji);
-          }
-
-          if (buttonConfig.action === 'LINK' && buttonConfig.url) {
-            button.setURL(buttonConfig.url);
-          } else {
-            button.setCustomId(
-              `welcome_${buttonConfig.action.toLowerCase()}_${buttonConfig.roleId || 'action'}`
-            );
-          }
-
-          row.addComponents(button);
-        }
-
-        messageOptions.components = [row];
-      }
-
-      // Generate welcome image if enabled (URL takes precedence over template)
-      if (config.imageEnabled) {
-        try {
-          const backgroundUrl = config.imageUrl || undefined;
-          const welcomeImage = await this.imageService.generateWelcomeImage(
-            member,
-            config.imageTemplate || 'modern-dark',
-            backgroundUrl
-          );
-
-          if (welcomeImage) {
-            messageOptions.files = [welcomeImage];
-
-            // If using embed, attach image to it
-            if (config.embedEnabled && messageOptions.embeds) {
-              messageOptions.embeds[0].setImage(`attachment://${welcomeImage.name}`);
-            }
-          }
-        } catch (error) {
-          this.logger.warn('Failed to generate welcome image:', error);
-        }
-      }
-
-      await channel.send(messageOptions);
-    } catch (error) {
-      this.logger.error('Error sending welcome message:', error);
+      options.embeds = [embed];
+      if (testPrefix) options.content = testPrefix;
+    } else {
+      options.content = testPrefix ? `${testPrefix}\n${message}` : message;
     }
+
+    const imageEnabled = kind === 'welcome' ? config.welcomeImage : config.goodbyeImage;
+    if (imageEnabled) {
+      const image = await this.imageService.generateImage(
+        member,
+        kind,
+        kind === 'welcome' ? config.welcomeImageTemplate : undefined,
+        (kind === 'welcome' ? config.welcomeImageUrl : config.goodbyeImageUrl) || undefined
+      );
+      if (image) {
+        options.files = [image];
+        options.embeds?.[0]?.setImage(`attachment://${kind}.png`);
+      }
+    }
+
+    return { channel, options };
   }
 
   /**
    * Send welcome DM to user
    */
-  private async sendWelcomeDM(member: GuildMember, config: WelcomeConfig): Promise<void> {
+  private async sendWelcomeDM(member: GuildMember, dmMessage: string): Promise<void> {
     try {
-      const message = this.replacePlaceholders(config.dmMessage, member);
+      const message = this.replacePlaceholders(dmMessage, member).slice(0, 4096);
 
       const embed = new EmbedBuilder()
         .setColor(Colors.Blue)
-        .setTitle(i18n.t('welcome.dm_title', member.guild.id, { server: member.guild.name }))
+        .setTitle(i18n.t('welcome.dm_title', member.guild.id, { server: member.guild.name }).slice(0, 256))
         .setDescription(message)
         .setThumbnail(member.guild.iconURL())
         .setTimestamp();
@@ -257,34 +215,30 @@ export class WelcomeService {
     }
   }
 
+
   /**
    * Assign auto-role to new member
    */
-  private async assignAutoRole(member: GuildMember, roleId: string): Promise<void> {
+  private async assignAutoRoles(member: GuildMember, roleIds: string[]): Promise<void> {
+    const botMember = member.guild.members.me;
+    const assignable = roleIds
+      .map((id) => member.guild.roles.cache.get(id))
+      .filter((role): role is NonNullable<typeof role> =>
+        !!role && !role.managed && !!botMember && role.comparePositionTo(botMember.roles.highest) < 0
+      );
+
+    if (assignable.length < roleIds.length) {
+      this.logger.warn(`Some auto-roles in ${member.guild.name} are missing or above the bot`);
+    }
+    if (assignable.length === 0) return;
+
     try {
-      const role = member.guild.roles.cache.get(roleId);
-
-      if (!role) {
-        this.logger.warn(`Auto-role ${roleId} not found in ${member.guild.name}`);
-
-        return;
-      }
-
-      // Check if bot can assign this role
-      const botMember = member.guild.members.me;
-
-      if (!botMember || role.position >= botMember.roles.highest.position) {
-        this.logger.warn(`Cannot assign auto-role ${role.name} - insufficient permissions`);
-
-        return;
-      }
-
-      await member.roles.add(role, 'Auto-role on join');
-      this.logger.info(`Assigned auto-role ${role.name} to ${member.user.tag}`);
+      await member.roles.add(assignable, 'Auto-role on join');
     } catch (error) {
-      this.logger.error('Error assigning auto-role:', error);
+      this.logger.error('Error assigning auto-roles:', error);
     }
   }
+
 
   /**
    * Replace placeholders in messages
@@ -331,8 +285,7 @@ export class WelcomeService {
       where: { id: guildId },
       select: { enabledAddons: true },
     });
-    if (!guild || guild.enabledAddons.length === 0) return true;
-    return guild.enabledAddons.includes(moduleName);
+    return isCoreModuleEnabled(guild?.enabledAddons, moduleName);
   }
 
   /**
@@ -656,7 +609,10 @@ export class WelcomeService {
   public async updateImageSettings(guildId: string, enabled: boolean, templateId?: string): Promise<void> {
     try {
       const updates: Partial<WelcomeConfig> = { imageEnabled: enabled };
-      if (templateId) updates.imageTemplate = templateId;
+      if (templateId) {
+        if (!this.imageService.getTemplate(templateId)) throw new Error(`Unknown template ${templateId}`);
+        updates.imageTemplate = templateId;
+      }
       await this.updateWelcomeConfig(guildId, updates);
       this.logger.info(`Updated welcome image settings for guild ${guildId}: enabled=${enabled}, template=${templateId}`);
     } catch (error) {

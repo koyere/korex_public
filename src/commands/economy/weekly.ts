@@ -24,6 +24,7 @@ export default class WeeklyCommand extends Command {
       const guildId = interaction.guild!.id;
       const userId = interaction.user.id;
       const lang = i18n.getGuildLanguage(guildId);
+      const { currencySymbol } = await this.client.economy.getConfig(guildId);
 
       const result = await this.client.economy.claimWeekly(guildId, userId);
 
@@ -51,7 +52,7 @@ export default class WeeklyCommand extends Command {
         .addFields(
           {
             name: i18n.t('weekly.new_balance', lang),
-            value: i18n.t('balance.amount', lang, { amount: result.newBalance!.toString() }),
+            value: i18n.t('balance.amount', lang, { symbol: currencySymbol, amount: result.newBalance!.toString() }),
             inline: true,
           },
           {

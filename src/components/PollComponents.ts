@@ -16,12 +16,9 @@ import { i18n } from '../utils/i18n';
 import { botConfig } from '../config/bot.config';
 import { buildConfirmPanel, PollSetupData } from '../utils/pollHelpers';
 
-export default class PollComponents extends Component {
-  constructor(client: KorexClient) {
-    super(client, {
-      customId: 'poll_*',
-      type: 'button'
-    });
+export class PollComponents extends Component {
+  constructor(client: KorexClient, options: { customId: string; type: 'button' | 'selectMenu' } = { customId: 'poll_*', type: 'button' }) {
+    super(client, options);
   }
 
   async execute(interaction: ButtonInteraction | StringSelectMenuInteraction): Promise<void> {
@@ -342,7 +339,15 @@ export default class PollComponents extends Component {
       }
 
       // Create the poll — convert durationHours to endsAt since createPoll uses endsAt
-      const pollCreateData: any = { ...pollData };
+      const pollCreateData: any = {
+        ...pollData,
+        // El asistente guarda los ajustes en la raíz; createPoll los lee de settings
+        settings: {
+          anonymous: !!pollData.anonymous,
+          allowChangeVote: pollData.allowChange ?? true,
+          multipleChoice: pollData.type === 'multiple' || pollData.type === 'ranking',
+        },
+      };
       if (pollData.durationHours && pollData.durationHours > 0) {
         pollCreateData.endsAt = new Date(Date.now() + pollData.durationHours * 60 * 60 * 1000);
       }
@@ -527,7 +532,7 @@ export default class PollComponents extends Component {
 export class PollRestrictionsModal extends Component {
   constructor(client: KorexClient) {
     super(client, {
-      customId: 'poll_restrictions',
+      customId: 'poll_restrictions_*',
       type: 'modal'
     });
   }
@@ -601,7 +606,7 @@ export class PollRestrictionsModal extends Component {
 export class PollSettingsModal extends Component {
   constructor(client: KorexClient) {
     super(client, {
-      customId: 'poll_settings',
+      customId: 'poll_settings_*',
       type: 'modal'
     });
   }
@@ -655,3 +660,13 @@ export class PollSettingsModal extends Component {
     });
   }
 }
+
+/** Voto por desplegable (encuestas de más de 5 opciones, tipos dropdown y ranking). */
+export class PollDropdownComponent extends PollComponents {
+  constructor(client: KorexClient) {
+    super(client, { customId: 'poll_dropdown_*', type: 'selectMenu' });
+  }
+}
+
+// El ComponentManager solo registra el export por defecto
+export default [PollComponents, PollDropdownComponent, PollRestrictionsModal, PollSettingsModal];

@@ -348,8 +348,8 @@ export default class AutoRolesCommand extends Command {
       if (action === 'add') {
         await autoRoleService.addJoinRole(guildId, role.id, delay);
         await interaction.reply({
-          content: i18n.t('autoroles.join.added', guildId, { 
-            role: role.name, 
+          content: i18n.t('autoroles.join.added', guildId, {
+            role: role.name,
             delay: delay > 0 ? i18n.t('autoroles.join.delay_minutes', guildId, { minutes: delay.toString() }) : i18n.t('autoroles.join.immediate', guildId)
           }),
           ephemeral: true
@@ -490,8 +490,15 @@ export default class AutoRolesCommand extends Command {
 
       // Join roles
       if (config.joinRoles.length > 0) {
+        const joinDelays = await autoRoleService.getJoinRoleDelays(guildId);
         const joinRoleNames = config.joinRoles
-          .map(roleId => interaction.guild!.roles.cache.get(roleId)?.name || i18n.t('common.unknown_role', guildId))
+          .map(roleId => {
+            const name = interaction.guild!.roles.cache.get(roleId)?.name || i18n.t('common.unknown_role', guildId);
+            const minutes = joinDelays[roleId] ?? 0;
+            return minutes > 0
+              ? `${name} (${i18n.t('autoroles.join.delay_minutes', guildId, { minutes: minutes.toString() })})`
+              : name;
+          })
           .join(', ');
 
         embed.addFields({
@@ -582,23 +589,24 @@ export default class AutoRolesCommand extends Command {
   }
 
   private async showJoinRoleSetup(interaction: StringSelectMenuInteraction, client: KorexClient): Promise<void> {
+    const gid = interaction.guildId!;
     const modal = new ModalBuilder()
       .setCustomId('autoroles_join_setup_modal')
-      .setTitle('👋 Roles de Entrada');
+      .setTitle(i18n.t('autoroles.wizard.join_modal_title', gid));
 
     modal.addComponents(
       new ActionRowBuilder<TextInputBuilder>().addComponents(
         new TextInputBuilder()
           .setCustomId('role')
-          .setLabel('Mención o ID del rol')
+          .setLabel(i18n.t('autoroles.wizard.role_input_label', gid))
           .setStyle(TextInputStyle.Short)
-          .setPlaceholder('@Miembro  o  123456789012345678')
+          .setPlaceholder(i18n.t('autoroles.wizard.join_role_placeholder', gid))
           .setRequired(true)
       ),
       new ActionRowBuilder<TextInputBuilder>().addComponents(
         new TextInputBuilder()
           .setCustomId('delay')
-          .setLabel('Retraso en minutos (0 = inmediato)')
+          .setLabel(i18n.t('autoroles.wizard.delay_input_label', gid))
           .setStyle(TextInputStyle.Short)
           .setPlaceholder('0')
           .setRequired(false)
@@ -621,19 +629,22 @@ export default class AutoRolesCommand extends Command {
 
       const roleId = roleRaw.match(/^<@&(\d+)>$/)?.[1] ?? (roleRaw.match(/^\d+$/) ? roleRaw : null);
       if (!roleId) {
-        await submit.reply({ content: '❌ Rol inválido. Usa una mención o un ID numérico.', ephemeral: true });
+        await submit.reply({ content: i18n.t('autoroles.wizard.invalid_role', guildId), ephemeral: true });
         return;
       }
 
       const role = interaction.guild!.roles.cache.get(roleId);
       if (!role) {
-        await submit.reply({ content: '❌ Rol no encontrado en este servidor.', ephemeral: true });
+        await submit.reply({ content: i18n.t('autoroles.wizard.role_not_in_guild', guildId), ephemeral: true });
         return;
       }
 
       await client.autoRole!.addJoinRole(guildId, roleId, delay);
       await submit.reply({
-        content: `✅ El rol **${role.name}** se asignará al unirse${delay > 0 ? ` tras **${delay}** minuto(s)` : ' de **inmediato**'}.`,
+        content: i18n.t('autoroles.join.added', guildId, {
+          role: role.name,
+          delay: delay > 0 ? i18n.t('autoroles.join.delay_minutes', guildId, { minutes: delay.toString() }) : i18n.t('autoroles.join.immediate', guildId),
+        }),
         ephemeral: true,
       });
     } catch {
@@ -642,9 +653,10 @@ export default class AutoRolesCommand extends Command {
   }
 
   private async showReactionRoleSetup(interaction: StringSelectMenuInteraction, client: KorexClient): Promise<void> {
+    const gid = interaction.guildId!;
     const channelSelect = new ChannelSelectMenuBuilder()
       .setCustomId('autoroles_reaction_channel_select')
-      .setPlaceholder('Selecciona el canal')
+      .setPlaceholder(i18n.t('autoroles.wizard.channel_placeholder', gid))
       .addChannelTypes(ChannelType.GuildText)
       .setMinValues(1)
       .setMaxValues(1);
@@ -656,7 +668,7 @@ export default class AutoRolesCommand extends Command {
     );
 
     await interaction.reply({
-      content: '📢 **¿En qué canal** quieres enviar el mensaje de roles de reacción?',
+      content: i18n.t('autoroles.wizard.reaction_channel_prompt', gid),
       components: [row],
       flags: MessageFlags.Ephemeral,
     });
@@ -671,9 +683,10 @@ export default class AutoRolesCommand extends Command {
   }
 
   private async showButtonRoleSetup(interaction: StringSelectMenuInteraction, client: KorexClient): Promise<void> {
+    const gid = interaction.guildId!;
     const channelSelect = new ChannelSelectMenuBuilder()
       .setCustomId('autoroles_button_channel_select')
-      .setPlaceholder('Selecciona el canal')
+      .setPlaceholder(i18n.t('autoroles.wizard.channel_placeholder', gid))
       .addChannelTypes(ChannelType.GuildText)
       .setMinValues(1)
       .setMaxValues(1);
@@ -685,7 +698,7 @@ export default class AutoRolesCommand extends Command {
     );
 
     await interaction.reply({
-      content: '📢 **¿En qué canal** quieres enviar el mensaje de roles con botones?',
+      content: i18n.t('autoroles.wizard.button_channel_prompt', gid),
       components: [row],
       flags: MessageFlags.Ephemeral,
     });
@@ -700,15 +713,16 @@ export default class AutoRolesCommand extends Command {
   }
 
   private async showLevelRoleSetup(interaction: StringSelectMenuInteraction, client: KorexClient): Promise<void> {
+    const gid = interaction.guildId!;
     const modal = new ModalBuilder()
       .setCustomId('autoroles_level_setup_modal')
-      .setTitle('📈 Roles por Nivel');
+      .setTitle(i18n.t('autoroles.wizard.level_modal_title', gid));
 
     modal.addComponents(
       new ActionRowBuilder<TextInputBuilder>().addComponents(
         new TextInputBuilder()
           .setCustomId('level')
-          .setLabel('Nivel requerido (1–1000)')
+          .setLabel(i18n.t('autoroles.wizard.level_input_label', gid))
           .setStyle(TextInputStyle.Short)
           .setPlaceholder('10')
           .setRequired(true)
@@ -717,19 +731,19 @@ export default class AutoRolesCommand extends Command {
       new ActionRowBuilder<TextInputBuilder>().addComponents(
         new TextInputBuilder()
           .setCustomId('role')
-          .setLabel('Mención o ID del rol')
+          .setLabel(i18n.t('autoroles.wizard.role_input_label', gid))
           .setStyle(TextInputStyle.Short)
-          .setPlaceholder('@VIP  o  123456789012345678')
+          .setPlaceholder(i18n.t('autoroles.wizard.level_role_placeholder', gid))
           .setRequired(true)
       ),
       new ActionRowBuilder<TextInputBuilder>().addComponents(
         new TextInputBuilder()
           .setCustomId('remove_others')
-          .setLabel('¿Quitar otros roles al asignar? (si/no)')
+          .setLabel(i18n.t('autoroles.wizard.remove_others_label', gid))
           .setStyle(TextInputStyle.Short)
-          .setPlaceholder('no')
+          .setPlaceholder(i18n.t('autoroles.wizard.remove_others_placeholder', gid))
           .setRequired(false)
-          .setMaxLength(2)
+          .setMaxLength(3)
       ),
     );
 
@@ -748,26 +762,33 @@ export default class AutoRolesCommand extends Command {
 
       const level = parseInt(levelRaw);
       if (isNaN(level) || level < 1 || level > 1000) {
-        await submit.reply({ content: '❌ Nivel inválido. Debe ser un número entre 1 y 1000.', ephemeral: true });
+        await submit.reply({ content: i18n.t('autoroles.wizard.invalid_level', guildId), ephemeral: true });
         return;
       }
 
       const roleId = roleRaw.match(/^<@&(\d+)>$/)?.[1] ?? (roleRaw.match(/^\d+$/) ? roleRaw : null);
       if (!roleId) {
-        await submit.reply({ content: '❌ Rol inválido. Usa una mención o un ID numérico.', ephemeral: true });
+        await submit.reply({ content: i18n.t('autoroles.wizard.invalid_role', guildId), ephemeral: true });
         return;
       }
 
       const role = interaction.guild!.roles.cache.get(roleId);
       if (!role) {
-        await submit.reply({ content: '❌ Rol no encontrado en este servidor.', ephemeral: true });
+        await submit.reply({ content: i18n.t('autoroles.wizard.role_not_in_guild', guildId), ephemeral: true });
         return;
       }
 
-      const removeOthers = removeOthersRaw === 'si' || removeOthersRaw === 'sí' || removeOthersRaw === 's';
+      const yesWords = ['si', 'sí', 's', 'yes', 'y', i18n.t('common.yes', guildId).toLowerCase()];
+      const removeOthers = yesWords.includes(removeOthersRaw);
       await client.autoRole!.addLevelRole(guildId, level, roleId, removeOthers);
       await submit.reply({
-        content: `✅ El rol **${role.name}** se asignará al alcanzar el nivel **${level}**${removeOthers ? ' (quitando otros roles de nivel)' : ''}.`,
+        content: i18n.t('autoroles.level.added', guildId, {
+          role: role.name,
+          level: level.toString(),
+          removeOthers: removeOthers
+            ? i18n.t('autoroles.level.remove_others_yes', guildId)
+            : i18n.t('autoroles.level.remove_others_no', guildId),
+        }),
         ephemeral: true,
       });
     } catch {
@@ -776,17 +797,18 @@ export default class AutoRolesCommand extends Command {
   }
 
   private async showBoosterRoleSetup(interaction: StringSelectMenuInteraction, client: KorexClient): Promise<void> {
+    const gid = interaction.guildId!;
     const modal = new ModalBuilder()
       .setCustomId('autoroles_booster_setup_modal')
-      .setTitle('💎 Roles de Booster');
+      .setTitle(i18n.t('autoroles.wizard.booster_modal_title', gid));
 
     modal.addComponents(
       new ActionRowBuilder<TextInputBuilder>().addComponents(
         new TextInputBuilder()
           .setCustomId('role')
-          .setLabel('Mención o ID del rol para boosters')
+          .setLabel(i18n.t('autoroles.wizard.booster_role_input_label', gid))
           .setStyle(TextInputStyle.Short)
-          .setPlaceholder('@Booster  o  123456789012345678')
+          .setPlaceholder(i18n.t('autoroles.wizard.booster_role_placeholder', gid))
           .setRequired(true)
       ),
     );
@@ -804,19 +826,19 @@ export default class AutoRolesCommand extends Command {
 
       const roleId = roleRaw.match(/^<@&(\d+)>$/)?.[1] ?? (roleRaw.match(/^\d+$/) ? roleRaw : null);
       if (!roleId) {
-        await submit.reply({ content: '❌ Rol inválido. Usa una mención o un ID numérico.', ephemeral: true });
+        await submit.reply({ content: i18n.t('autoroles.wizard.invalid_role', guildId), ephemeral: true });
         return;
       }
 
       const role = interaction.guild!.roles.cache.get(roleId);
       if (!role) {
-        await submit.reply({ content: '❌ Rol no encontrado en este servidor.', ephemeral: true });
+        await submit.reply({ content: i18n.t('autoroles.wizard.role_not_in_guild', guildId), ephemeral: true });
         return;
       }
 
       await client.autoRole!.addBoosterRole(guildId, roleId);
       await submit.reply({
-        content: `✅ El rol **${role.name}** se asignará automáticamente a los boosters del servidor.`,
+        content: i18n.t('autoroles.booster.added', guildId, { role: role.name }),
         ephemeral: true,
       });
     } catch {
@@ -825,10 +847,11 @@ export default class AutoRolesCommand extends Command {
   }
 
   private async showReactionRoleWizard(interaction: ChatInputCommandInteraction | any, client: KorexClient, channel: TextChannel): Promise<void> {
+    const gid = interaction.guildId!;
     // Step 1: Role select
     const roleSelect = new RoleSelectMenuBuilder()
       .setCustomId('rrwizard_role_select')
-      .setPlaceholder('Selecciona los roles')
+      .setPlaceholder(i18n.t('autoroles.wizard.roles_placeholder', gid))
       .setMinValues(1)
       .setMaxValues(10);
 
@@ -837,7 +860,7 @@ export default class AutoRolesCommand extends Command {
     const rolePromise = this.awaitInteraction(client, 'rrwizard_role_select', interaction.user.id, interaction.guildId!, 'isRoleSelectMenu');
 
     await interaction.reply({
-      content: '⭐ **Paso 1/3** — Selecciona los roles que quieres asignar con reacciones:',
+      content: i18n.t('autoroles.wizard.reaction_step1', gid),
       components: [roleRow],
       flags: MessageFlags.Ephemeral,
     });
@@ -852,11 +875,11 @@ export default class AutoRolesCommand extends Command {
     // Step 2: Type select
     const typeSelect = new StringSelectMenuBuilder()
       .setCustomId('rrwizard_type_select')
-      .setPlaceholder('Selecciona el tipo')
+      .setPlaceholder(i18n.t('autoroles.wizard.type_placeholder', gid))
       .addOptions(
-        { label: 'Multiple', description: 'El usuario puede tener varios roles a la vez', value: 'MULTIPLE', emoji: '📋' },
-        { label: 'Single', description: 'Solo un rol activo, puede quitar el actual', value: 'SINGLE', emoji: '1️⃣' },
-        { label: 'Unique', description: 'Solo un rol activo, se intercambia automáticamente', value: 'UNIQUE', emoji: '🔒' },
+        { label: i18n.t('autoroles.wizard.type_multiple_label', gid), description: i18n.t('autoroles.wizard.type_multiple_description', gid), value: 'MULTIPLE', emoji: '📋' },
+        { label: i18n.t('autoroles.wizard.type_single_label', gid), description: i18n.t('autoroles.wizard.type_single_description', gid), value: 'SINGLE', emoji: '1️⃣' },
+        { label: i18n.t('autoroles.wizard.type_unique_label', gid), description: i18n.t('autoroles.wizard.type_unique_description', gid), value: 'UNIQUE', emoji: '🔒' },
       );
 
     const typeRow = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(typeSelect);
@@ -864,7 +887,7 @@ export default class AutoRolesCommand extends Command {
     const typePromise = this.awaitInteraction(client, 'rrwizard_type_select', interaction.user.id, interaction.guildId!, 'isStringSelectMenu');
 
     await roleInteraction.update({
-      content: `⭐ **Paso 2/3** — Roles: ${selectedRoles.map(r => r.name).join(', ')}\n\nSelecciona el tipo de asignación:`,
+      content: i18n.t('autoroles.wizard.reaction_step2', gid, { roles: selectedRoles.map(r => r.name).join(', ') }),
       components: [typeRow],
     });
 
@@ -883,31 +906,31 @@ export default class AutoRolesCommand extends Command {
     // Step 3: Modal for title, description, emojis, color
     const modal = new ModalBuilder()
       .setCustomId(`rrwizard_reaction_${channel.id}`)
-      .setTitle('⭐ Crear Roles de Reacción');
+      .setTitle(i18n.t('autoroles.wizard.reaction_modal_title', gid));
 
     modal.addComponents(
       new ActionRowBuilder<TextInputBuilder>().addComponents(
         new TextInputBuilder()
           .setCustomId('title')
-          .setLabel('Título del mensaje')
+          .setLabel(i18n.t('autoroles.wizard.title_label', gid))
           .setStyle(TextInputStyle.Short)
-          .setPlaceholder('Ej: Elige tus roles')
+          .setPlaceholder(i18n.t('autoroles.wizard.title_placeholder', gid))
           .setRequired(true)
           .setMaxLength(256)
       ),
       new ActionRowBuilder<TextInputBuilder>().addComponents(
         new TextInputBuilder()
           .setCustomId('description')
-          .setLabel('Descripción')
+          .setLabel(i18n.t('autoroles.wizard.description_label', gid))
           .setStyle(TextInputStyle.Paragraph)
-          .setPlaceholder('Reacciona con el emoji del rol que deseas obtener')
+          .setPlaceholder(i18n.t('autoroles.wizard.reaction_description_placeholder', gid))
           .setRequired(true)
           .setMaxLength(1024)
       ),
       new ActionRowBuilder<TextInputBuilder>().addComponents(
         new TextInputBuilder()
           .setCustomId('emojis')
-          .setLabel('Escribe un emoji por rol, en orden')
+          .setLabel(i18n.t('autoroles.wizard.emojis_label', gid))
           .setStyle(TextInputStyle.Paragraph)
           .setValue(roleNames.map((n, i) => `${i + 1}. [emoji] = ${n}`).join('\n'))
           .setRequired(true)
@@ -916,7 +939,7 @@ export default class AutoRolesCommand extends Command {
       new ActionRowBuilder<TextInputBuilder>().addComponents(
         new TextInputBuilder()
           .setCustomId('color')
-          .setLabel('Color del embed en hex (opcional)')
+          .setLabel(i18n.t('autoroles.wizard.color_label', gid))
           .setStyle(TextInputStyle.Short)
           .setPlaceholder('#5865F2')
           .setRequired(false)
@@ -970,37 +993,38 @@ export default class AutoRolesCommand extends Command {
   }
 
   private async showButtonRoleWizard(interaction: ChatInputCommandInteraction | any, _client: KorexClient, channel: TextChannel): Promise<void> {
+    const gid = interaction.guildId!;
     const modal = new ModalBuilder()
       .setCustomId(`rrwizard_button_${channel.id}`)
-      .setTitle('🔘 Crear Roles de Botón');
+      .setTitle(i18n.t('autoroles.wizard.button_modal_title', gid));
 
     const titleInput = new TextInputBuilder()
       .setCustomId('title')
-      .setLabel('Título del mensaje')
+      .setLabel(i18n.t('autoroles.wizard.title_label', gid))
       .setStyle(TextInputStyle.Short)
-      .setPlaceholder('Ej: Elige tus roles')
+      .setPlaceholder(i18n.t('autoroles.wizard.title_placeholder', gid))
       .setRequired(true)
       .setMaxLength(256);
 
     const descInput = new TextInputBuilder()
       .setCustomId('description')
-      .setLabel('Descripción')
+      .setLabel(i18n.t('autoroles.wizard.description_label', gid))
       .setStyle(TextInputStyle.Paragraph)
-      .setPlaceholder('Haz clic en el botón del rol que deseas obtener')
+      .setPlaceholder(i18n.t('autoroles.wizard.button_description_placeholder', gid))
       .setRequired(true)
       .setMaxLength(1024);
 
     const rolesInput = new TextInputBuilder()
       .setCustomId('roles')
-      .setLabel('Roles — una por línea: emoji etiqueta roleId')
+      .setLabel(i18n.t('autoroles.wizard.button_roles_label', gid))
       .setStyle(TextInputStyle.Paragraph)
-      .setPlaceholder('⭐ VIP 123456789012345678\n🎮 Gamer 987654321098765432')
+      .setPlaceholder(i18n.t('autoroles.wizard.button_roles_placeholder', gid))
       .setRequired(true)
       .setMaxLength(500);
 
     const colorInput = new TextInputBuilder()
       .setCustomId('color')
-      .setLabel('Color del embed en hex (opcional)')
+      .setLabel(i18n.t('autoroles.wizard.color_label', gid))
       .setStyle(TextInputStyle.Short)
       .setPlaceholder('#5865F2')
       .setRequired(false)

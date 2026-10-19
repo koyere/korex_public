@@ -11,6 +11,7 @@ import { KorexClient } from '../client/KorexClient';
 import { i18n } from '../utils/i18n';
 import { logger } from '../utils/Logger';
 import { botConfig } from '../config/bot.config';
+import { InviteRewardService } from './InviteRewardService';
 
 export interface InviteData {
   code: string;
@@ -34,6 +35,8 @@ export interface InviteStats {
   leftInvites: number;
   bonusInvites: number;
   invitedUsers: string[];
+  /** Invitados cuya entrada se contó como falsa (para no descontarlos de las válidas al salir) */
+  fakeInvitedUsers: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -53,11 +56,18 @@ export class InviteService {
   private client: KorexClient;
   private prisma: PrismaClient;
   private inviteCache: Map<string, Collection<string, Invite>> = new Map();
+  /** Recompensas por invitaciones (umbral → rol). */
+  public rewards: InviteRewardService;
 
   constructor(client: KorexClient) {
     this.client = client;
     this.prisma = client.db;
-    this.initializeInviteTracking();
+    this.rewards = new InviteRewardService(client);
+  }
+
+  /** Cachea las invitaciones de todos los servidores (llamar cuando el cliente esté listo). */
+  async init(): Promise<void> {
+    await this.initializeInviteTracking();
   }
 
   /**
@@ -99,6 +109,10 @@ export class InviteService {
   async trackMemberJoin(member: GuildMember): Promise<{ inviter: User | null; invite: Invite | null }> {
     try {
       const guild = member.guild;
+
+      // Si el miembro ya tenía recompensas (salió y vuelve), se le restauran sin aviso
+      this.rewards.syncMember(guild, member.id, { announce: false }).catch(() => {});
+
       const oldInvites = this.inviteCache.get(guild.id);
       
       if (!oldInvites) {
@@ -164,6 +178,9 @@ export class InviteService {
       if (inviteStats) {
         // Update statistics - mark as left
         await this.updateInviteStatsOnLeave(inviteStats.userId, member);
+
+        // Recalcular recompensas del invitador (puede bajar de umbral)
+        await this.rewards.syncMember(member.guild, inviteStats.userId);
       }
 
     } catch (error) {
@@ -181,30 +198,24 @@ export class InviteService {
     action: 'join' | 'leave'
   ): Promise<void> {
     try {
-      // Get or create invite stats
-      let stats = await this.getInviteStats(inviter.id, invitedMember.guild.id);
-      
-      if (!stats) {
-        stats = await this.createInviteStats(inviter.id, invitedMember.guild.id);
-      }
-
       if (action === 'join') {
-        // Check if it's a potential fake invite
+        // Check if it's a potential fake invite (antes del bloqueo: puede consultar Discord)
         const isFake = await this.detectFakeInvite(inviter, invitedMember);
-        
-        stats.totalInvites++;
-        
-        if (isFake) {
-          stats.fakeInvites++;
-        } else {
-          stats.validInvites++;
-        }
-        
-        stats.invitedUsers.push(invitedMember.id);
-      }
 
-      stats.updatedAt = new Date();
-      await this.saveInviteStats(stats);
+        await this.mutateInviteStats(inviter.id, invitedMember.guild.id, (stats) => {
+          stats.totalInvites++;
+
+          if (isFake) {
+            stats.fakeInvites++;
+            stats.fakeInvitedUsers.push(invitedMember.id);
+          } else {
+            stats.validInvites++;
+            stats.fakeInvitedUsers = stats.fakeInvitedUsers.filter(id => id !== invitedMember.id);
+          }
+
+          stats.invitedUsers.push(invitedMember.id);
+        });
+      }
 
       // Log the invite
       await this.logInviteAction(inviter, invitedMember, invite, action);
@@ -219,22 +230,24 @@ export class InviteService {
    */
   private async updateInviteStatsOnLeave(inviterId: string, leftMember: GuildMember): Promise<void> {
     try {
-      const stats = await this.getInviteStats(inviterId, leftMember.guild.id);
-      
-      if (stats) {
-        stats.leftInvites++;
-        stats.validInvites = Math.max(0, stats.validInvites - 1);
-        
-        // Remove from invited users list
+      await this.mutateInviteStats(inviterId, leftMember.guild.id, (stats) => {
+        // Solo cuenta la salida si el usuario seguía en la lista (evita dobles descuentos)
         const userIndex = stats.invitedUsers.indexOf(leftMember.id);
 
-        if (userIndex !== -1) {
-          stats.invitedUsers.splice(userIndex, 1);
+        if (userIndex === -1) return false;
+
+        stats.invitedUsers.splice(userIndex, 1);
+        stats.leftInvites++;
+
+        // Una entrada contada como falsa no sumó a las válidas: no se descuenta de ellas
+        const fakeIndex = stats.fakeInvitedUsers.indexOf(leftMember.id);
+
+        if (fakeIndex !== -1) {
+          stats.fakeInvitedUsers.splice(fakeIndex, 1);
+        } else {
+          stats.validInvites = Math.max(0, stats.validInvites - 1);
         }
-        
-        stats.updatedAt = new Date();
-        await this.saveInviteStats(stats);
-      }
+      }, false);
 
     } catch (error) {
       logger.error('Failed to update stats on leave:', error);
@@ -310,121 +323,29 @@ export class InviteService {
   }
 
   /**
-   * Check and apply invite rewards
+   * Check and apply invite rewards (roles por umbral de invitaciones válidas)
    */
   private async checkInviteRewards(inviter: User, guild: Guild): Promise<void> {
     try {
-      const stats = await this.getInviteStats(inviter.id, guild.id);
-
-      if (!stats) return;
-
-      const rewards = await this.getInviteRewards(guild.id);
-      const member = guild.members.cache.get(inviter.id);
-
-      if (!member) return;
-
-      for (const reward of rewards) {
-        if (!reward.enabled) continue;
-        
-        const totalInvites = stats.validInvites + stats.bonusInvites;
-        
-        if (totalInvites >= reward.requiredInvites) {
-          const hasReward = await this.hasReceivedReward(inviter.id, reward.id);
-          
-          if (!hasReward || !reward.oneTime) {
-            await this.applyReward(member, reward);
-            await this.markRewardReceived(inviter.id, reward.id);
-          }
-        }
-      }
-
+      await this.rewards.syncMember(guild, inviter.id);
     } catch (error) {
       logger.error('Failed to check invite rewards:', error);
     }
   }
 
   /**
-   * Apply reward to member
-   */
-  private async applyReward(member: GuildMember, reward: InviteReward): Promise<void> {
-    try {
-      switch (reward.type) {
-        case 'role': {
-          const role = member.guild.roles.cache.get(reward.value as string);
-
-          if (role && !member.roles.cache.has(role.id)) {
-            await member.roles.add(role);
-          }
-          break;
-        }
-
-        case 'coins':
-          // Integrate with economy service
-          if (this.client.economy) {
-            await this.client.economy.addMoney(member.guild.id, member.id, reward.value as number);
-          }
-          break;
-
-        case 'xp':
-          // Integrate with level service
-          if (this.client.levels) {
-            await this.client.levels.addXp(member.guild, member.id, reward.value as number);
-          }
-          break;
-
-        case 'custom':
-          // Custom reward handling
-          logger.info(`Applied custom reward to ${member.user.tag}: ${reward.description}`);
-          break;
-      }
-
-      // Send notification
-      await this.sendRewardNotification(member, reward);
-
-    } catch (error) {
-      logger.error('Failed to apply reward:', error);
-    }
-  }
-
-  /**
-   * Send reward notification
-   */
-  private async sendRewardNotification(member: GuildMember, reward: InviteReward): Promise<void> {
-    try {
-      const embed = new EmbedBuilder()
-        .setColor(botConfig.colors.success)
-        .setTitle(i18n.t('invites.reward.title', member.guild.id))
-        .setDescription(i18n.t('invites.reward.description', member.guild.id, {
-          user: member.toString(),
-          reward: reward.description,
-          invites: reward.requiredInvites.toString()
-        }))
-        .setThumbnail(member.user.displayAvatarURL())
-        .setTimestamp();
-
-      // Try to send DM first, then fallback to system channel
-      try {
-        await member.send({ embeds: [embed] });
-      } catch {
-        const systemChannel = member.guild.systemChannel;
-
-        if (systemChannel) {
-          await systemChannel.send({ embeds: [embed] });
-        }
-      }
-
-    } catch (error) {
-      logger.error('Failed to send reward notification:', error);
-    }
-  }
-
-  /**
    * Get invite leaderboard
    */
-  async getInviteLeaderboard(guildId: string, _limit: number = 10): Promise<InviteStats[]> {
+  async getInviteLeaderboard(guildId: string, limit: number = 10, offset: number = 0): Promise<InviteStats[]> {
     try {
-      // Placeholder - would fetch from database and sort by total valid invites
-      return [];
+      // Ordenado por invitaciones efectivas (válidas + bonus)
+      const rows = await this.prisma.$queryRaw<any[]>`
+        SELECT * FROM invite_stats
+        WHERE "guildId" = ${guildId} AND ("validInvites" + "bonusInvites") > 0
+        ORDER BY ("validInvites" + "bonusInvites") DESC, "totalInvites" DESC
+        LIMIT ${limit} OFFSET ${offset}
+      `;
+      return rows.map((r) => this.rowToStats(r));
     } catch (error) {
       logger.error('Failed to get invite leaderboard:', error);
 
@@ -437,26 +358,19 @@ export class InviteService {
    */
   async addBonusInvites(userId: string, guildId: string, amount: number, reason?: string): Promise<boolean> {
     try {
-      let stats = await this.getInviteStats(userId, guildId);
-      
-      if (!stats) {
-        stats = await this.createInviteStats(userId, guildId);
-      }
-
-      stats.bonusInvites += amount;
-      stats.updatedAt = new Date();
-      
-      await this.saveInviteStats(stats);
+      await this.mutateInviteStats(userId, guildId, (stats) => {
+        stats.bonusInvites += amount;
+      });
 
       // Log the bonus
       logger.info(`Added ${amount} bonus invites to ${userId} in guild ${guildId}. Reason: ${reason || 'No reason'}`);
 
       // Check for new rewards
       const guild = this.client.guilds.cache.get(guildId);
-      const user = this.client.users.cache.get(userId);
-      
-      if (guild && user) {
-        await this.checkInviteRewards(user, guild);
+
+      if (guild) {
+        // Por id: el usuario puede no estar en la caché de usuarios
+        await this.rewards.syncMember(guild, userId);
       }
 
       return true;
@@ -473,22 +387,29 @@ export class InviteService {
    */
   async removeInvites(userId: string, guildId: string, amount: number, reason?: string): Promise<boolean> {
     try {
-      const stats = await this.getInviteStats(userId, guildId);
-      
-      if (!stats) return false;
+      let validToRemove = 0;
+      let bonusToRemove = 0;
 
-      // Remove from valid invites first, then bonus
-      const validToRemove = Math.min(amount, stats.validInvites);
-      const bonusToRemove = Math.min(amount - validToRemove, stats.bonusInvites);
+      const found = await this.mutateInviteStats(userId, guildId, (stats) => {
+        // Remove from valid invites first, then bonus
+        validToRemove = Math.min(amount, stats.validInvites);
+        bonusToRemove = Math.min(amount - validToRemove, stats.bonusInvites);
 
-      stats.validInvites -= validToRemove;
-      stats.bonusInvites -= bonusToRemove;
-      stats.updatedAt = new Date();
+        stats.validInvites -= validToRemove;
+        stats.bonusInvites -= bonusToRemove;
+      }, false);
 
-      await this.saveInviteStats(stats);
+      if (!found) return false;
 
       // Log the removal
       logger.info(`Removed ${validToRemove + bonusToRemove} invites from ${userId} in guild ${guildId}. Reason: ${reason || 'No reason'}`);
+
+      // Recalcular recompensas (puede bajar de umbral)
+      const guild = this.client.guilds.cache.get(guildId);
+
+      if (guild) {
+        await this.rewards.syncMember(guild, userId);
+      }
 
       return true;
 
@@ -528,14 +449,29 @@ export class InviteService {
     }
   }
 
-  // Helper methods (placeholder implementations)
-  private async getInviteStats(_userId: string, _guildId: string): Promise<InviteStats | null> {
-    // Placeholder - would fetch from database
-    return null;
+  // ─── Persistencia (tabla invite_stats) ────────────────────────────────────
+  private rowToStats(row: any): InviteStats {
+    return {
+      userId: row.userId,
+      guildId: row.guildId,
+      totalInvites: row.totalInvites,
+      validInvites: row.validInvites,
+      fakeInvites: row.fakeInvites,
+      leftInvites: row.leftInvites,
+      bonusInvites: row.bonusInvites,
+      invitedUsers: row.invitedUsers ?? [],
+      fakeInvitedUsers: row.fakeInvitedUsers ?? [],
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    };
+  }
+
+  private async getInviteStats(userId: string, guildId: string): Promise<InviteStats | null> {
+    const row = await this.prisma.inviteStats.findUnique({ where: { guildId_userId: { guildId, userId } } });
+    return row ? this.rowToStats(row) : null;
   }
 
   private async createInviteStats(userId: string, guildId: string): Promise<InviteStats> {
-    // Placeholder - would create in database
     return {
       userId,
       guildId,
@@ -545,18 +481,79 @@ export class InviteService {
       leftInvites: 0,
       bonusInvites: 0,
       invitedUsers: [],
+      fakeInvitedUsers: [],
       createdAt: new Date(),
       updatedAt: new Date()
     };
   }
 
-  private async saveInviteStats(_stats: InviteStats): Promise<void> {
-    // Placeholder - would save to database
+  private async saveInviteStats(stats: InviteStats): Promise<void> {
+    const data = {
+      totalInvites: stats.totalInvites,
+      validInvites: stats.validInvites,
+      fakeInvites: stats.fakeInvites,
+      leftInvites: stats.leftInvites,
+      bonusInvites: stats.bonusInvites,
+      invitedUsers: [...new Set(stats.invitedUsers)].slice(-1000),
+      fakeInvitedUsers: [...new Set(stats.fakeInvitedUsers)].slice(-1000),
+    };
+    await this.prisma.inviteStats.upsert({
+      where: { guildId_userId: { guildId: stats.guildId, userId: stats.userId } },
+      update: data,
+      create: { guildId: stats.guildId, userId: stats.userId, ...data },
+    });
   }
 
-  private async getInviteStatsForInvitedUser(_invitedUserId: string, _guildId: string): Promise<InviteStats | null> {
-    // Placeholder - would find who invited this user
-    return null;
+  /**
+   * Modifica las estadísticas de un invitador de forma atómica: bloquea la fila
+   * (SELECT ... FOR UPDATE) dentro de una transacción para que dos entradas o
+   * salidas simultáneas no se pisen. Si `fn` devuelve false no se guarda nada.
+   * Devuelve false si la fila no existía y `create` es false.
+   */
+  private async mutateInviteStats(
+    userId: string,
+    guildId: string,
+    fn: (stats: InviteStats) => void | boolean,
+    create = true,
+  ): Promise<boolean> {
+    return this.prisma.$transaction(async (tx) => {
+      if (create) {
+        await tx.inviteStats.upsert({
+          where: { guildId_userId: { guildId, userId } },
+          update: {},
+          create: { guildId, userId },
+        });
+      }
+
+      const rows = await tx.$queryRaw<any[]>`
+        SELECT * FROM "invite_stats" WHERE "guildId" = ${guildId} AND "userId" = ${userId} FOR UPDATE`;
+
+      if (!rows.length) return false;
+
+      const stats = this.rowToStats(rows[0]);
+
+      if (fn(stats) === false) return true;
+
+      await tx.inviteStats.update({
+        where: { guildId_userId: { guildId, userId } },
+        data: {
+          totalInvites: stats.totalInvites,
+          validInvites: stats.validInvites,
+          fakeInvites: stats.fakeInvites,
+          leftInvites: stats.leftInvites,
+          bonusInvites: stats.bonusInvites,
+          invitedUsers: [...new Set(stats.invitedUsers)].slice(-1000),
+          fakeInvitedUsers: [...new Set(stats.fakeInvitedUsers)].slice(-1000),
+        },
+      });
+
+      return true;
+    });
+  }
+
+  private async getInviteStatsForInvitedUser(invitedUserId: string, guildId: string): Promise<InviteStats | null> {
+    const row = await this.prisma.inviteStats.findFirst({ where: { guildId, invitedUsers: { has: invitedUserId } } });
+    return row ? this.rowToStats(row) : null;
   }
 
   private async getRecentInvites(_inviterId: string, _guildId: string): Promise<InviteData[]> {
@@ -564,18 +561,19 @@ export class InviteService {
     return [];
   }
 
-  private async getInviteRewards(_guildId: string): Promise<InviteReward[]> {
-    // Placeholder - would fetch from database
-    return [];
-  }
+  private async getInviteRewards(guildId: string): Promise<InviteReward[]> {
+    const { settings, tiers } = await this.rewards.getSetup(guildId);
 
-  private async hasReceivedReward(_userId: string, _rewardId: string): Promise<boolean> {
-    // Placeholder - would check database
-    return false;
-  }
-
-  private async markRewardReceived(_userId: string, _rewardId: string): Promise<void> {
-    // Placeholder - would save to database
+    return tiers.map((tier) => ({
+      id: tier.id,
+      guildId,
+      requiredInvites: tier.requiredInvites,
+      type: 'role' as const,
+      value: tier.roleId,
+      description: `<@&${tier.roleId}>`,
+      oneTime: false,
+      enabled: settings.enabled,
+    }));
   }
 
   private async logInviteAction(

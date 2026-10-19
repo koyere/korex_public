@@ -45,7 +45,7 @@ export default class DailyCommand extends Command {
         .setDescription(result.message)
         .addFields({
           name: i18n.t('commands.daily.new_balance', lang),
-          value: `${result.newBalance} 🪙`,
+          value: `${result.newBalance} ${(await this.client.economy.getConfig(guildId)).currencySymbol}`,
           inline: true,
         });
 

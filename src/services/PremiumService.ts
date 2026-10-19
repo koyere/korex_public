@@ -161,6 +161,13 @@ export class PremiumService {
     const plan = this.getPlan(planId);
     if (!plan) return { success: false, error: 'Plan inválido' };
 
+    // La demo es de un solo uso por servidor: cualquier registro previo (demo, bundle,
+    // cortesía…) la bloquea, para que no pueda repetirse ni pisar un plan de pago.
+    if (planId === 'demo') {
+      const anyPrevious = await this.client.db.guildPremium.findUnique({ where: { guildId }, select: { id: true } });
+      if (anyPrevious) return { success: false, error: 'demo_already_used' };
+    }
+
     const existing = await this.getGuildSubscription(guildId);
     if (existing?.isActive && existing.endDate > new Date()) {
       return { success: false, error: 'El servidor ya tiene una suscripción activa' };

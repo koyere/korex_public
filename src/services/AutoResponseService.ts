@@ -39,6 +39,37 @@ export interface AutoResponseAction {
 export class AutoResponseService {
   private client: KorexClient;
   private cooldowns: Map<string, Map<string, number>> = new Map(); // guildId -> userId -> timestamp
+  // Caché por servidor: processMessage se ejecuta en cada mensaje
+  private responseCache = new Map<string, { data: AutoResponseTrigger[]; expires: number }>();
+  private regexCache = new Map<string, RegExp | null>();
+
+  /**
+   * Regex de un admin evaluada en cada mensaje: se rechazan patrones con
+   * cuantificadores anidados (p. ej. (a+)+) que pueden bloquear el bot (ReDoS).
+   */
+  static isSafeRegex(pattern: string): boolean {
+    if (pattern.length > 200) return false;
+    if (/\((?:[^()\\]|\\.)*[+*}]\)\s*[+*{]/.test(pattern)) return false;
+    try {
+      new RegExp(pattern);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  private getRegex(pattern: string, caseSensitive: boolean): RegExp | null {
+    const key = `${caseSensitive ? 's' : 'i'}:${pattern}`;
+    if (!this.regexCache.has(key)) {
+      this.regexCache.set(key, AutoResponseService.isSafeRegex(pattern) ? new RegExp(pattern, caseSensitive ? '' : 'i') : null);
+    }
+    return this.regexCache.get(key) ?? null;
+  }
+
+  private invalidateCache(guildId?: string): void {
+    if (guildId) this.responseCache.delete(guildId);
+    else this.responseCache.clear();
+  }
 
   constructor(client: KorexClient) {
     this.client = client;
@@ -51,7 +82,13 @@ export class AutoResponseService {
     if (!message.guild || message.author.bot) return;
 
     try {
-      const autoResponses = await this.getGuildAutoResponses(message.guild.id);
+      const cached = this.responseCache.get(message.guild.id);
+      const autoResponses = cached && cached.expires > Date.now()
+        ? cached.data
+        : await this.getGuildAutoResponses(message.guild.id);
+      if (!cached || cached.expires <= Date.now()) {
+        this.responseCache.set(message.guild.id, { data: autoResponses, expires: Date.now() + 60_000 });
+      }
 
       if (!autoResponses.length) return;
 
@@ -104,15 +141,12 @@ export class AutoResponseService {
         case 'ends':
           if (messageContent.endsWith(triggerText)) return true;
           break;
-        case 'regex':
-          try {
-            const regex = new RegExp(triggerText, autoResponse.caseSensitive ? 'g' : 'gi');
-
-            if (regex.test(messageContent)) return true;
-          } catch (error) {
-            this.client.logger.warn(`Invalid regex pattern: ${triggerText}`);
-          }
+        case 'regex': {
+          // Patrón original (sin pasar a minúsculas) y texto acotado
+          const regex = this.getRegex(trigger, autoResponse.caseSensitive);
+          if (regex && regex.test(content.slice(0, 2000))) return true;
           break;
+        }
       }
     }
     
@@ -314,6 +348,7 @@ export class AutoResponseService {
       include: { actions: { orderBy: { order: 'asc' } } }
     });
 
+    this.invalidateCache(guildId);
     return this.mapDbToTrigger(dbResponse);
   }
 
@@ -356,6 +391,7 @@ export class AutoResponseService {
         }
       });
 
+      this.invalidateCache();
       return true;
     } catch (error) {
       this.client.logger.error('Error updating auto-response:', error);
@@ -371,6 +407,7 @@ export class AutoResponseService {
     try {
       await this.client.database.prisma.autoResponse.delete({ where: { id } });
 
+      this.invalidateCache();
       return true;
     } catch (error) {
       this.client.logger.error('Error deleting auto-response:', error);

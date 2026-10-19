@@ -10,6 +10,7 @@ import {
 import { logger } from '../utils/Logger';
 import { DatabaseManager } from '../client/managers/DatabaseManager';
 import { i18n } from '../utils/i18n';
+import { isCoreModuleEnabled } from '../config/coreModules';
 
 export interface LoggingConfig {
   guildId: string;
@@ -82,7 +83,8 @@ export class LoggingService {
 
       const config = await this.getLoggingConfig(message.guild.id);
 
-      if (!config.enabled || !config.events.messageDelete || !config.channels.messageLog) {
+      if (!config.enabled || !config.events.messageDelete || !config.channels.messageLog
+          || this.isIgnored(config, message.channel.id, message.author?.id)) {
         return;
       }
 
@@ -98,7 +100,7 @@ export class LoggingService {
         .addFields(
           {
             name: i18n.t('logging.author', message.guild.id),
-            value: `${message.author?.tag || 'Unknown'} (${message.author?.id || 'Unknown'})`,
+            value: message.author ? `${message.author.tag} (${message.author.id})` : i18n.t('logging.unknown_author', message.guild.id),
             inline: true,
           },
           {
@@ -108,7 +110,7 @@ export class LoggingService {
           },
           {
             name: i18n.t('logging.content', message.guild.id),
-            value: message.content || i18n.t('logging.no_content', message.guild.id),
+            value: this.truncate(message.content) || i18n.t('logging.no_content', message.guild.id),
             inline: false,
           }
         )
@@ -129,7 +131,7 @@ export class LoggingService {
       await this.createLogEntry({
         guildId: message.guild.id,
         type: 'MESSAGE_DELETE',
-        userId: message.author?.id || 'Unknown',
+        userId: message.author?.id,
         channelId: message.channel.id,
         data: {
           content: message.content,
@@ -154,7 +156,8 @@ export class LoggingService {
 
       const config = await this.getLoggingConfig(newMessage.guild.id);
 
-      if (!config.enabled || !config.events.messageEdit || !config.channels.messageLog) {
+      if (!config.enabled || !config.events.messageEdit || !config.channels.messageLog
+          || this.isIgnored(config, newMessage.channel.id, newMessage.author?.id)) {
         return;
       }
 
@@ -180,12 +183,12 @@ export class LoggingService {
           },
           {
             name: i18n.t('logging.before', newMessage.guild.id),
-            value: oldMessage.content || i18n.t('logging.no_content', newMessage.guild.id),
+            value: this.truncate(oldMessage.content) || i18n.t('logging.no_content', newMessage.guild.id),
             inline: false,
           },
           {
             name: i18n.t('logging.after', newMessage.guild.id),
-            value: newMessage.content || i18n.t('logging.no_content', newMessage.guild.id),
+            value: this.truncate(newMessage.content) || i18n.t('logging.no_content', newMessage.guild.id),
             inline: false,
           }
         )
@@ -198,7 +201,7 @@ export class LoggingService {
       await this.createLogEntry({
         guildId: newMessage.guild.id,
         type: 'MESSAGE_EDIT',
-        userId: newMessage.author?.id || 'Unknown',
+        userId: newMessage.author?.id,
         channelId: newMessage.channel.id,
         data: {
           oldContent: oldMessage.content,
@@ -217,7 +220,7 @@ export class LoggingService {
     try {
       const config = await this.getLoggingConfig(member.guild.id);
 
-      if (!config.enabled || !config.events.memberJoin || !config.channels.memberLog) {
+      if (!config.enabled || !config.events.memberJoin || !config.channels.memberLog || this.isIgnored(config, null, member.id)) {
         return;
       }
 
@@ -290,7 +293,7 @@ export class LoggingService {
     try {
       const config = await this.getLoggingConfig(member.guild.id);
 
-      if (!config.enabled || !config.events.memberLeave || !config.channels.memberLog) {
+      if (!config.enabled || !config.events.memberLeave || !config.channels.memberLog || this.isIgnored(config, null, member.id)) {
         return;
       }
 
@@ -363,7 +366,7 @@ export class LoggingService {
     try {
       const config = await this.getLoggingConfig(member.guild.id);
 
-      if (!config.enabled || !config.events.voiceJoin || !config.channels.voiceLog) {
+      if (!config.enabled || !config.events.voiceJoin || !config.channels.voiceLog || this.isIgnored(config, channel.id, member.id)) {
         return;
       }
 
@@ -409,11 +412,49 @@ export class LoggingService {
   /**
    * Log voice channel leave
    */
+  public async logVoiceMove(member: GuildMember, from: VoiceBasedChannel, to: VoiceBasedChannel): Promise<void> {
+    try {
+      const config = await this.getLoggingConfig(member.guild.id);
+
+      if (!config.enabled || !config.events.voiceMove || !config.channels.voiceLog || this.isIgnored(config, to.id, member.id)) {
+        return;
+      }
+
+      const logChannel = member.guild.channels.cache.get(config.channels.voiceLog) as TextChannel;
+
+      if (!logChannel) return;
+
+      const t = (key: string) => i18n.t(key, member.guild.id);
+      const embed = new EmbedBuilder()
+        .setColor(Colors.Blue)
+        .setTitle(`🔀 ${t('logging.voice_moved')}`)
+        .addFields(
+          { name: t('logging.user'), value: `${member.user.tag} (${member.user.id})`, inline: true },
+          { name: t('logging.from'), value: from.name, inline: true },
+          { name: t('logging.to'), value: to.name, inline: true },
+        )
+        .setTimestamp()
+        .setFooter({ text: `ID: ${member.user.id}` });
+
+      await logChannel.send({ embeds: [embed] });
+
+      await this.createLogEntry({
+        guildId: member.guild.id,
+        type: 'VOICE_MOVE',
+        userId: member.user.id,
+        channelId: to.id,
+        data: { from: from.name, to: to.name },
+      });
+    } catch (error) {
+      this.logger.error('Error logging voice move:', error);
+    }
+  }
+
   public async logVoiceLeave(member: GuildMember, channel: VoiceBasedChannel): Promise<void> {
     try {
       const config = await this.getLoggingConfig(member.guild.id);
 
-      if (!config.enabled || !config.events.voiceLeave || !config.channels.voiceLog) {
+      if (!config.enabled || !config.events.voiceLeave || !config.channels.voiceLog || this.isIgnored(config, channel.id, member.id)) {
         return;
       }
 
@@ -468,104 +509,75 @@ export class LoggingService {
       where: { id: guildId },
       select: { enabledAddons: true },
     });
-    if (!guild || guild.enabledAddons.length === 0) return true;
-    return guild.enabledAddons.includes(moduleName);
+    return isCoreModuleEnabled(guild?.enabledAddons, moduleName);
   }
 
-  public async getLoggingConfig(guildId: string): Promise<LoggingConfig> {
-    try {
-      const [moduleEnabled, config] = await Promise.all([
-        this.isGuildModuleEnabled(guildId, 'logging'),
-        this.db.prisma.guildConfig.findUnique({ where: { guildId } }),
-      ]);
+  private configCache = new Map<string, { config: LoggingConfig & { ignoredChannels: string[]; ignoredUsers: string[] }; expires: number }>();
 
-      if (!config) {
-        // Create default configuration
-        const defaultConfig = await this.db.prisma.guildConfig.create({
-          data: {
-            guildId,
-            loggingEnabled: false,
-            loggingChannels: {},
-            loggingEvents: {
-              messageDelete: true,
-              messageEdit: true,
-              memberJoin: true,
-              memberLeave: true,
-              memberUpdate: false,
-              roleCreate: true,
-              roleDelete: true,
-              roleUpdate: false,
-              channelCreate: true,
-              channelDelete: true,
-              channelUpdate: false,
-              voiceJoin: true,
-              voiceLeave: true,
-              voiceMove: true,
-              banAdd: true,
-              banRemove: true,
-              inviteCreate: false,
-              inviteDelete: false,
-            },
-          },
-        });
-
-        return {
-          guildId: defaultConfig.guildId,
-          // Module toggle takes precedence over the per-guild granular setting
-          enabled: moduleEnabled ? defaultConfig.loggingEnabled : false,
-          channels: (defaultConfig.loggingChannels as LoggingConfig['channels']) || {},
-          events: defaultConfig.loggingEvents as LoggingConfig['events'],
-        };
-      }
-
-      return {
-        guildId: config.guildId,
-        // Module toggle takes precedence over the per-guild granular setting
-        enabled: moduleEnabled ? config.loggingEnabled : false,
-        channels: (config.loggingChannels as LoggingConfig['channels']) || {},
-        events: config.loggingEvents as LoggingConfig['events'],
-      };
-    } catch (error) {
-      this.logger.error('Error getting logging config:', error);
-      throw new Error('Failed to get logging config');
-    }
+  public invalidateCache(guildId: string): void {
+    this.configCache.delete(guildId);
   }
 
   /**
-   * Update logging configuration
+   * Configuración de logs (tabla logging_configs, la que edita el dashboard en
+   * Logs → Configuración; la misma que usan AutoMod y Moderación).
    */
-  public async updateLoggingConfig(
-    guildId: string,
-    updates: Partial<LoggingConfig>
-  ): Promise<void> {
-    try {
-      const updateData = {} as Parameters<typeof this.db.prisma.guildConfig.upsert>[0]['update'];
-      const createData = { guildId } as Parameters<typeof this.db.prisma.guildConfig.upsert>[0]['create'];
+  public async getLoggingConfig(guildId: string): Promise<LoggingConfig & { ignoredChannels: string[]; ignoredUsers: string[] }> {
+    const cached = this.configCache.get(guildId);
+    if (cached && cached.expires > Date.now()) return cached.config;
 
-      if (updates.enabled !== undefined) {
-        updateData.loggingEnabled = updates.enabled;
-        createData.loggingEnabled = updates.enabled;
-      }
-      if (updates.channels !== undefined) {
-        updateData.loggingChannels = updates.channels;
-        createData.loggingChannels = updates.channels;
-      }
-      if (updates.events !== undefined) {
-        updateData.loggingEvents = updates.events;
-        createData.loggingEvents = updates.events;
-      }
+    const [moduleEnabled, row] = await Promise.all([
+      this.isGuildModuleEnabled(guildId, 'logging'),
+      this.db.prisma.loggingConfig.findUnique({ where: { guildId } }),
+    ]);
 
-      await this.db.prisma.guildConfig.upsert({
-        where: { guildId },
-        update: updateData,
-        create: createData,
-      });
+    const config = {
+      guildId,
+      // El toggle del módulo (Ajustes) manda sobre el interruptor de Logs
+      enabled: moduleEnabled && !!row?.enabled,
+      channels: {
+        messageLog: row?.messageLogChannel ?? undefined,
+        memberLog: row?.memberLogChannel ?? undefined,
+        serverLog: row?.serverLogChannel ?? undefined,
+        voiceLog: row?.voiceLogChannel ?? undefined,
+        moderationLog: row?.moderationLogChannel ?? undefined,
+      },
+      events: {
+        messageDelete: row?.logMessageDelete ?? true,
+        messageEdit: row?.logMessageEdit ?? true,
+        memberJoin: row?.logMemberJoin ?? true,
+        memberLeave: row?.logMemberLeave ?? true,
+        memberUpdate: row?.logMemberUpdate ?? false,
+        roleCreate: row?.logRoleCreate ?? false,
+        roleDelete: row?.logRoleDelete ?? false,
+        roleUpdate: false,
+        channelCreate: row?.logChannelCreate ?? false,
+        channelDelete: row?.logChannelDelete ?? false,
+        channelUpdate: false,
+        voiceJoin: row?.logVoiceJoin ?? true,
+        voiceLeave: row?.logVoiceLeave ?? true,
+        voiceMove: row?.logVoiceMove ?? true,
+        banAdd: row?.logMemberBan ?? false,
+        banRemove: row?.logMemberUnban ?? false,
+        inviteCreate: false,
+        inviteDelete: false,
+      },
+      ignoredChannels: row?.ignoredChannels ?? [],
+      ignoredUsers: row?.ignoredUsers ?? [],
+    };
+    this.configCache.set(guildId, { config, expires: Date.now() + 60_000 });
+    return config;
+  }
 
-      this.logger.info(`Updated logging config for guild ${guildId}`);
-    } catch (error) {
-      this.logger.error('Error updating logging config:', error);
-      throw new Error('Failed to update logging config');
-    }
+  /** Canal ignorado o usuario ignorado según la configuración. */
+  private isIgnored(config: { ignoredChannels: string[]; ignoredUsers: string[] }, channelId?: string | null, userId?: string | null): boolean {
+    return (!!channelId && config.ignoredChannels.includes(channelId)) || (!!userId && config.ignoredUsers.includes(userId));
+  }
+
+  /** Los campos de embed admiten 1024 caracteres como máximo. */
+  private truncate(text: string | null | undefined, max = 1024): string {
+    if (!text) return '';
+    return text.length > max ? `${text.slice(0, max - 1)}…` : text;
   }
 
   /**
@@ -590,14 +602,19 @@ export class LoggingService {
         createdAt: new Date(),
       };
 
-      // Try to save to database if possible
+      // Guardar en log_entries (lo muestra la página Logs del dashboard)
       try {
-        await this.db.prisma.$executeRaw`
-          INSERT INTO log_entries (id, guildId, type, userId, channelId, data, createdAt)
-          VALUES (${entry.id}, ${entry.guildId}, ${entry.type}, ${entry.userId || null}, ${entry.channelId || null}, ${JSON.stringify(entry.data)}, ${entry.createdAt})
-        `;
+        await this.db.prisma.logEntry.create({
+          data: {
+            guildId: entry.guildId,
+            type: entry.type,
+            userId: entry.userId || null,
+            channelId: entry.channelId || null,
+            data: (entry.data ?? {}) as any,
+          },
+        });
       } catch (dbError) {
-        this.logger.debug('Could not save log entry to database:', dbError);
+        this.logger.warn('Could not save log entry to database:', dbError);
       }
 
       return entry;

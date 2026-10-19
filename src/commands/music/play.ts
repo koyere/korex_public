@@ -15,7 +15,7 @@ export default class PlayCommand extends Command {
   constructor(client: KorexClient) {
     super(client, {
       name: 'play',
-      description: 'Reproduce música desde YouTube, Spotify, SoundCloud y más',
+      description: 'Play music from SoundCloud or a direct audio URL',
       category: 'music',
       addon: 'music', // Requires 'music' in Guild.enabledAddons — toggled via dashboard settings
       permissions: {},
@@ -26,11 +26,11 @@ export default class PlayCommand extends Command {
   data() {
     return new SlashCommandBuilder()
       .setName('play')
-      .setDescription('Reproduce música desde YouTube, Spotify, SoundCloud y más')
+      .setDescription('Play music from SoundCloud or a direct audio URL')
       .addStringOption(option =>
         option
           .setName('query')
-          .setDescription('Canción, artista, URL o playlist a reproducir')
+          .setDescription('Song, artist, SoundCloud URL or audio file URL')
           .setRequired(true)
       );
   }
@@ -65,7 +65,9 @@ export default class PlayCommand extends Command {
       // Fetch music-pro limits if addon is active for this guild
       let limits: { maxQueueSize?: number; maxTrackDuration?: number } | undefined;
       const musicProSvc = (this.client as any)._musicProService;
-      if (musicProSvc) {
+      // Solo servidores con Music Pro activo (getOrCreateConfig crea filas premium)
+      // (licencia vigente e interruptor maestro de Music Pro activado)
+      if (musicProSvc && await musicProSvc.isProEnabled(interaction.guildId!)) {
         try {
           const cfg = await musicProSvc.getOrCreateConfig(interaction.guildId!);
           limits = { maxQueueSize: cfg.maxQueueSize, maxTrackDuration: cfg.maxTrackDuration };
@@ -120,14 +122,18 @@ export default class PlayCommand extends Command {
         localized = i18n.t('music.different_voice_channel', interaction.guildId!);
       } else if (errorMessage.startsWith('QUEUE_FULL:')) {
         const max = errorMessage.split(':')[1];
-        localized = i18n.t('music_pro.queue_full', interaction.guildId!, { max });
+        localized = i18n.t('music.queue_full', interaction.guildId!, { max });
       } else if (errorMessage.startsWith('TRACK_TOO_LONG:')) {
         const [, max, duration] = errorMessage.split(':');
-        localized = i18n.t('music_pro.track_too_long', interaction.guildId!, { max, duration });
-      } else if (errorMessage.toLowerCase().includes('no se encontraron resultados')) {
+        localized = i18n.t('music.track_too_long', interaction.guildId!, { max, duration });
+      } else if (errorMessage === 'MUSIC_NO_RESULTS') {
         localized = i18n.t('music.no_results', interaction.guildId!, { query });
-      } else if (errorMessage.toLowerCase().includes('canal de voz')) {
+      } else if (errorMessage === 'MUSIC_NOT_IN_VOICE') {
         localized = i18n.t('music.not_in_voice', interaction.guildId!);
+      } else if (errorMessage === 'MUSIC_UNSUPPORTED_SOURCE') {
+        localized = i18n.t('music.unsupported_source', interaction.guildId!);
+      } else if (errorMessage === 'MUSIC_URL_NOT_ALLOWED') {
+        localized = i18n.t('music.url_not_allowed', interaction.guildId!);
       }
 
       await interaction.editReply({

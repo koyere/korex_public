@@ -50,7 +50,7 @@ export default class SlapCommand extends Command {
       description = i18n.t('fun.slap.bot_slap', guildId, { user: author.toString() });
       color = botConfig.colors.info;
     } else {
-      const messages = i18n.t('fun.slap.messages', guildId) as unknown as string[];
+      const messages = i18n.getList('fun.slap.messages', guildId);
       const randomMessage = messages[Math.floor(Math.random() * messages.length)];
 
       description = `${i18n.t('fun.slap.user_slap', guildId, { 

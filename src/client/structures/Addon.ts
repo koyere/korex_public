@@ -11,6 +11,8 @@ export abstract class Addon {
   public services: Map<string, any>;
   public loaded: boolean;
   public enabled: boolean;
+  /** Listeners registrados por este addon en el cliente (para quitar solo los suyos). */
+  private registeredListeners: Array<{ event: string; listener: (...args: any[]) => void }> = [];
 
   constructor(client: KorexClient, config: AddonConfig) {
     this.client = client;
@@ -41,6 +43,15 @@ export abstract class Addon {
    * Llamado cuando el addon se deshabilita en un servidor
    */
   abstract onDisable(guildId: string): Promise<void>;
+
+  /**
+   * Interruptor propio del addon por servidor, además de la licencia (p. ej. el
+   * `enabled` de Music Pro). Devuelve el motivo traducido si el comando no puede
+   * usarse en ese servidor, o null. Por defecto no bloquea nada.
+   */
+  async commandBlockedReason(_guildId: string, _commandName: string): Promise<string | null> {
+    return null;
+  }
 
   /**
    * Verificar dependencias del addon
@@ -154,12 +165,14 @@ export abstract class Addon {
 
         this.events.set(event.name, event);
 
-        // Registrar el evento en el cliente
+        // Registrar el evento en el cliente guardando la referencia del listener
+        const listener = (...args: any[]) => event.safeExecute(...(args as any));
         if (event.once) {
-          this.client.once(event.name, (...args) => event.safeExecute(...args));
+          this.client.once(event.name, listener);
         } else {
-          this.client.on(event.name, (...args) => event.safeExecute(...args));
+          this.client.on(event.name, listener);
         }
+        this.registeredListeners.push({ event: event.name, listener });
 
         this.client.logger.debug(`Evento del addon ${this.config.name} cargado: ${event.name}`);
       } catch (error) {
@@ -196,10 +209,12 @@ export abstract class Addon {
    * Descargar eventos del addon
    */
   public unloadEvents(): void {
-    for (const [eventName, event] of this.events) {
-      // Remover listeners del cliente
-      this.client.removeAllListeners(eventName);
+    // Quitar solo los listeners que registró este addon: removeAllListeners
+    // borraría también los del core y los de otros addons para el mismo evento.
+    for (const { event, listener } of this.registeredListeners) {
+      this.client.off(event, listener);
     }
+    this.registeredListeners = [];
 
     this.events.clear();
   }

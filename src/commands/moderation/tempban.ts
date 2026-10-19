@@ -181,17 +181,10 @@ export default class TempBanCommand extends Command {
         deleteMessageDays: deleteDays
       });
 
-      // Schedule unban
-      setTimeout(async () => {
-        try {
-          await interaction.guild!.members.unban(targetUser.id, `Automatic unban after ${this.formatDuration(durationMs, guildId)}`);
-          
-          // Log automatic unban
-          this.client.logger.info(`Automatic unban executed for ${targetUser.tag} in ${interaction.guild!.name}`);
-        } catch (error) {
-          this.client.logger.error(`Failed to automatically unban ${targetUser.tag}:`, error);
-        }
-      }, durationMs);
+      // Registrar en BD y programar el desbaneo (sobrevive a reinicios)
+      await this.client.moderation.recordTemporaryBan(
+        interaction.guild!, targetUser, interaction.user, reason, durationMs
+      ).catch((err) => this.client.logger.error(`Failed to persist tempban for ${targetUser.tag}:`, err));
 
       // Create success embed
       const embed = new EmbedBuilder()

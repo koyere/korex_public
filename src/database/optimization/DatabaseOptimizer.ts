@@ -359,13 +359,14 @@ export class DatabaseOptimizer {
       {
         name: 'Clean old log entries',
         operation: async () => {
-          const fourteenDaysAgo = new Date();
+          // 30 días: lo que indica la política de privacidad y el máximo de Analíticas/Logs
+          const retentionLimit = new Date();
 
-          fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
-          
+          retentionLimit.setDate(retentionLimit.getDate() - 30);
+
           const deleted = await this.prisma.logEntry.deleteMany({
             where: {
-              createdAt: { lt: fourteenDaysAgo }
+              createdAt: { lt: retentionLimit }
             }
           });
           

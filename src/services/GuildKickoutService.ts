@@ -91,6 +91,9 @@ export class GuildKickoutService {
       // Purge all addon cache for this guild so isAddonActive returns false immediately
       await this.purgeGuildAddonCache(guildId);
 
+      // Quitar los addons de pago de enabledAddons (handleGuildRejoined los restaura)
+      await this.disablePaidAddons(guildId);
+
       logger.info(`Guild ${guildId} marked as KICKOUT — grace period: ${KICKOUT_GRACE_DAYS} days`);
     } catch (error) {
       logger.error(`Error handling guild left for ${guildId}:`, error);
@@ -133,90 +136,66 @@ export class GuildKickoutService {
 
       const now = new Date();
 
-      // Extend expiry by remaining days + what was kicked out
-      // Restore to ACTIVE with reset kickoutAt
-      await Promise.all([
-        kickoutLicenses.length > 0
-          ? this.client.db.addonLicense.updateMany({
-              where: {
-                guildId,
-                status: 'KICKOUT',
-                kickoutAt: { gte: graceDeadline },
-              },
-              data: { status: 'ACTIVE', kickoutAt: null },
-            })
-          : Promise.resolve(),
+      // Restaurar cada registro: las suscripciones de PayPal siguieron cobrando durante
+      // la gracia (SALE.COMPLETED amplía expiresAt), pero lo que no se cobra (cortesías,
+      // reactivaciones manuales) recupera el tiempo que estuvo en pausa. Lo que venció
+      // durante la expulsión no se reactiva.
+      const resumeExpiry = (rec: { expiresAt: Date; kickoutAt: Date | null; paypalSubscriptionId: string | null }) => {
+        const billedByPayPal = !!rec.paypalSubscriptionId?.startsWith('I-');
+        const pausedMs = rec.kickoutAt ? Math.max(0, now.getTime() - rec.kickoutAt.getTime()) : 0;
+        return billedByPayPal ? rec.expiresAt : new Date(rec.expiresAt.getTime() + pausedMs);
+      };
 
-        kickoutPremium.length > 0
-          ? this.client.db.guildPremium.updateMany({
-              where: {
-                guildId,
-                status: 'KICKOUT',
-                kickoutAt: { gte: graceDeadline },
-              },
-              data: { status: 'ACTIVE', kickoutAt: null },
-            })
-          : Promise.resolve(),
-
-        // Clear leftAt since bot is back
-        this.client.db.guild.updateMany({
-          where: { id: guildId },
-          data: { leftAt: null },
-        }),
-      ]);
-
-      // Re-enable all restored addon licenses in guild.enabledAddons
-      const restoredAddonNames = kickoutLicenses.map(l => l.addonName);
-
-      if (restoredAddonNames.length > 0) {
-        const guildRecord = await this.client.db.guild.findUnique({
-          where: { id: guildId },
-          select: { enabledAddons: true },
+      const restoredLicenses: typeof kickoutLicenses = [];
+      for (const lic of kickoutLicenses) {
+        const expiresAt = resumeExpiry(lic);
+        const alive = expiresAt > now;
+        await this.client.db.addonLicense.updateMany({
+          where: { id: lic.id, status: 'KICKOUT' },
+          data: alive
+            ? { status: 'ACTIVE', kickoutAt: null, expiresAt }
+            : { status: lic.cancelledAt ? 'CANCELLED' : 'EXPIRED', kickoutAt: null },
         });
-
-        if (guildRecord) {
-          const existing = new Set(guildRecord.enabledAddons);
-          restoredAddonNames.forEach(n => existing.add(n));
-
-          await this.client.db.guild.update({
-            where: { id: guildId },
-            data: { enabledAddons: Array.from(existing) },
-          });
-        }
+        if (alive) restoredLicenses.push(lic);
       }
 
-      // Refresh Redis cache for restored bundle if any
-      if (kickoutPremium.length > 0) {
-        const activePremium = kickoutPremium.find(p => p.planId === 'bundle');
-        if (activePremium) {
-          const redis = this.client.redis.getClient();
-          await redis.setex(`bundle:guild:${guildId}`, 3600, 'true');
-
-          // Re-enable all bundle addons in guild.enabledAddons
-          const guildRecord = await this.client.db.guild.findUnique({
-            where: { id: guildId },
-            select: { enabledAddons: true },
-          });
-
-          if (guildRecord) {
-            const existing = new Set(guildRecord.enabledAddons);
-            BUNDLE_ADDONS.forEach(n => existing.add(n));
-
-            await this.client.db.guild.update({
-              where: { id: guildId },
-              data: { enabledAddons: Array.from(existing) },
-            });
-          }
-        }
+      const restoredPremium: typeof kickoutPremium = [];
+      for (const premium of kickoutPremium) {
+        const expiresAt = resumeExpiry(premium);
+        const alive = expiresAt > now;
+        await this.client.db.guildPremium.updateMany({
+          where: { id: premium.id, status: 'KICKOUT' },
+          data: alive
+            ? { status: 'ACTIVE', kickoutAt: null, expiresAt }
+            : { status: premium.cancelledAt ? 'CANCELLED' : 'EXPIRED', kickoutAt: null },
+        });
+        if (alive) restoredPremium.push(premium);
       }
 
-      // Publish ADDON_ACTIVATED events for all restored addons
+      // Clear leftAt since bot is back
+      await this.client.db.guild.updateMany({
+        where: { id: guildId },
+        data: { leftAt: null },
+      });
+
+      // Limpiar cachés negativas antes de volver a habilitar
+      await this.purgeGuildAddonCache(guildId);
+
+      const restoresBundle = restoredPremium.some(p => p.planId === 'bundle');
+      if (restoresBundle) {
+        await this.client.redis.getClient().setex(`bundle:guild:${guildId}`, 3600, 'true');
+      }
+
+      // Re-habilitar (onEnable + sincronización de comandos) los addons con licencia
+      // restaurada y, si vuelve el bundle, los addons que cubre.
+      const restoredAddonNames = restoredLicenses.map(l => l.addonName);
       const allRestoredNames = [
         ...restoredAddonNames,
-        ...(kickoutPremium.some(p => p.planId === 'bundle') ? Array.from(BUNDLE_ADDONS) : []),
+        ...(restoresBundle ? Array.from(BUNDLE_ADDONS) : []),
       ];
 
       for (const addonName of [...new Set(allRestoredNames)]) {
+        await this.client.addons.enableAddon(guildId, addonName).catch(() => false);
         await this.client.addonSync.publishEvent({
           type: 'ADDON_ACTIVATED',
           guildId,
@@ -225,10 +204,10 @@ export class GuildKickoutService {
       }
 
       logger.info(
-        `Guild ${guildId} restored: ${kickoutLicenses.length} licenses, ${kickoutPremium.length} premium records`
+        `Guild ${guildId} restored: ${restoredLicenses.length}/${kickoutLicenses.length} licenses, ${restoredPremium.length}/${kickoutPremium.length} premium records`
       );
 
-      return true;
+      return restoredLicenses.length > 0 || restoredPremium.length > 0;
     } catch (error) {
       logger.error(`Error handling guild rejoin for ${guildId}:`, error);
       return false;
@@ -375,6 +354,18 @@ export class GuildKickoutService {
 
   // ─── Cache helpers ────────────────────────────────────────────────────────────
 
+  /** Quita de enabledAddons los addons de pago cargados (sin tocar los módulos core). */
+  private async disablePaidAddons(guildId: string): Promise<void> {
+    const guild = await this.client.db.guild.findUnique({
+      where: { id: guildId },
+      select: { enabledAddons: true },
+    });
+    for (const addonName of guild?.enabledAddons ?? []) {
+      if (!this.client.addons.getAddon(addonName)) continue; // módulo core
+      await this.client.addons.disableAddon(guildId, addonName).catch(() => false);
+    }
+  }
+
   private async purgeGuildAddonCache(guildId: string): Promise<void> {
     const redis = this.client.redis.getClient();
 
@@ -382,10 +373,11 @@ export class GuildKickoutService {
     await redis.del(`bundle:guild:${guildId}`);
 
     // Delete individual addon caches for all known addon names
-    const allAddonNames = [
+    const allAddonNames = [...new Set([
       ...Array.from(BUNDLE_ADDONS),
-      'music-pro', 'ai-assistant', 'social-hub',
-    ];
+      ...this.client.addons.getLoadedAddons().map(a => a.config.name),
+      'music-pro', 'ai-assistant',
+    ])];
 
     await Promise.all(
       allAddonNames.map(name => redis.del(`addon:${name}:guild_${guildId}`))

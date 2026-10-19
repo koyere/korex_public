@@ -46,23 +46,16 @@ export default class LanguageCommand extends Command {
       if (!newLanguage) {
         // Show current language and available languages
         const availableLanguages = i18n.getAvailableLanguages();
+        const t = (key: string) => i18n.t(key, currentLanguage);
 
         const embed = new EmbedBuilder()
           .setColor(Colors.Blurple)
-          .setTitle('🌍 Server Language Settings')
+          .setTitle(t('language_cmd.title'))
           .addFields(
-            {
-              name: 'Current Language',
-              value: this.getLanguageName(currentLanguage),
-              inline: true,
-            },
-            {
-              name: 'Available Languages',
-              value: availableLanguages.map((lang) => this.getLanguageName(lang)).join('\n'),
-              inline: true,
-            }
+            { name: t('language_cmd.current'), value: this.getLanguageName(currentLanguage), inline: true },
+            { name: t('language_cmd.available'), value: availableLanguages.map((lang) => this.getLanguageName(lang)).join('\n'), inline: true }
           )
-          .setDescription('Use `/language <lang>` to change the server language.')
+          .setDescription(t('language_cmd.usage'))
           .setTimestamp();
 
         await interaction.reply({ embeds: [embed] });
@@ -72,45 +65,25 @@ export default class LanguageCommand extends Command {
 
       if (!i18n.hasLanguage(newLanguage)) {
         await interaction.reply({
-          content: `❌ Language \`${newLanguage}\` is not available.`,
+          content: i18n.t('language_cmd.unavailable', currentLanguage, { lang: newLanguage }),
           ephemeral: true,
         });
 
         return;
       }
 
-      // Set new language
+      // Guardar en guilds.language: lo leen el dashboard (Ajustes) y la carga al arrancar
+      await this.client.db.guild.upsert({
+        where: { id: guildId },
+        update: { language: newLanguage },
+        create: { id: guildId, language: newLanguage },
+      });
       i18n.setGuildLanguage(guildId, newLanguage);
-
-      // Save to database
-      try {
-        await this.client.db.guildConfig.upsert({
-          where: { guildId },
-          update: { language: newLanguage },
-          create: {
-            guildId,
-            language: newLanguage,
-            autoModEnabled: false,
-            maxWarnings: 3,
-            warningExpireDays: 30,
-            autoActions: [],
-          },
-        });
-      } catch (error) {
-        this.client.logger.error('Error saving language to database:', error);
-      }
 
       const embed = new EmbedBuilder()
         .setColor(Colors.Green)
-        .setTitle('✅ Language Changed')
-        .setDescription(
-          `Server language has been changed to **${this.getLanguageName(newLanguage)}**.`
-        )
-        .addFields({
-          name: 'Note',
-          value: 'All bot responses will now be in the selected language.',
-          inline: false,
-        })
+        .setTitle(i18n.t('language_cmd.changed_title', newLanguage))
+        .setDescription(i18n.t('language_cmd.changed_description', newLanguage, { language: this.getLanguageName(newLanguage) }))
         .setTimestamp();
 
       await interaction.reply({ embeds: [embed] });

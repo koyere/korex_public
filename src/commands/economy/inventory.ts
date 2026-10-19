@@ -140,7 +140,7 @@ export default class InventoryCommand extends Command {
       
       for (const item of cosmetics.slice(0, 12)) {
         options.push({
-          label: `${item.equipped ? '❌ Desequipar' : '✅ Equipar'} ${item.itemName}`,
+          label: `${item.equipped ? i18n.t('inventory.action.unequip', lang) : i18n.t('inventory.action.equip', lang)} ${item.itemName}`.slice(0, 100),
           value: `equip_${item.id}`,
           emoji: item.emoji || '📦'
         });
@@ -148,7 +148,7 @@ export default class InventoryCommand extends Command {
       
       for (const item of consumables.slice(0, 12)) {
         options.push({
-          label: `Usar ${item.itemName}`,
+          label: `${i18n.t('inventory.action.use', lang)} ${item.itemName}`.slice(0, 100),
           value: `use_${item.id}`,
           emoji: item.emoji || '📦'
         });

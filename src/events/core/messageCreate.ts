@@ -17,11 +17,21 @@ export default class MessageCreateEvent extends Event {
       // Ignore bot messages and DMs
       if (message.author.bot || !message.guild) return;
 
+      // Honeypot — canal trampa: si actúa, el mensaje no sigue (ni XP, ni autorespuestas)
+      if (await this.client.honeypot.handleMessage(message)) return;
+
       // AutoMod check (returns true if message was handled/deleted)
       if (await this.client.autoMod.processMessage(message)) return;
 
-      // AutoResponse system
-      await this.client.autoResponseService.processMessage(message);
+      // Comandos con prefijo (`!comando` o `@Korex comando`): ejecutan el comando
+      // slash equivalente por el mismo pipeline de seguridad que interactionCreate
+      const isPrefixCommand = await this.client.prefixCommands.handle(message).catch((error) => {
+        this.client.logger.error('[Prefix] Error procesando mensaje:', error);
+        return false;
+      });
+
+      // AutoResponse system (no responde a las órdenes del propio bot)
+      if (!isPrefixCommand) await this.client.autoResponseService.processMessage(message);
 
       // Track message for analytics (solo contar, no guardar contenido)
       await this.client.analytics.trackActivity(message.guild.id, 'message', {
@@ -33,7 +43,8 @@ export default class MessageCreateEvent extends Event {
       await this.client.userStats.handleMessage(message);
 
       // Handle level system (if message qualifies for XP)
-      if (this.client.levels && message.member) {
+      // (las órdenes al bot no dan XP, para que no se pueda farmear con comandos)
+      if (this.client.levels && message.member && !isPrefixCommand) {
         await this.client.levels.addMessageXp(
           message.guild, 
           message.member, 

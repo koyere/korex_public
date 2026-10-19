@@ -12,7 +12,9 @@ import {
   ButtonBuilder,
   ButtonStyle,
   ComponentType,
-  OverwriteResolvable
+  OverwriteResolvable,
+  OverwriteType,
+  Routes
 } from 'discord.js';
 import { Command } from '../../client/structures/Command';
 import { KorexClient } from '../../client/KorexClient';
@@ -126,6 +128,7 @@ export default class LockdownCommand extends Command {
   }
 
   async executeSlash(interaction: ChatInputCommandInteraction): Promise<void> {
+    await this.ensureLoaded();
     const subcommand = interaction.options.getSubcommand();
 
     switch (subcommand) {
@@ -333,8 +336,8 @@ export default class LockdownCommand extends Command {
       });
     }
 
-    // Store lockdown data
-    this.lockdowns.set(channelId, {
+    // Store lockdown data (memoria + BD, para poder desbloquear tras un reinicio)
+    await this.saveLockdown({
       channelId,
       guildId,
       type: 'channel',
@@ -414,13 +417,12 @@ export default class LockdownCommand extends Command {
 
     // Restore original permissions
     const everyoneRole = interaction.guild!.roles.everyone;
-    const originalOverwrite = lockdownData.originalPermissions.get(everyoneRole.id);
+    const originalOverwrite = await this.storedOriginal(channelId, lockdownData.originalPermissions.get(everyoneRole.id));
 
-    // Restore original permissions (simplified)
-    await channel.permissionOverwrites.delete(everyoneRole);
+    await this.restoreEveryoneOverwrite(channel, everyoneRole.id, originalOverwrite);
 
     // Remove lockdown data
-    this.lockdowns.delete(channelId);
+    await this.removeLockdown(channelId);
 
     // Send announcement if not silent
     if (!silent && channel.isTextBased()) {
@@ -521,8 +523,8 @@ export default class LockdownCommand extends Command {
           });
         }
 
-        // Store lockdown data
-        this.lockdowns.set(channel.id, {
+        // Store lockdown data (memoria + BD)
+        await this.saveLockdown({
           channelId: channel.id,
           guildId,
           type: 'server',
@@ -581,22 +583,19 @@ export default class LockdownCommand extends Command {
       try {
         const channel = interaction.guild!.channels.cache.get(lockdownData.channelId);
 
-        if (!channel || !('permissionOverwrites' in channel)) continue;
+        if (!channel || !('permissionOverwrites' in channel)) {
+          // Canal borrado mientras estaba bloqueado: limpiar el registro
+          await this.removeLockdown(lockdownData.channelId);
+          continue;
+        }
 
         // Restore original permissions
         const everyoneRole = interaction.guild!.roles.everyone;
-        const originalOverwrite = lockdownData.originalPermissions.get(everyoneRole.id);
+        const originalOverwrite = await this.storedOriginal(lockdownData.channelId, lockdownData.originalPermissions.get(everyoneRole.id));
 
-        if (originalOverwrite) {
-          await (channel as any).permissionOverwrites.edit(everyoneRole, {
-            allow: BigInt(originalOverwrite.allow),
-            deny: BigInt(originalOverwrite.deny)
-          });
-        } else {
-          await (channel as any).permissionOverwrites.delete(everyoneRole);
-        }
+        await this.restoreEveryoneOverwrite(channel, everyoneRole.id, originalOverwrite);
 
-        this.lockdowns.delete(lockdownData.channelId);
+        await this.removeLockdown(lockdownData.channelId);
         unlockedChannels++;
       } catch (error) {
         this.client.logger.error(`Failed to unlock channel ${lockdownData.channelId}:`, error);
@@ -696,5 +695,94 @@ export default class LockdownCommand extends Command {
     } else {
       return i18n.t('lockdown.duration.seconds', guildId, { seconds: seconds.toString() });
     }
+  }
+
+  /**
+   * Restaura exactamente el overwrite de @everyone previo al lockdown.
+   * Borrarlo sin más hacía público un canal privado (ViewChannel denegado), y
+   * permissionOverwrites.edit() ignora bitfields allow/deny (solo acepta flags).
+   */
+  private async restoreEveryoneOverwrite(
+    channel: { id: string; permissionOverwrites: any },
+    everyoneId: string,
+    original: { allow: string; deny: string } | undefined
+  ): Promise<void> {
+    if (!original) {
+      await channel.permissionOverwrites.delete(everyoneId);
+      return;
+    }
+    await this.client.rest.put(Routes.channelPermission(channel.id, everyoneId), {
+      body: { type: OverwriteType.Role, allow: original.allow, deny: original.deny },
+    });
+  }
+
+  // ─── Persistencia (tabla channel_lockdowns) ──────────────────────────────
+  private loaded: Promise<void> | null = null;
+
+  /** Carga una vez los bloqueos guardados (sobreviven a reinicios del bot). */
+  private ensureLoaded(): Promise<void> {
+    if (!this.loaded) {
+      this.loaded = this.client.db.channelLockdown.findMany().then((rows) => {
+        for (const row of rows) {
+          const originalPermissions = new Map<string, any>();
+          if (row.everyoneAllow !== null && row.everyoneDeny !== null) {
+            originalPermissions.set(row.guildId, { allow: row.everyoneAllow, deny: row.everyoneDeny });
+          }
+          this.lockdowns.set(row.channelId, {
+            channelId: row.channelId,
+            guildId: row.guildId,
+            type: row.type === 'server' ? 'server' : 'channel',
+            originalPermissions,
+            timestamp: row.createdAt.getTime(),
+            moderator: row.moderatorId,
+            reason: row.reason,
+          });
+        }
+      }).catch((err) => {
+        this.loaded = null;
+        this.client.logger.error('Error loading lockdowns:', err);
+      });
+    }
+    return this.loaded;
+  }
+
+  private async saveLockdown(data: LockdownData): Promise<void> {
+    this.lockdowns.set(data.channelId, data);
+    // Solo hace falta el overwrite de @everyone (id del rol = id del servidor)
+    const everyone = data.originalPermissions.get(data.guildId) as { allow: string; deny: string } | undefined;
+    await this.client.db.channelLockdown.upsert({
+      where: { channelId: data.channelId },
+      update: {},
+      create: {
+        channelId: data.channelId,
+        guildId: data.guildId,
+        type: data.type,
+        everyoneAllow: everyone?.allow ?? null,
+        everyoneDeny: everyone?.deny ?? null,
+        moderatorId: data.moderator,
+        reason: data.reason.slice(0, 500),
+      },
+    }).catch((err) => this.client.logger.error(`Error saving lockdown for ${data.channelId}:`, err));
+  }
+
+  /**
+   * Overwrite original guardado en BD. El anti-raid de Moderación lo corrige si el
+   * lockdown se aplicó durante un raid (para no heredar su bloqueo), así que la BD
+   * manda sobre la copia en memoria; sin fila se usa la memoria.
+   */
+  private async storedOriginal(
+    channelId: string,
+    fallback: { allow: string; deny: string } | undefined
+  ): Promise<{ allow: string; deny: string } | undefined> {
+    const row = await this.client.db.channelLockdown.findUnique({ where: { channelId } }).catch(() => null);
+    if (!row) return fallback;
+    return row.everyoneAllow !== null && row.everyoneDeny !== null
+      ? { allow: row.everyoneAllow, deny: row.everyoneDeny }
+      : undefined;
+  }
+
+  private async removeLockdown(channelId: string): Promise<void> {
+    this.lockdowns.delete(channelId);
+    await this.client.db.channelLockdown.delete({ where: { channelId } }).catch(() => null);
   }
 }

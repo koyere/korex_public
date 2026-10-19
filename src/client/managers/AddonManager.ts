@@ -4,6 +4,7 @@ import { KorexClient } from '../KorexClient';
 import { AddonConfig } from '../../types/addon';
 import { readdirSync, existsSync } from 'fs';
 import { join } from 'path';
+import { isCoreModuleEnabled, withEntryAdded, withEntryRemoved } from '../../config/coreModules';
 
 export class AddonManager {
   public client: KorexClient;
@@ -269,17 +270,43 @@ export class AddonManager {
       return false;
     }
 
+    const enabledAddons = await this.getEnabledAddonNames(guildId);
+
+    // Core modules: sin fila o array vacío → activos (ver config/coreModules.ts)
+    if (!addon) {
+      return isCoreModuleEnabled(enabledAddons, addonName);
+    }
+
+    // Addons de pago: opt-in explícito Y licencia (o bundle) vigente.
+    // enabledAddons no siempre se limpia (kickout, bundle vencido, suspensión),
+    // así que la licencia se comprueba en cada uso. Fail-closed si no se puede verificar.
+    if (!enabledAddons?.includes(addonName)) return false;
+    if (!this.client.addonSync) return false;
+
+    return this.client.addonSync.isAddonActive(guildId, addonName);
+  }
+
+  /** enabledAddons del guild con caché en memoria muy corta (se llama en cada mensaje). */
+  private enabledCache = new Map<string, { value: string[] | undefined; expires: number }>();
+  private static readonly ENABLED_TTL_MS = 15_000;
+
+  private async getEnabledAddonNames(guildId: string): Promise<string[] | undefined> {
+    const hit = this.enabledCache.get(guildId);
+    if (hit && hit.expires > Date.now()) return hit.value;
+
     const guild = await this.client.db.guild.findUnique({
       where: { id: guildId },
       select: { enabledAddons: true },
     });
+    const value = guild?.enabledAddons;
+    this.enabledCache.set(guildId, { value, expires: Date.now() + AddonManager.ENABLED_TTL_MS });
+    if (this.enabledCache.size > 5000) this.enabledCache.clear();
+    return value;
+  }
 
-    // No record or empty array → core modules enabled by default, addons disabled
-    if (!guild || guild.enabledAddons.length === 0) {
-      return !addon; // !addon is true for core modules (not in this.addons)
-    }
-
-    return guild.enabledAddons.includes(addonName);
+  /** Invalida la caché tras cambiar enabledAddons fuera de enable/disableAddon. */
+  invalidateEnabledCache(guildId: string): void {
+    this.enabledCache.delete(guildId);
   }
 
   /**
@@ -303,18 +330,19 @@ export class AddonManager {
 
       // Always update the database regardless of whether the addon is currently in memory.
       // This ensures courtesy/reactivation flows work even if the addon hasn't loaded yet.
+      // Un guild antiguo con enabledAddons=[] tiene los módulos core activos
+      // implícitamente: hacer push dejaría ['addon'] y los apagaría todos.
+      const current = await this.client.db.guild.findUnique({
+        where: { id: guildId },
+        select: { enabledAddons: true },
+      });
+      const updated = withEntryAdded(current?.enabledAddons, addonName);
       await this.client.db.guild.upsert({
         where: { id: guildId },
-        create: {
-          id: guildId,
-          enabledAddons: [addonName],
-        },
-        update: {
-          enabledAddons: {
-            push: addonName,
-          },
-        },
+        create: { id: guildId, enabledAddons: updated },
+        update: { enabledAddons: updated },
       });
+      this.invalidateEnabledCache(guildId);
 
       // Only call the lifecycle hook if the addon is actually loaded in memory
       if (addon?.loaded) {
@@ -361,9 +389,10 @@ export class AddonManager {
       await this.client.db.guild.update({
         where: { id: guildId },
         data: {
-          enabledAddons: guild.enabledAddons.filter((a) => a !== addonName),
+          enabledAddons: withEntryRemoved(guild.enabledAddons, addonName),
         },
       });
+      this.invalidateEnabledCache(guildId);
 
       // Call addon disable method
       await addon.onDisable(guildId);

@@ -2,6 +2,7 @@ import { ModalSubmitInteraction, EmbedBuilder, Colors } from 'discord.js';
 import { Component } from '../client/structures/Component';
 import { KorexClient } from '../client/KorexClient';
 import { i18n } from '../utils/i18n';
+import { AutoResponseService } from '../services/AutoResponseService';
 
 const VALID_TRIGGER_TYPES = new Set(['exact', 'contains', 'starts', 'ends', 'regex']);
 
@@ -68,6 +69,11 @@ export default class AutoResponseModalComponent extends Component {
     const triggerType = VALID_TRIGGER_TYPES.has(typeRaw) ? typeRaw : 'contains';
     const cooldown = this.parseCooldown(cooldownRaw);
 
+    if (triggerType === 'regex' && !triggers.every((tr) => AutoResponseService.isSafeRegex(tr))) {
+      await interaction.reply({ content: i18n.t('autoresponse.unsafe_regex', guildId), ephemeral: true });
+      return;
+    }
+
     const created = await this.client.autoResponseService.createAutoResponse(guildId, {
       name,
       triggers,
@@ -125,6 +131,11 @@ export default class AutoResponseModalComponent extends Component {
     const triggers = this.parseTriggers(triggersRaw);
     const triggerType = VALID_TRIGGER_TYPES.has(typeRaw) ? typeRaw : 'contains';
     const cooldown = this.parseCooldown(cooldownRaw);
+
+    if (triggerType === 'regex' && !(triggers.length ? triggers : existing.triggers).every((tr) => AutoResponseService.isSafeRegex(tr))) {
+      await interaction.reply({ content: i18n.t('autoresponse.unsafe_regex', guildId), ephemeral: true });
+      return;
+    }
 
     const updated = await this.client.autoResponseService.updateAutoResponse(id, {
       name: name || existing.name,

@@ -24,7 +24,12 @@ interface StickyMessage {
 }
 
 export default class StickyCommand extends Command {
+  // Caché de la tabla sticky_messages (se carga una vez y se mantiene en cada cambio)
   private stickyMessages: Map<string, StickyMessage> = new Map();
+  private loaded: Promise<void> | null = null;
+  // Un repost a la vez por canal; si llegan más mensajes mientras tanto, se repite una vez
+  private reposting = new Set<string>();
+  private pendingRepost = new Set<string>();
 
   constructor(client: KorexClient) {
     super(client, {
@@ -41,7 +46,35 @@ export default class StickyCommand extends Command {
     // Listen for new messages to repost sticky
     this.client.on('messageCreate', (message) => {
       if (message.author.bot) return;
-      this.handleStickyRepost(message);
+      void this.handleStickyRepost(message);
+    });
+  }
+
+  private ensureLoaded(): Promise<void> {
+    if (!this.loaded) {
+      this.loaded = this.client.db.stickyMessage.findMany().then((rows) => {
+        for (const row of rows) {
+          this.stickyMessages.set(row.channelId, {
+            channelId: row.channelId,
+            messageId: row.messageId ?? '',
+            lastMessageId: row.messageId ?? undefined,
+            content: row.content,
+            embed: row.useEmbed ? { color: row.color ?? undefined } : undefined,
+          });
+        }
+      }).catch((err) => {
+        this.loaded = null;
+        this.client.logger.error('Error loading sticky messages:', err);
+      });
+    }
+    return this.loaded;
+  }
+
+  private async persist(guildId: string, sticky: StickyMessage): Promise<void> {
+    await this.client.db.stickyMessage.upsert({
+      where: { channelId: sticky.channelId },
+      update: { content: sticky.content, useEmbed: !!sticky.embed, color: sticky.embed?.color ?? null, messageId: sticky.lastMessageId ?? sticky.messageId },
+      create: { channelId: sticky.channelId, guildId, content: sticky.content, useEmbed: !!sticky.embed, color: sticky.embed?.color ?? null, messageId: sticky.messageId },
     });
   }
 
@@ -103,6 +136,7 @@ export default class StickyCommand extends Command {
   }
 
   async executeSlash(interaction: ChatInputCommandInteraction): Promise<void> {
+    await this.ensureLoaded();
     const subcommand = interaction.options.getSubcommand();
 
     switch (subcommand) {
@@ -181,12 +215,15 @@ export default class StickyCommand extends Command {
       }
 
       // Store sticky message info
-      this.stickyMessages.set(channelId, {
+      const sticky: StickyMessage = {
         channelId,
         messageId: stickyMessage.id,
+        lastMessageId: stickyMessage.id,
         content: message,
         embed: useEmbed ? { color } : undefined
-      });
+      };
+      this.stickyMessages.set(channelId, sticky);
+      await this.persist(guildId, sticky);
 
       const successEmbed = new EmbedBuilder()
         .setColor(Colors.Green)
@@ -253,8 +290,9 @@ export default class StickyCommand extends Command {
         // Message might already be deleted
       }
 
-      // Remove from memory
+      // Remove from memory and database
       this.stickyMessages.delete(channelId);
+      await this.client.db.stickyMessage.delete({ where: { channelId } }).catch(() => null);
 
       const embed = new EmbedBuilder()
         .setColor(Colors.Green)
@@ -370,7 +408,9 @@ export default class StickyCommand extends Command {
 
       // Update stored info
       stickyMessage.messageId = newStickyMessage.id;
+      stickyMessage.lastMessageId = newStickyMessage.id;
       stickyMessage.content = newMessage;
+      await this.persist(guildId, stickyMessage);
 
       const embed = new EmbedBuilder()
         .setColor(Colors.Green)
@@ -456,10 +496,23 @@ export default class StickyCommand extends Command {
 
       const row = new ActionRowBuilder<ButtonBuilder>().addComponents(refreshButton);
 
-      await interaction.reply({
+      const reply = await interaction.reply({
         embeds: [embed],
         components: [row],
-        ephemeral: true
+        ephemeral: true,
+        fetchReply: true
+      });
+
+      // Botón "Refrescar": vuelve a publicar el sticky al final del canal
+      const collector = reply.createMessageComponentCollector({
+        componentType: ComponentType.Button,
+        time: 120_000,
+        filter: (i) => i.user.id === interaction.user.id && i.customId === 'sticky_refresh',
+      });
+      collector.on('collect', async (i) => {
+        await i.deferUpdate().catch(() => null);
+        await this.repost(interaction.channel as TextChannel, guildId);
+        await i.followUp({ content: i18n.t('sticky.info.refreshed', guildId), ephemeral: true }).catch(() => null);
       });
 
     } catch (error) {
@@ -473,24 +526,36 @@ export default class StickyCommand extends Command {
 
   private async handleStickyRepost(message: Message): Promise<void> {
     if (!message.guild || !message.channel.isTextBased()) return;
+    await this.ensureLoaded();
 
     const channelId = message.channel.id;
-    const stickyMessage = this.stickyMessages.get(channelId);
-    
+    if (!this.stickyMessages.has(channelId)) return;
+
+    if (this.reposting.has(channelId)) {
+      this.pendingRepost.add(channelId);
+      return;
+    }
+    this.reposting.add(channelId);
+    try {
+      do {
+        this.pendingRepost.delete(channelId);
+        await this.repost(message.channel as TextChannel, message.guild.id);
+      } while (this.pendingRepost.has(channelId));
+    } finally {
+      this.reposting.delete(channelId);
+    }
+  }
+
+  /** Borra el sticky anterior y lo vuelve a publicar al final del canal. */
+  private async repost(channel: TextChannel, guildId: string): Promise<void> {
+    const stickyMessage = this.stickyMessages.get(channel.id);
     if (!stickyMessage) return;
 
     try {
-      const channel = message.channel as TextChannel;
-      
       // Delete the old sticky message if it exists
       if (stickyMessage.lastMessageId) {
-        try {
-          const oldMessage = await channel.messages.fetch(stickyMessage.lastMessageId);
-
-          await oldMessage.delete();
-        } catch (error) {
-          // Message might already be deleted
-        }
+        const oldMessage = await channel.messages.fetch(stickyMessage.lastMessageId).catch(() => null);
+        await oldMessage?.delete().catch(() => null);
       }
 
       // Wait a bit to avoid spam
@@ -503,20 +568,23 @@ export default class StickyCommand extends Command {
         const embed = new EmbedBuilder()
           .setDescription(stickyMessage.content)
           .setColor(stickyMessage.embed.color || Colors.Blue)
-          .setFooter({ text: i18n.t('sticky.footer', message.guild.id) })
+          .setFooter({ text: i18n.t('sticky.footer', guildId) })
           .setTimestamp();
 
         newStickyMessage = await channel.send({ embeds: [embed] });
       } else {
         newStickyMessage = await channel.send({
-          content: `📌 ${stickyMessage.content}\n\n*${i18n.t('sticky.footer', message.guild.id)}*`
+          content: `📌 ${stickyMessage.content}\n\n*${i18n.t('sticky.footer', guildId)}*`
         });
       }
 
       // Update the message ID
       stickyMessage.lastMessageId = newStickyMessage.id;
       stickyMessage.messageId = newStickyMessage.id;
-
+      await this.client.db.stickyMessage.update({
+        where: { channelId: channel.id },
+        data: { messageId: newStickyMessage.id },
+      }).catch(() => null);
     } catch (error) {
       this.client.logger.error('Error reposting sticky message:', error);
     }

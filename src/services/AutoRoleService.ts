@@ -1,4 +1,5 @@
 import {
+  Client,
   Guild,
   GuildMember,
   Role,
@@ -15,6 +16,8 @@ import { Prisma } from '@prisma/client';
 import { logger } from '../utils/Logger';
 import { DatabaseManager } from '../client/managers/DatabaseManager';
 import { i18n } from '../utils/i18n';
+import { checkSelfAssignableRole } from '../utils/roleSafety';
+import { setLongTimeout } from '../utils/longTimeout';
 
 export interface AutoRoleConfig {
   guildId: string;
@@ -40,6 +43,8 @@ export interface ReactionRole {
   requireRole?: string; // Role required to react
   maxUses?: number; // Max times this reaction role can be used
   currentUses?: number;
+  // Reaction roles sueltos (sin panel): toggle | add | remove | unique
+  type?: string;
 }
 
 export interface ReactionRoleMessage {
@@ -51,11 +56,13 @@ export interface ReactionRoleMessage {
   description: string;
   color: string;
   roles: ReactionRole[];
-  type: 'SINGLE' | 'MULTIPLE' | 'UNIQUE'; // SINGLE: one role only, MULTIPLE: multiple roles, UNIQUE: one per category
+  type: 'SINGLE' | 'MULTIPLE' | 'UNIQUE'; // SINGLE: un rol a la vez, MULTIPLE: varios, UNIQUE: elección permanente
 }
 
 export class AutoRoleService {
   private static instance: AutoRoleService;
+  // Clave en addon_configs donde se guardan ajustes extra del módulo (retrasos de entrada)
+  private static readonly CORE_AUTOROLES_KEY = 'core-autoroles';
   private logger = logger;
   private db: DatabaseManager;
 
@@ -86,12 +93,18 @@ export class AutoRoleService {
       }
 
       const rolesToAdd: Role[] = [];
+      const delays = await this.getJoinRoleDelays(member.guild.id);
 
       for (const roleId of config.joinRoles) {
         const role = member.guild.roles.cache.get(roleId);
 
         if (role && this.canAssignRole(member.guild, role)) {
-          rolesToAdd.push(role);
+          const minutes = delays[roleId] ?? 0;
+          if (minutes > 0) {
+            this.scheduleDelayedJoinRole(member, roleId, minutes);
+          } else {
+            rolesToAdd.push(role);
+          }
         }
       }
 
@@ -203,11 +216,7 @@ export class AutoRoleService {
 
       if (!member) return;
 
-      const reactionRole = await this.getReactionRole(
-        message.guild.id,
-        message.id,
-        reaction.emoji.name || reaction.emoji.id || ''
-      );
+      const reactionRole = await this.getReactionRole(message.guild.id, message.id, reaction.emoji);
 
       if (!reactionRole) return;
 
@@ -227,7 +236,8 @@ export class AutoRoleService {
 
       const role = message.guild.roles.cache.get(reactionRole.roleId);
 
-      if (!role || !this.canAssignRole(message.guild, role)) {
+      // Revalidar en cada reacción: un rol con permisos de moderación no se reparte
+      if (!role || !this.canAssignRole(message.guild, role) || !checkSelfAssignableRole(message.guild, role.id).ok) {
         return;
       }
 
@@ -235,14 +245,32 @@ export class AutoRoleService {
       const rrMessage = await this.getReactionRoleMessage(message.guild.id, message.id);
 
       if (rrMessage) {
-        await this.handleReactionRoleType(member, role, rrMessage, reactionRole);
+        await this.handleReactionRoleType(member, role, rrMessage, reactionRole, reaction);
       } else {
-        // Simple reaction role
-        if (!member.roles.cache.has(role.id)) {
-          await member.roles.add(role, 'Reaction role');
-          await this.incrementReactionRoleUsage(reactionRole);
-          this.logger.info(`Assigned reaction role ${role.name} to ${member.user.tag}`);
+        // Reaction role suelto (pestaña Roles de reacción de Bienvenida)
+        switch (reactionRole.type) {
+          case 'remove':
+            if (member.roles.cache.has(role.id)) await member.roles.remove(role, 'Reaction role (remove)');
+            break;
+          case 'unique': {
+            // Un solo rol entre los reaction roles de este mensaje
+            const siblings = await this.db.prisma.reactionRole.findMany({
+              where: { guildId: message.guild.id, messageId: message.id, roleId: { not: role.id } },
+              select: { roleId: true, emoji: true },
+            });
+            const toRemove = siblings.map((r) => r.roleId).filter((id) => member.roles.cache.has(id));
+            if (toRemove.length > 0) await member.roles.remove(toRemove, 'Unique reaction role');
+            const msg = message.partial ? await message.fetch().catch(() => null) : message;
+            for (const other of msg?.reactions.cache.values() ?? []) {
+              if (other.emoji.identifier !== reaction.emoji.identifier) await other.users.remove(member.id).catch(() => {});
+            }
+            if (!member.roles.cache.has(role.id)) await member.roles.add(role, 'Unique reaction role');
+            break;
+          }
+          default: // toggle, add
+            if (!member.roles.cache.has(role.id)) await member.roles.add(role, 'Reaction role');
         }
+        await this.incrementReactionRoleUsage(reactionRole);
       }
     } catch (error) {
       this.logger.error('Error handling reaction add:', error);
@@ -267,17 +295,19 @@ export class AutoRoleService {
 
       if (!member) return;
 
-      const reactionRole = await this.getReactionRole(
-        message.guild.id,
-        message.id,
-        reaction.emoji.name || reaction.emoji.id || ''
-      );
+      const reactionRole = await this.getReactionRole(message.guild.id, message.id, reaction.emoji);
 
       if (!reactionRole) return;
 
       const role = message.guild.roles.cache.get(reactionRole.roleId);
 
       if (!role) return;
+
+      // UNIQUE = elección permanente: quitar la reacción no quita el rol.
+      const rrMessage = await this.getReactionRoleMessage(message.guild.id, message.id);
+      if (rrMessage?.type === 'UNIQUE') return;
+      // Reaction roles sueltos: 'add' y 'remove' no deshacen al quitar la reacción
+      if (!rrMessage && (reactionRole.type === 'add' || reactionRole.type === 'remove')) return;
 
       if (member.roles.cache.has(role.id)) {
         await member.roles.remove(role, 'Reaction role removed');
@@ -296,37 +326,51 @@ export class AutoRoleService {
     member: GuildMember,
     role: Role,
     rrMessage: ReactionRoleMessage,
-    reactionRole: ReactionRole
+    reactionRole: ReactionRole,
+    reaction?: MessageReaction | PartialMessageReaction
   ): Promise<void> {
+    const otherRoleIds = rrMessage.roles
+      .map((rr) => rr.roleId)
+      .filter((roleId) => roleId !== reactionRole.roleId);
+
     switch (rrMessage.type) {
       case 'SINGLE': {
-        // Remove all other roles from this message first
-        const otherRoles = rrMessage.roles
-          .filter((rr) => rr.roleId !== reactionRole.roleId)
-          .map((rr) => rr.roleId)
-          .filter((roleId) => member.roles.cache.has(roleId));
-
-        if (otherRoles.length > 0) {
-          await member.roles.remove(otherRoles, 'Single reaction role selection');
+        // Solo un rol a la vez: quitar los demás roles del panel y sus reacciones
+        const toRemove = otherRoleIds.filter((roleId) => member.roles.cache.has(roleId));
+        if (toRemove.length > 0) {
+          await member.roles.remove(toRemove, 'Single reaction role selection');
         }
-
+        if (reaction) {
+          const msg = reaction.message.partial ? await reaction.message.fetch().catch(() => null) : reaction.message;
+          for (const other of msg?.reactions.cache.values() ?? []) {
+            if (other.emoji.identifier === reaction.emoji.identifier) continue;
+            if (other.users.cache.has(member.id) || other.count > 1) {
+              await other.users.remove(member.id).catch(() => {});
+            }
+          }
+        }
         if (!member.roles.cache.has(role.id)) {
           await member.roles.add(role, 'Single reaction role');
         }
         break;
       }
 
-      case 'MULTIPLE':
-        // Allow multiple roles
-        if (!member.roles.cache.has(role.id)) {
-          await member.roles.add(role, 'Multiple reaction role');
+      case 'UNIQUE': {
+        // Elección permanente: si ya tiene un rol del panel, no puede cambiarlo
+        if (otherRoleIds.some((roleId) => member.roles.cache.has(roleId))) {
+          await reaction?.users.remove(member.id).catch(() => {});
+          return;
         }
-        break;
-
-      case 'UNIQUE':
-        // One role per category (implement category logic if needed)
         if (!member.roles.cache.has(role.id)) {
           await member.roles.add(role, 'Unique reaction role');
+        }
+        break;
+      }
+
+      case 'MULTIPLE':
+      default:
+        if (!member.roles.cache.has(role.id)) {
+          await member.roles.add(role, 'Multiple reaction role');
         }
         break;
     }
@@ -363,25 +407,39 @@ export class AutoRoleService {
 
       const message = await channel.send({ embeds: [embed] });
 
-      // Add reactions
+      // Add reactions and persist each emoji → role mapping (needed by handleReactionAdd)
       for (const roleConfig of config.roles) {
         await message.react(roleConfig.emoji);
+        await this.db.prisma.reactionRole.create({
+          data: {
+            guildId: guild.id,
+            channelId: channel.id,
+            messageId: message.id,
+            emoji: roleConfig.emoji,
+            roleId: roleConfig.roleId,
+            type: 'toggle',
+            description: roleConfig.description || null,
+          },
+        });
       }
 
-      // Save to database - using a temporary approach until Prisma is regenerated
-      try {
-        await this.db.prisma.$executeRaw`
-          INSERT INTO reaction_role_messages (id, guildId, channelId, messageId, title, description, color, type, roles, createdAt)
-          VALUES (${this.generateId()}, ${guild.id}, ${channel.id}, ${message.id}, ${config.title}, ${config.description}, ${config.color}, ${config.type}, ${JSON.stringify(config.roles)}, ${new Date()})
-        `;
-      } catch (dbError) {
-        this.logger.warn('Could not save reaction role message to database:', dbError);
-      }
+      const saved = await this.db.prisma.reactionRoleMessage.create({
+        data: {
+          guildId: guild.id,
+          channelId: channel.id,
+          messageId: message.id,
+          title: config.title,
+          description: config.description,
+          color: config.color,
+          type: config.type,
+          roles: config.roles as any,
+        },
+      });
 
       this.logger.info(`Created reaction role message in ${guild.name}`);
 
       return {
-        id: this.generateId(),
+        id: saved.id,
         guildId: guild.id,
         channelId: channel.id,
         messageId: message.id,
@@ -523,14 +581,22 @@ export class AutoRoleService {
   private async getReactionRole(
     guildId: string,
     messageId: string,
-    emoji: string
+    emoji: { name: string | null; id: string | null; animated?: boolean | null }
   ): Promise<ReactionRole | null> {
     try {
+      // Los emojis se guardan tal como se pegaron: unicode ("🎮") o custom
+      // ("<:nombre:id>" / "<a:nombre:id>"); se buscan todas las formas posibles.
+      const candidates = [emoji.name, emoji.id].filter(Boolean) as string[];
+      if (emoji.id) {
+        candidates.push(`<:${emoji.name}:${emoji.id}>`, `<a:${emoji.name}:${emoji.id}>`);
+      }
+      if (candidates.length === 0) return null;
+
       const reactionRole = await this.db.prisma.reactionRole.findFirst({
         where: {
           guildId,
           messageId,
-          emoji,
+          emoji: { in: candidates },
         },
       });
 
@@ -545,6 +611,7 @@ export class AutoRoleService {
         requireRole: reactionRole.requireRole || '',
         maxUses: reactionRole.maxUses || 0,
         currentUses: reactionRole.currentUses || 0,
+        type: reactionRole.type,
       };
     } catch (error) {
       this.logger.error('Error getting reaction role:', error);
@@ -557,12 +624,26 @@ export class AutoRoleService {
    * Get reaction role message
    */
   private async getReactionRoleMessage(
-    _guildId: string,
-    _messageId: string
+    guildId: string,
+    messageId: string
   ): Promise<ReactionRoleMessage | null> {
     try {
-      // Temporary implementation until Prisma is regenerated
-      return null;
+      const row = await this.db.prisma.reactionRoleMessage.findUnique({
+        where: { guildId_messageId: { guildId, messageId } },
+      });
+      if (!row) return null;
+
+      return {
+        id: row.id,
+        guildId: row.guildId,
+        channelId: row.channelId,
+        messageId: row.messageId,
+        title: row.title,
+        description: row.description,
+        color: row.color,
+        type: row.type as ReactionRoleMessage['type'],
+        roles: (Array.isArray(row.roles) ? row.roles : []) as unknown as ReactionRole[],
+      };
     } catch (error) {
       this.logger.error('Error getting reaction role message:', error);
 
@@ -570,29 +651,36 @@ export class AutoRoleService {
     }
   }
 
+
   /**
    * Increment reaction role usage
    */
   private async incrementReactionRoleUsage(reactionRole: ReactionRole): Promise<void> {
     try {
-      // Temporary implementation until Prisma is regenerated
-      this.logger.debug(`Reaction role usage incremented (temporary implementation): ${reactionRole.messageId}`);
+      await this.db.prisma.reactionRole.updateMany({
+        where: { messageId: reactionRole.messageId, emoji: reactionRole.emoji },
+        data: { currentUses: { increment: 1 } },
+      });
     } catch (error) {
-      this.logger.error('Error incrementing reaction role usage:', error);
+      this.logger.error('Error updating reaction role usage:', error);
     }
   }
+
 
   /**
    * Decrement reaction role usage
    */
   private async decrementReactionRoleUsage(reactionRole: ReactionRole): Promise<void> {
     try {
-      // Temporary implementation until Prisma is regenerated
-      this.logger.debug(`Reaction role usage decremented (temporary implementation): ${reactionRole.messageId}`);
+      await this.db.prisma.reactionRole.updateMany({
+        where: { messageId: reactionRole.messageId, emoji: reactionRole.emoji, currentUses: { gt: 0 } },
+        data: { currentUses: { decrement: 1 } },
+      });
     } catch (error) {
-      this.logger.error('Error decrementing reaction role usage:', error);
+      this.logger.error('Error updating reaction role usage:', error);
     }
   }
+
 
   /**
    * Add a join role
@@ -600,12 +688,13 @@ export class AutoRoleService {
   public async addJoinRole(guildId: string, roleId: string, delay: number = 0): Promise<void> {
     try {
       const config = await this.getAutoRoleConfig(guildId);
-      
+
       if (!config.joinRoles.includes(roleId)) {
         config.joinRoles.push(roleId);
         await this.updateAutoRoleConfig(guildId, { joinRoles: config.joinRoles });
       }
-      
+      await this.setJoinRoleDelay(guildId, roleId, delay);
+
       this.logger.info(`Added join role ${roleId} to guild ${guildId} with delay ${delay}`);
     } catch (error) {
       this.logger.error('Error adding join role:', error);
@@ -626,6 +715,152 @@ export class AutoRoleService {
   }
 
   /**
+   * Retrasos (minutos) de los roles de entrada: { roleId: minutos }.
+   * Se guardan en addon_configs (addonName CORE_AUTOROLES_KEY) para no cambiar el
+   * formato de guild_configs.autoRoleJoinRoles (array de IDs que usa la web).
+   */
+  public async getJoinRoleDelays(guildId: string): Promise<Record<string, number>> {
+    try {
+      const row = await this.db.prisma.addonConfig.findUnique({
+        where: { guildId_addonName: { guildId, addonName: AutoRoleService.CORE_AUTOROLES_KEY } },
+      });
+      const raw = (row?.config as any)?.joinRoleDelays;
+      if (!raw || typeof raw !== 'object') return {};
+      const out: Record<string, number> = {};
+      for (const [roleId, minutes] of Object.entries(raw)) {
+        const n = Number(minutes);
+        if (/^\d{17,20}$/.test(roleId) && Number.isFinite(n) && n > 0) out[roleId] = Math.min(n, 10080);
+      }
+      return out;
+    } catch (error) {
+      this.logger.error('Error getting join role delays:', error);
+      return {};
+    }
+  }
+
+  private async setJoinRoleDelay(guildId: string, roleId: string, minutes: number): Promise<void> {
+    const delay = Math.max(0, Math.min(10080, Math.floor(Number(minutes) || 0)));
+    const delays = await this.getJoinRoleDelays(guildId);
+    if (delay > 0) delays[roleId] = delay;
+    else if (roleId in delays) delete delays[roleId];
+    else return; // nada que cambiar
+
+    const row = await this.db.prisma.addonConfig.findUnique({
+      where: { guildId_addonName: { guildId, addonName: AutoRoleService.CORE_AUTOROLES_KEY } },
+    });
+    const config = { ...((row?.config as any) ?? {}), joinRoleDelays: delays };
+    await this.db.prisma.addonConfig.upsert({
+      where: { guildId_addonName: { guildId, addonName: AutoRoleService.CORE_AUTOROLES_KEY } },
+      update: { config },
+      create: { guildId, addonName: AutoRoleService.CORE_AUTOROLES_KEY, config },
+    });
+  }
+
+  /**
+   * Programa la asignación retrasada de un rol de entrada. La asignación pendiente se
+   * guarda en `pending_join_roles` (sobrevive a reinicios) y un temporizador en memoria
+   * la ejecuta a su hora; si el bot se reinicia, la recoge `processDuePendingJoinRoles`.
+   * Sin la tabla (migración no aplicada) se mantiene el temporizador en memoria.
+   */
+  private scheduleDelayedJoinRole(member: GuildMember, roleId: string, minutes: number): void {
+    const guild = member.guild;
+    const userId = member.id;
+    const dueAt = new Date(Date.now() + minutes * 60_000);
+    const pending = (this.db.prisma as any).pendingJoinRole;
+
+    const persisted: Promise<boolean> = pending
+      ? pending.upsert({
+        where: { guildId_userId_roleId: { guildId: guild.id, userId, roleId } },
+        create: { guildId: guild.id, userId, roleId, dueAt },
+        update: { dueAt },
+      }).then(() => true).catch((error: unknown) => {
+        this.logger.warn('Delayed join role not persisted (in-memory timer only):', error);
+        return false;
+      })
+      : Promise.resolve(false);
+
+    setLongTimeout(async () => {
+      const isPersisted = await persisted;
+      // Reclamar la fila antes de asignar: el temporizador y el barrido periódico no duplican
+      if (isPersisted && !(await this.claimPendingJoinRole(guild.id, userId, roleId))) return;
+      await this.assignDelayedJoinRole(guild, userId, roleId, minutes);
+    }, minutes * 60_000);
+  }
+
+  /** Borra la fila pendiente; true si este proceso la ha reclamado. */
+  private async claimPendingJoinRole(guildId: string, userId: string, roleId: string): Promise<boolean> {
+    try {
+      const res = await (this.db.prisma as any).pendingJoinRole.deleteMany({ where: { guildId, userId, roleId } });
+      return res.count > 0;
+    } catch {
+      return true; // sin tabla: el temporizador en memoria es la única fuente
+    }
+  }
+
+  private async assignDelayedJoinRole(guild: Guild, userId: string, roleId: string, minutes: number): Promise<void> {
+    try {
+      // Revalidar al vencer: el miembro sigue, el módulo sigue activo y el rol sigue configurado
+      const config = await this.getAutoRoleConfig(guild.id);
+      if (!config.enabled || !config.joinRoles.includes(roleId)) return;
+      const fresh = await guild.members.fetch(userId).catch(() => null);
+      const role = guild.roles.cache.get(roleId);
+      if (!fresh || !role || !this.canAssignRole(guild, role) || fresh.roles.cache.has(roleId)) return;
+      await fresh.roles.add(role, `Auto-role on join (delay ${minutes}m)`);
+      this.logger.info(`Assigned delayed join role ${role.name} to ${fresh.user.tag} in ${guild.name}`);
+    } catch (error) {
+      this.logger.error('Error assigning delayed join role:', error);
+    }
+  }
+
+  /**
+   * Barrido periódico de asignaciones retrasadas vencidas (p. ej. tras un reinicio).
+   * Solo atiende los servidores de este shard. Las de servidores que ya no están en la
+   * caché y llevan más de 7 días vencidas se descartan.
+   */
+  public async processDuePendingJoinRoles(client: Client): Promise<number> {
+    const pending = (this.db.prisma as any).pendingJoinRole;
+    if (!pending) return 0;
+    const guildIds = [...client.guilds.cache.keys()];
+    if (guildIds.length === 0) return 0;
+    let done = 0;
+    try {
+      const due = await pending.findMany({
+        where: { dueAt: { lte: new Date() }, guildId: { in: guildIds } },
+        orderBy: { dueAt: 'asc' },
+        take: 200,
+      });
+      for (const row of due) {
+        const guild = client.guilds.cache.get(row.guildId);
+        if (!guild) continue;
+        if (!(await this.claimPendingJoinRole(row.guildId, row.userId, row.roleId))) continue;
+        const minutes = Math.round((new Date(row.dueAt).getTime() - new Date(row.createdAt).getTime()) / 60_000);
+        await this.assignDelayedJoinRole(guild, row.userId, row.roleId, minutes);
+        done++;
+      }
+      // Limpieza de filas huérfanas (servidor abandonado) muy antiguas
+      await pending.deleteMany({ where: { dueAt: { lt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } } }).catch(() => {});
+    } catch (error) {
+      // Tabla aún no creada u otro fallo transitorio: se reintenta en el siguiente ciclo
+      this.logger.debug?.('Pending join roles sweep skipped:', error);
+    }
+    return done;
+  }
+
+  private pendingWorker: NodeJS.Timeout | null = null;
+
+  /** Arranca el barrido de asignaciones retrasadas (cada 60 s). Idempotente. */
+  public startDelayedJoinRoleWorker(client: Client): void {
+    if (this.pendingWorker) return;
+    const run = () => {
+      this.processDuePendingJoinRoles(client)
+        .then(n => { if (n > 0) this.logger.info(`Assigned ${n} overdue delayed join role(s)`); })
+        .catch(() => {});
+    };
+    run();
+    this.pendingWorker = setInterval(run, 60_000);
+  }
+
+  /**
    * Remove a join role
    */
   public async removeJoinRole(guildId: string, roleId: string): Promise<void> {
@@ -634,7 +869,8 @@ export class AutoRoleService {
       
       config.joinRoles = config.joinRoles.filter(id => id !== roleId);
       await this.updateAutoRoleConfig(guildId, { joinRoles: config.joinRoles });
-      
+      await this.setJoinRoleDelay(guildId, roleId, 0);
+
       this.logger.info(`Removed join role ${roleId} from guild ${guildId}`);
     } catch (error) {
       this.logger.error('Error removing join role:', error);

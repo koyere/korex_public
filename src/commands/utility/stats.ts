@@ -4,19 +4,20 @@ import {
   PermissionFlagsBits,
   EmbedBuilder,
   Colors,
-  ActionRowBuilder,
-  StringSelectMenuBuilder,
-  ButtonBuilder,
-  ButtonStyle,
-  ComponentType,
   GuildMember,
-  TextChannel,
-  VoiceChannel,
   SlashCommandSubcommandsOnlyBuilder
 } from 'discord.js';
 import { Command } from '../../client/structures/Command';
 import { KorexClient } from '../../client/KorexClient';
 import { i18n } from '../../utils/i18n';
+import { STATS_WINDOW_DAYS } from '../../services/UserStatsService';
+import {
+  buildActivityEmbed,
+  buildCompareEmbed,
+  buildServerStatsButtons,
+  buildUserStatsButtons,
+  normalizeStatsPeriod
+} from '../../utils/statsEmbeds';
 
 export default class StatsCommand extends Command {
   constructor(client: KorexClient) {
@@ -147,10 +148,36 @@ export default class StatsCommand extends Command {
     }
   }
 
+  /** Miembro desde caché o, si no está, desde la API */
+  private async resolveMember(interaction: ChatInputCommandInteraction, userId: string): Promise<GuildMember | null> {
+    const guild = interaction.guild!;
+
+    return guild.members.cache.get(userId) ?? await guild.members.fetch(userId).catch(() => null);
+  }
+
+  private windowFooter(guildId: string, days: number = STATS_WINDOW_DAYS): string {
+    return i18n.t('stats.window_footer', guildId, { days: days.toString() });
+  }
+
+  /** Une líneas no nulas respetando el límite de 1024 caracteres de un field */
+  private joinLines(lines: Array<string | null>): string {
+    const text = lines.filter((l): l is string => !!l).join('\n') || '—';
+
+    return text.length > 1024 ? `${text.slice(0, 1021)}...` : text;
+  }
+
+  private line(key: string, guildId: string, value: string): string {
+    return i18n.t(`stats.lines.${key}`, guildId, { value });
+  }
+
+  private hour(h: number): string {
+    return String(h).padStart(2, '0');
+  }
+
   private async handleUserStats(interaction: ChatInputCommandInteraction): Promise<void> {
     const user = interaction.options.getUser('user') || interaction.user;
-    const member = interaction.guild!.members.cache.get(user.id);
     const guildId = interaction.guild!.id;
+    const member = await this.resolveMember(interaction, user.id);
 
     if (!member) {
       await interaction.reply({
@@ -165,30 +192,11 @@ export default class StatsCommand extends Command {
 
     try {
       const statsEmbed = await this.client.userStats.generateUserStatsReport(member);
-      
-      // Add interactive buttons for more details
-      const row = new ActionRowBuilder<ButtonBuilder>()
-        .addComponents(
-          new ButtonBuilder()
-            .setCustomId(`stats_activity_${user.id}`)
-            .setLabel(i18n.t('stats.buttons.activity', guildId))
-            .setStyle(ButtonStyle.Primary)
-            .setEmoji('📊'),
-          new ButtonBuilder()
-            .setCustomId(`stats_channels_${user.id}`)
-            .setLabel(i18n.t('stats.buttons.channels', guildId))
-            .setStyle(ButtonStyle.Secondary)
-            .setEmoji('📁'),
-          new ButtonBuilder()
-            .setCustomId(`stats_compare_${user.id}`)
-            .setLabel(i18n.t('stats.buttons.compare', guildId))
-            .setStyle(ButtonStyle.Success)
-            .setEmoji('⚖️')
-        );
 
+      // Botones con más detalle (StatsComponents)
       await interaction.editReply({
         embeds: [statsEmbed],
-        components: [row]
+        components: [buildUserStatsButtons(guildId, user.id)]
       });
 
     } catch (error) {
@@ -200,41 +208,21 @@ export default class StatsCommand extends Command {
 
   private async handleServerStats(interaction: ChatInputCommandInteraction): Promise<void> {
     const guild = interaction.guild!;
-    const guildId = guild.id;
 
     await interaction.deferReply();
 
     try {
       const statsEmbed = await this.client.userStats.generateGuildStatsReport(guild);
-      
-      // Add navigation buttons
-      const row = new ActionRowBuilder<ButtonBuilder>()
-        .addComponents(
-          new ButtonBuilder()
-            .setCustomId('stats_server_detailed')
-            .setLabel(i18n.t('stats.buttons.detailed', guildId))
-            .setStyle(ButtonStyle.Primary)
-            .setEmoji('📈'),
-          new ButtonBuilder()
-            .setCustomId('stats_server_channels')
-            .setLabel(i18n.t('stats.buttons.channels', guildId))
-            .setStyle(ButtonStyle.Secondary)
-            .setEmoji('📁'),
-          new ButtonBuilder()
-            .setCustomId('stats_server_growth')
-            .setLabel(i18n.t('stats.buttons.growth', guildId))
-            .setStyle(ButtonStyle.Success)
-            .setEmoji('📊')
-        );
 
+      // Botones de navegación (StatsComponents)
       await interaction.editReply({
         embeds: [statsEmbed],
-        components: [row]
+        components: [buildServerStatsButtons(guild.id)]
       });
 
     } catch (error) {
       await interaction.editReply({
-        content: i18n.t('stats.server.error', guildId)
+        content: i18n.t('stats.server.error', guild.id)
       });
     }
   }
@@ -256,15 +244,17 @@ export default class StatsCommand extends Command {
 
     try {
       const channelStats = await this.client.userStats.getChannelStats(channel.id, guildId);
-      
+      const createdAt: Date | null = (channel as any).createdAt ?? null;
+
       const embed = new EmbedBuilder()
         .setColor(Colors.Blue)
-        .setTitle(i18n.t('stats.channel.title', guildId, { channel: (channel as any).name || 'Unknown' }))
+        .setTitle(i18n.t('stats.channel.title', guildId, { channel: (channel as any).name || channel.id }))
+        .setFooter({ text: this.windowFooter(guildId) })
         .setTimestamp();
 
       if (channelStats) {
-        embed.addFields(
-          {
+        if (channelStats.totalMessages > 0) {
+          embed.addFields({
             name: i18n.t('stats.channel.messages.title', guildId),
             value: i18n.t('stats.channel.messages.value', guildId, {
               total: channelStats.totalMessages.toLocaleString(),
@@ -272,26 +262,51 @@ export default class StatsCommand extends Command {
               users: channelStats.uniqueUsers.toString()
             }),
             inline: true
-          },
-          {
-            name: i18n.t('stats.channel.activity.title', guildId),
-            value: i18n.t('stats.channel.activity.value', guildId, {
-              peak: channelStats.peakActivityHour.toString(),
-              created: channelStats.createdAt.toLocaleDateString()
-            }),
+          });
+        }
+
+        if (channelStats.voiceMinutes > 0) {
+          embed.addFields({
+            name: i18n.t('stats.channel.voice_title', guildId),
+            value: this.joinLines([
+              this.line('voice_time', guildId, this.formatDuration(channelStats.voiceMinutes)),
+              this.line('unique_users', guildId, channelStats.voiceUsers.toString())
+            ]),
             inline: true
-          }
-        );
+          });
+        }
+
+        const info = [
+          channelStats.peakActivityHour !== null ? this.line('peak_hour', guildId, this.hour(channelStats.peakActivityHour)) : null,
+          createdAt ? this.line('created', guildId, `<t:${Math.floor(createdAt.getTime() / 1000)}:D>`) : null
+        ];
+
+        if (info.some(Boolean)) {
+          embed.addFields({
+            name: i18n.t('stats.channel.activity.title', guildId),
+            value: this.joinLines(info),
+            inline: true
+          });
+        }
 
         if (channelStats.mostActiveUsers.length > 0) {
           const topUsers = channelStats.mostActiveUsers
-            .slice(0, 5)
-            .map((user, index) => `${index + 1}. <@${user.userId}>: ${user.messageCount}`)
-            .join('\n');
+            .map((user, index) => `${index + 1}. <@${user.userId}>: ${user.messageCount.toLocaleString()}`);
 
           embed.addFields({
             name: i18n.t('stats.channel.top_users.title', guildId),
-            value: topUsers,
+            value: this.joinLines(topUsers),
+            inline: false
+          });
+        }
+
+        if (channelStats.topVoiceUsers.length > 0) {
+          const topVoice = channelStats.topVoiceUsers
+            .map((user, index) => `${index + 1}. <@${user.userId}>: ${this.formatDuration(user.minutes)}`);
+
+          embed.addFields({
+            name: i18n.t('stats.server.top_voice_title', guildId),
+            value: this.joinLines(topVoice),
             inline: false
           });
         }
@@ -312,59 +327,45 @@ export default class StatsCommand extends Command {
     const type = interaction.options.getString('type', true);
     const limit = interaction.options.getInteger('limit') || 10;
     const guildId = interaction.guild!.id;
+    const stats = this.client.userStats;
 
     await interaction.deferReply();
 
     try {
-      let leaderboardData: Array<{ userId: string; value: number; rank: number }> = [];
+      let leaderboardData: Array<{ userId: string; value: number }> = [];
       let title = '';
       let valueLabel = '';
+      let footerKey = 'stats.leaderboard.footer_window';
 
       switch (type) {
         case 'messages':
-          const messageLeaders = await this.client.userStats.getTopUsersByMessages(guildId, limit);
-
-          leaderboardData = messageLeaders.map(user => ({
-            userId: user.userId,
-            value: user.totalMessages,
-            rank: user.rank
-          }));
+          leaderboardData = (await stats.getTopUsersByMessages(guildId, limit))
+            .map(u => ({ userId: u.userId, value: u.totalMessages }));
           title = i18n.t('stats.leaderboard.messages.title', guildId);
           valueLabel = i18n.t('stats.leaderboard.messages.label', guildId);
           break;
 
         case 'voice':
-          const voiceLeaders = await this.client.userStats.getTopUsersByVoiceTime(guildId, limit);
-
-          leaderboardData = voiceLeaders.map(user => ({
-            userId: user.userId,
-            value: user.totalVoiceTime,
-            rank: user.rank
-          }));
+          leaderboardData = (await stats.getTopUsersByVoiceTime(guildId, limit))
+            .map(u => ({ userId: u.userId, value: u.totalVoiceTime }));
           title = i18n.t('stats.leaderboard.voice.title', guildId);
           valueLabel = i18n.t('stats.leaderboard.voice.label', guildId);
           break;
 
         case 'streak':
-          // Mock data for streaks
-          leaderboardData = Array.from({ length: limit }, (_, i) => ({
-            userId: `user${i + 1}`,
-            value: Math.floor(Math.random() * 30) + 1,
-            rank: i + 1
-          }));
+          leaderboardData = (await stats.getTopUsersByStreak(guildId, limit))
+            .map(u => ({ userId: u.userId, value: u.streak }));
           title = i18n.t('stats.leaderboard.streak.title', guildId);
           valueLabel = i18n.t('stats.leaderboard.streak.label', guildId);
+          footerKey = 'stats.leaderboard.footer_streak';
           break;
 
         case 'daily':
-          // Mock data for daily activity
-          leaderboardData = Array.from({ length: limit }, (_, i) => ({
-            userId: `user${i + 1}`,
-            value: Math.floor(Math.random() * 100) + 10,
-            rank: i + 1
-          }));
+          leaderboardData = (await stats.getTopUsersToday(guildId, limit))
+            .map(u => ({ userId: u.userId, value: u.messages }));
           title = i18n.t('stats.leaderboard.daily.title', guildId);
-          valueLabel = i18n.t('stats.leaderboard.daily.label', guildId);
+          valueLabel = i18n.t('stats.leaderboard.daily.label_messages', guildId);
+          footerKey = 'stats.leaderboard.footer_today';
           break;
       }
 
@@ -377,19 +378,19 @@ export default class StatsCommand extends Command {
         const leaderboardText = leaderboardData
           .map((entry, index) => {
             const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
-            const formattedValue = type === 'voice' ? 
-              this.formatDuration(entry.value) : 
+            const formattedValue = type === 'voice' ?
+              this.formatDuration(entry.value) :
               entry.value.toLocaleString();
 
-            return `${medal} <@${entry.userId}>: ${formattedValue} ${valueLabel}`;
+            return `${medal} <@${entry.userId}>: ${formattedValue} ${valueLabel}`.trimEnd();
           })
           .join('\n');
 
-        embed.setDescription(leaderboardText);
-        embed.setFooter({ 
-          text: i18n.t('stats.leaderboard.footer', guildId, { 
+        embed.setDescription(leaderboardText.slice(0, 4096));
+        embed.setFooter({
+          text: i18n.t(footerKey, guildId, {
             count: leaderboardData.length.toString(),
-            type 
+            days: STATS_WINDOW_DAYS.toString()
           })
         });
       } else {
@@ -407,8 +408,8 @@ export default class StatsCommand extends Command {
 
   private async handleCompare(interaction: ChatInputCommandInteraction): Promise<void> {
     const user = interaction.options.getUser('user') || interaction.user;
-    const member = interaction.guild!.members.cache.get(user.id);
     const guildId = interaction.guild!.id;
+    const member = await this.resolveMember(interaction, user.id);
 
     if (!member) {
       await interaction.reply({
@@ -422,70 +423,7 @@ export default class StatsCommand extends Command {
     await interaction.deferReply();
 
     try {
-      const comparison = await this.client.userStats.getUserActivityComparison(user.id, guildId);
-      
-      const embed = new EmbedBuilder()
-        .setColor(comparison?.aboveAverage ? Colors.Green : Colors.Orange)
-        .setTitle(i18n.t('stats.compare.title', guildId, { user: member.displayName }))
-        .setThumbnail(user.displayAvatarURL())
-        .setTimestamp();
-
-      if (comparison) {
-        embed.addFields(
-          {
-            name: i18n.t('stats.compare.ranking.title', guildId),
-            value: i18n.t('stats.compare.ranking.value', guildId, {
-              rank: comparison.userRank.toString(),
-              total: comparison.totalUsers.toString(),
-              percentile: comparison.percentile.toString()
-            }),
-            inline: false
-          },
-          {
-            name: i18n.t('stats.compare.messages.title', guildId),
-            value: i18n.t('stats.compare.messages.value', guildId, {
-              user: comparison.comparisonData.userMessages.toLocaleString(),
-              average: comparison.comparisonData.averageMessages.toLocaleString(),
-              difference: Math.abs(comparison.comparisonData.userMessages - comparison.comparisonData.averageMessages).toLocaleString(),
-              status: comparison.comparisonData.userMessages > comparison.comparisonData.averageMessages ? 
-                i18n.t('stats.compare.above', guildId) : 
-                i18n.t('stats.compare.below', guildId)
-            }),
-            inline: true
-          },
-          {
-            name: i18n.t('stats.compare.voice.title', guildId),
-            value: i18n.t('stats.compare.voice.value', guildId, {
-              user: this.formatDuration(comparison.comparisonData.userVoiceTime),
-              average: this.formatDuration(comparison.comparisonData.averageVoiceTime),
-              status: comparison.comparisonData.userVoiceTime > comparison.comparisonData.averageVoiceTime ? 
-                i18n.t('stats.compare.above', guildId) : 
-                i18n.t('stats.compare.below', guildId)
-            }),
-            inline: true
-          },
-          {
-            name: i18n.t('stats.compare.streak.title', guildId),
-            value: i18n.t('stats.compare.streak.value', guildId, {
-              user: comparison.comparisonData.userStreak.toString(),
-              average: comparison.comparisonData.averageStreak.toString(),
-              status: comparison.comparisonData.userStreak > comparison.comparisonData.averageStreak ? 
-                i18n.t('stats.compare.above', guildId) : 
-                i18n.t('stats.compare.below', guildId)
-            }),
-            inline: true
-          }
-        );
-
-        // Add overall assessment
-        const overallStatus = comparison.aboveAverage ? 
-          i18n.t('stats.compare.overall.above', guildId) : 
-          i18n.t('stats.compare.overall.below', guildId);
-        
-        embed.setDescription(overallStatus);
-      } else {
-        embed.setDescription(i18n.t('stats.compare.no_data', guildId));
-      }
+      const embed = await buildCompareEmbed(this.client, member);
 
       await interaction.editReply({ embeds: [embed] });
 
@@ -498,9 +436,10 @@ export default class StatsCommand extends Command {
 
   private async handleActivity(interaction: ChatInputCommandInteraction): Promise<void> {
     const user = interaction.options.getUser('user') || interaction.user;
-    const period = interaction.options.getString('period') || '30d';
-    const member = interaction.guild!.members.cache.get(user.id);
+    // log_entries guarda 30 días: 90d / all añaden los totales históricos (ver buildActivityEmbed)
+    const period = normalizeStatsPeriod(interaction.options.getString('period'));
     const guildId = interaction.guild!.id;
+    const member = await this.resolveMember(interaction, user.id);
 
     if (!member) {
       await interaction.reply({
@@ -514,55 +453,7 @@ export default class StatsCommand extends Command {
     await interaction.deferReply();
 
     try {
-      const userStats = await this.client.userStats.getUserStats(user.id, guildId);
-      
-      const embed = new EmbedBuilder()
-        .setColor(Colors.Purple)
-        .setTitle(i18n.t('stats.activity.title', guildId, { 
-          user: member.displayName,
-          period: this.getPeriodLabel(period, guildId)
-        }))
-        .setThumbnail(user.displayAvatarURL())
-        .setTimestamp();
-
-      if (userStats) {
-        // Activity by hour (mock data)
-        const hourlyActivity = Object.entries(userStats.activityByHour)
-          .sort(([a], [b]) => parseInt(a) - parseInt(b))
-          .slice(0, 5)
-          .map(([hour, count]) => `${hour}:00 - ${count} mensajes`)
-          .join('\n');
-
-        // Activity by day of week (mock data)
-        const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-        const dailyActivity = Object.entries(userStats.activityByDay)
-          .map(([day, count]) => `${dayNames[parseInt(day)]}: ${count}`)
-          .join('\n');
-
-        embed.addFields(
-          {
-            name: i18n.t('stats.activity.hourly.title', guildId),
-            value: hourlyActivity || i18n.t('stats.activity.no_data', guildId),
-            inline: true
-          },
-          {
-            name: i18n.t('stats.activity.daily.title', guildId),
-            value: dailyActivity || i18n.t('stats.activity.no_data', guildId),
-            inline: true
-          },
-          {
-            name: i18n.t('stats.activity.summary.title', guildId),
-            value: i18n.t('stats.activity.summary.value', guildId, {
-              peak: userStats.peakActivityHour.toString(),
-              average: userStats.averageMessagesPerDay.toFixed(1),
-              streak: userStats.currentStreak.toString()
-            }),
-            inline: false
-          }
-        );
-      } else {
-        embed.setDescription(i18n.t('stats.activity.no_data', guildId));
-      }
+      const embed = await buildActivityEmbed(this.client, member, period);
 
       await interaction.editReply({ embeds: [embed] });
 
@@ -586,16 +477,6 @@ export default class StatsCommand extends Command {
       const hours = Math.floor((minutes % 1440) / 60);
 
       return `${days}d ${hours}h`;
-    }
-  }
-
-  private getPeriodLabel(period: string, guildId: string): string {
-    switch (period) {
-      case '7d': return i18n.t('stats.periods.7d', guildId);
-      case '30d': return i18n.t('stats.periods.30d', guildId);
-      case '90d': return i18n.t('stats.periods.90d', guildId);
-      case 'all': return i18n.t('stats.periods.all', guildId);
-      default: return i18n.t('stats.periods.30d', guildId);
     }
   }
 }

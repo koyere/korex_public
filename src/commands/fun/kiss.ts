@@ -50,7 +50,7 @@ export default class KissCommand extends Command {
       description = i18n.t('fun.kiss.bot_kiss', guildId, { user: author.toString() });
       color = botConfig.colors.info;
     } else {
-      const messages = i18n.t('fun.kiss.messages', guildId) as unknown as string[];
+      const messages = i18n.getList('fun.kiss.messages', guildId);
       const randomMessage = messages[Math.floor(Math.random() * messages.length)];
 
       description = `${i18n.t('fun.kiss.user_kiss', guildId, { 

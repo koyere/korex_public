@@ -18,6 +18,11 @@ export default class VoiceStateUpdateEvent extends Event<'voiceStateUpdate'> {
 
       if (!member) return;
 
+      // XP por minuto de voz (Niveles)
+      await this.client.levels.handleVoiceStateUpdate(oldState, newState).catch((err) =>
+        this.client.logger.error('Error tracking voice XP:', err)
+      );
+
       // Member joined a voice channel
       if (!oldState.channel && newState.channel) {
         await this.client.logging.logVoiceJoin(member, newState.channel);
@@ -26,6 +31,11 @@ export default class VoiceStateUpdateEvent extends Event<'voiceStateUpdate'> {
       // Member left a voice channel
       else if (oldState.channel && !newState.channel) {
         await this.client.logging.logVoiceLeave(member, oldState.channel);
+      }
+
+      // Member moved between voice channels
+      else if (oldState.channel && newState.channel && oldState.channelId !== newState.channelId) {
+        await this.client.logging.logVoiceMove(member, oldState.channel, newState.channel);
       }
     } catch (error) {
       this.client.logger.error('Error handling voice state update event:', error);

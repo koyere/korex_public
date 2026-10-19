@@ -1,8 +1,81 @@
-import { Collection, REST, Routes } from 'discord.js';
+import { Collection, DiscordAPIError, REST, Routes } from 'discord.js';
 import { Command } from '../structures/Command';
 import { KorexClient } from '../KorexClient';
-import { readdirSync, existsSync } from 'fs';
+import { readdirSync, existsSync, readFileSync } from 'fs';
 import { join } from 'path';
+import { effectiveEnabledAddons, isCoreModule, normalizeStored } from '../../config/coreModules';
+
+/**
+ * Localización centralizada (es) de descripciones de slash commands.
+ * Mapa plano "texto inglés → texto español" en src/languages/slash/es.json
+ * (en subcarpeta para que i18n no lo cargue como un idioma más).
+ * Solo se localizan `description` y `name` de choices; NUNCA nombres de
+ * comandos/opciones. No se sobrescriben localizaciones ya definidas.
+ */
+const SLASH_ES_LOCALES = ['es-ES', 'es-419'] as const;
+let slashEsMap: Record<string, string> | null = null;
+
+function loadSlashEsMap(): Record<string, string> {
+  if (slashEsMap) return slashEsMap;
+  // es.json (core) + es.<addon>.json (uno por addon, para no mezclar dominios)
+  const candidates = [
+    join(__dirname, '../../languages/slash'),        // dist/languages (si se copia)
+    join(__dirname, '../../../src/languages/slash'), // src/languages desde dist/
+    join(process.cwd(), 'src/languages/slash'),
+  ];
+  slashEsMap = {};
+  for (const dir of candidates) {
+    if (!existsSync(dir)) continue;
+    const files = readdirSync(dir).filter(f => /^es(\.[\w-]+)?\.json$/.test(f)).sort();
+    for (const file of files) {
+      try {
+        const data = JSON.parse(readFileSync(join(dir, file), 'utf8'));
+        if (data && typeof data === 'object') Object.assign(slashEsMap, data);
+      } catch { /* fichero inválido: se ignora */ }
+    }
+    break;
+  }
+  return slashEsMap;
+}
+
+function translateEs(text: unknown): string | null {
+  if (typeof text !== 'string' || !text) return null;
+  const es = loadSlashEsMap()[text];
+  if (typeof es !== 'string') return null;
+  const trimmed = es.trim();
+  if (trimmed.length < 1 || trimmed.length > 100 || trimmed === text) return null;
+  return trimmed;
+}
+
+function addLocalizations(node: any, field: 'description_localizations' | 'name_localizations', es: string): void {
+  const existing = node[field];
+  const merged: Record<string, string> = existing && typeof existing === 'object' ? { ...existing } : {};
+  for (const loc of SLASH_ES_LOCALES) {
+    if (!merged[loc]) merged[loc] = es;
+  }
+  node[field] = merged;
+}
+
+function localizeNode(node: any): void {
+  if (!node || typeof node !== 'object') return;
+  const desc = translateEs(node.description);
+  if (desc) addLocalizations(node, 'description_localizations', desc);
+  if (Array.isArray(node.choices)) {
+    for (const choice of node.choices) {
+      const name = translateEs(choice?.name);
+      if (name) addLocalizations(choice, 'name_localizations', name);
+    }
+  }
+  if (Array.isArray(node.options)) {
+    for (const opt of node.options) localizeNode(opt);
+  }
+}
+
+/** Añade localizaciones es-ES/es-419 al JSON de un comando (muta y devuelve). */
+export function localizeCommandJson<T>(json: T): T {
+  try { localizeNode(json); } catch { /* nunca bloquear el registro */ }
+  return json;
+}
 
 export class CommandManager {
   public client: KorexClient;
@@ -114,7 +187,7 @@ export class CommandManager {
     const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN!);
 
     const toJSON = (cmd: Command) => {
-      try { return cmd.data().toJSON(); } catch { return null; }
+      try { return localizeCommandJson(cmd.data().toJSON()); } catch { return null; }
     };
 
     // Development: dump everything into the dev guild for instant feedback
@@ -169,7 +242,7 @@ export class CommandManager {
     }
 
     const toJSON = (cmd: Command) => {
-      try { return cmd.data().toJSON(); } catch { return null; }
+      try { return localizeCommandJson(cmd.data().toJSON()); } catch { return null; }
     };
 
     // Only include commands from registered premium addons (not core module commands).
@@ -188,6 +261,35 @@ export class CommandManager {
         `Guild ${guildId}: ${guildCmds.length} addon command(s) synced [${enabledAddons.join(', ')}]`
       );
     } catch (error) {
+      if (error instanceof DiscordAPIError && error.code === 50001) {
+        this.client.logger.warn(
+          `[CommandManager] Missing Access (50001) for guild ${guildId} — cleaning up guild addon state`
+        );
+        try {
+          // Quitar solo los addons de pago: conservar los toggles de módulos core
+          const current = await this.client.db.guild.findUnique({
+            where: { id: guildId },
+            select: { enabledAddons: true },
+          });
+          await this.client.db.guild.update({
+            where: { id: guildId },
+            data: { enabledAddons: normalizeStored(effectiveEnabledAddons(current?.enabledAddons).filter(isCoreModule)) },
+          });
+          this.client.addons.invalidateEnabledCache(guildId);
+        } catch (dbError) {
+          this.client.logger.error(
+            `[CommandManager] Failed to clear enabledAddons for guild ${guildId}:`, dbError
+          );
+        }
+        try {
+          await this.client.kickoutService.handleGuildLeft(guildId);
+        } catch (koError) {
+          this.client.logger.error(
+            `[CommandManager] Failed to mark guild ${guildId} as kicked out:`, koError
+          );
+        }
+        return;
+      }
       this.client.logger.error(`Error syncing addon commands for guild ${guildId}:`, error);
     }
   }

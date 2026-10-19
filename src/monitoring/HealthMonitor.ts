@@ -189,9 +189,9 @@ export class HealthMonitor extends EventEmitter {
       if (musicEnabled && !musicReady) {
         // Lavalink negotiation takes a few seconds after startup; don't alarm during that window
         status = inGrace ? 'degraded' : 'unhealthy';
-      } else if (!musicEnabled) {
-        status = 'degraded';
       }
+      // If music is intentionally disabled (MUSIC_ENABLED=false), this is an
+      // expected operational state, not a degradation → keep status 'healthy'.
 
       this.updateCheck('music', {
         name: 'Music Node',
@@ -562,7 +562,9 @@ export class HealthMonitor extends EventEmitter {
     
     try {
       // Verificar si la API está habilitada
-      if (!this.client.api) {
+      // The open-source core does not ship the REST API: report it as disabled
+      // unless a host application attaches one to the client.
+      if (!(this.client as unknown as { api?: unknown }).api) {
         this.updateCheck('api', {
           name: 'API Health',
           status: 'healthy',

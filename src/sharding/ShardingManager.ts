@@ -433,35 +433,18 @@ export class KorexShardingManager extends EventEmitter {
   }
 
   /**
-   * Broadcast a todos los shards
+   * Actualizar presencia del bot en todos los shards
    */
-  async broadcast(script: string): Promise<any[]> {
+  async broadcastPresence(status: 'online' | 'idle' | 'dnd' | 'invisible'): Promise<void> {
     try {
-      return await this.manager.broadcastEval((client) => {
-        return eval(script);
-      });
+      await this.manager.broadcastEval(
+        (client, context) => {
+          client.user?.setStatus(context.status as any);
+        },
+        { context: { status } }
+      );
     } catch (error) {
-      this.logger.error('Broadcast failed:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Ejecutar en un shard específico
-   */
-  async evalOnShard(shardId: number, script: string): Promise<any> {
-    try {
-      const shard = this.manager.shards.get(shardId);
-
-      if (!shard) {
-        throw new Error(`Shard ${shardId} not found`);
-      }
-
-      return await shard.eval((client) => {
-        return eval(script);
-      });
-    } catch (error) {
-      this.logger.error(`Eval on shard ${shardId} failed:`, error);
+      this.logger.error('broadcastPresence failed:', error);
       throw error;
     }
   }

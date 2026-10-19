@@ -37,7 +37,8 @@ export default class MemeCommand extends Command {
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
         const response = await fetch('https://meme-api.com/gimme/memes', {
-          headers: { 'User-Agent': 'KorexBot/1.0' }
+          headers: { 'User-Agent': 'KorexBot/1.0' },
+          signal: AbortSignal.timeout(5000),
         });
 
         if (!response.ok) throw new Error(`API error: ${response.status}`);
@@ -72,17 +73,17 @@ export default class MemeCommand extends Command {
         return;
 
       } catch {
-        if (attempt === 2) {
-          // All attempts failed — show a clean error message
-          const embed = new EmbedBuilder()
-            .setColor(botConfig.colors.error ?? '#ff0000')
-            .setTitle(i18n.t('fun.meme.title', guildId))
-            .setDescription(i18n.t('fun.meme.error', guildId))
-            .setTimestamp();
-
-          await interaction.editReply({ embeds: [embed] });
-        }
+        // Se reintenta; si fallan los 3 intentos se muestra el error abajo
       }
     }
+
+    // 3 intentos fallidos o solo posts NSFW/spoiler: respuesta de error
+    const embed = new EmbedBuilder()
+      .setColor(botConfig.colors.error ?? '#ff0000')
+      .setTitle(i18n.t('fun.meme.title', guildId))
+      .setDescription(i18n.t('fun.meme.error', guildId))
+      .setTimestamp();
+
+    await interaction.editReply({ embeds: [embed] });
   }
-}
+}

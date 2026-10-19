@@ -9,7 +9,10 @@ import {
   GuildBan,
 } from 'discord.js';
 import { logger } from '../utils/Logger';
+import { i18n } from '../utils/i18n';
 import { DatabaseManager } from '../client/managers/DatabaseManager';
+import { setLongTimeout, LongTimeout } from '../utils/longTimeout';
+import { pickWarnEscalationStep, readWarnEscalation, WarnEscalationAction } from '../utils/warnEscalation';
 
 export interface ModerationAction {
   id: string;
@@ -50,7 +53,7 @@ export class ModerationService {
   private static instance: ModerationService;
   private logger = logger;
   private db: DatabaseManager;
-  private activeTimeouts = new Map<string, NodeJS.Timeout>();
+  private activeTimeouts = new Map<string, LongTimeout>();
 
   private constructor(db: DatabaseManager) {
     this.db = db;
@@ -90,9 +93,8 @@ export class ModerationService {
       const activeActions = await this.db.prisma.moderationActionLog.findMany({
         where: {
           isActive: true,
-          expiresAt: {
-            gt: new Date(),
-          },
+          // Incluye las que vencieron con el bot apagado (se deshacen al arrancar)
+          expiresAt: { not: null },
           type: {
             in: ['MUTE', 'BAN'],
           },
@@ -101,7 +103,9 @@ export class ModerationService {
 
       for (const action of activeActions) {
         if (action.expiresAt) {
-          this.scheduleUndo(action.id, action.expiresAt);
+          // Las ya vencidas se programan con un pequeño margen para dar tiempo al login
+          const minDate = new Date(Date.now() + 30_000);
+          this.scheduleUndo(action.id, action.expiresAt < minDate ? minDate : action.expiresAt);
         }
       }
 
@@ -399,6 +403,90 @@ export class ModerationService {
   /**
    * Crea una acción de moderación en la base de datos
    */
+  /**
+   * Crea un caso numerado en moderation_cases (tabla que muestran el dashboard
+   * y /modlogs). Reintenta si dos casos se crean a la vez con el mismo número.
+   */
+  public async createCase(data: {
+    guildId: string;
+    action: 'WARN' | 'TIMEOUT' | 'KICK' | 'BAN' | 'UNBAN' | 'TEMPBAN';
+    targetId: string;
+    moderatorId: string;
+    reason?: string | null;
+    duration?: number | null;
+    expiresAt?: Date | null;
+    active?: boolean;
+  }): Promise<void> {
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const last = await this.db.prisma.moderationCase.findFirst({
+        where: { guildId: data.guildId },
+        orderBy: { caseNumber: 'desc' },
+        select: { caseNumber: true },
+      });
+      try {
+        await this.db.prisma.moderationCase.create({
+          data: {
+            guildId: data.guildId,
+            caseNumber: (last?.caseNumber ?? 0) + 1,
+            action: data.action,
+            targetId: data.targetId,
+            moderatorId: data.moderatorId,
+            reason: data.reason ?? null,
+            duration: data.duration ?? null,
+            expiresAt: data.expiresAt ?? null,
+            active: data.active ?? false,
+          },
+        });
+        return;
+      } catch (err: any) {
+        if (err?.code !== 'P2002') throw err;
+      }
+    }
+  }
+
+  /** Cierra los casos activos de un tipo (p. ej. al desbanear o quitar el mute). */
+  private async closeActiveCases(guildId: string, targetId: string, actions: Array<'TIMEOUT' | 'BAN' | 'TEMPBAN'>): Promise<void> {
+    await this.db.prisma.moderationCase.updateMany({
+      where: { guildId, targetId, action: { in: actions }, active: true },
+      data: { active: false },
+    });
+  }
+
+  private async recordCaseForAction(data: {
+    type: ModerationAction['type'];
+    guildId: string;
+    userId: string;
+    moderatorId: string;
+    reason: string;
+    duration?: number | null;
+    expiresAt?: Date | null;
+  }): Promise<void> {
+    const base = {
+      guildId: data.guildId,
+      targetId: data.userId,
+      moderatorId: data.moderatorId,
+      reason: data.reason,
+      duration: data.duration ?? null,
+      expiresAt: data.expiresAt ?? null,
+    };
+    switch (data.type) {
+      case 'WARN':
+        return this.createCase({ ...base, action: 'WARN', active: false });
+      case 'KICK':
+        return this.createCase({ ...base, action: 'KICK', active: false });
+      case 'MUTE':
+        // El mute por rol es un silencio temporal: se muestra como TIMEOUT
+        return this.createCase({ ...base, action: 'TIMEOUT', active: true });
+      case 'BAN':
+        return this.createCase({ ...base, action: data.expiresAt ? 'TEMPBAN' : 'BAN', active: true });
+      case 'UNBAN':
+        await this.closeActiveCases(data.guildId, data.userId, ['BAN', 'TEMPBAN']);
+        return this.createCase({ ...base, action: 'UNBAN', active: false });
+      case 'UNMUTE':
+        return this.closeActiveCases(data.guildId, data.userId, ['TIMEOUT']);
+    }
+  }
+
   private async createModerationAction(data: {
     type: ModerationAction['type'];
     guildId: string;
@@ -417,6 +505,11 @@ export class ModerationService {
       },
     });
 
+    // Historial unificado: el dashboard y /modlogs leen moderation_cases
+    await this.recordCaseForAction(data).catch((err) =>
+      this.logger.error('Error recording moderation case:', err)
+    );
+
     return {
       id: dbAction.id,
       type: dbAction.type as ModerationAction['type'],
@@ -432,10 +525,35 @@ export class ModerationService {
   }
 
   /**
+   * Registra un ban temporal ya ejecutado (p. ej. /tempban) y programa el desbaneo.
+   * Persistirlo en BD hace que sobreviva a reinicios y aparezca en /modlogs.
+   */
+  public async recordTemporaryBan(
+    guild: Guild,
+    user: User,
+    moderator: User,
+    reason: string,
+    durationMs: number
+  ): Promise<void> {
+    const expiresAt = new Date(Date.now() + durationMs);
+    const action = await this.createModerationAction({
+      type: 'BAN',
+      guildId: guild.id,
+      userId: user.id,
+      moderatorId: moderator.id,
+      reason,
+      duration: Math.round(durationMs / 60_000),
+      expiresAt,
+    });
+    this.scheduleUndo(action.id, expiresAt);
+    await this.logModerationAction(guild, action, user, moderator);
+  }
+
+  /**
    * Programa el deshacimiento automático de una acción
    */
   private scheduleUndo(actionId: string, expiresAt: Date): void {
-    const timeout = setTimeout(async () => {
+    const timeout = setLongTimeout(async () => {
       await this.executeAutoUndo(actionId);
       this.activeTimeouts.delete(actionId);
     }, expiresAt.getTime() - Date.now());
@@ -497,20 +615,21 @@ export class ModerationService {
     duration?: number
   ): Promise<void> {
     try {
+      const t = (key: string, vars?: Record<string, string>) => i18n.t(key, guild.id, vars);
       const embed = new EmbedBuilder()
         .setColor(Colors.Red)
-        .setTitle(`🔨 Acción de Moderación`)
+        .setTitle(t('moderation.dm.title'))
         .addFields(
-          { name: 'Servidor', value: guild.name, inline: true },
-          { name: 'Acción', value: action, inline: true },
-          { name: 'Razón', value: reason, inline: false }
+          { name: t('moderation.dm.server'), value: guild.name, inline: true },
+          { name: t('moderation.dm.action'), value: t(`moderation.action_types.${action}`), inline: true },
+          { name: t('moderation.log.reason'), value: reason.slice(0, 1024), inline: false }
         )
         .setTimestamp();
 
       if (duration) {
         embed.addFields({
-          name: 'Duración',
-          value: `${duration} minutos`,
+          name: t('moderation.log.duration'),
+          value: t('moderation.log.minutes', { minutes: String(duration) }),
           inline: true,
         });
       }
@@ -522,9 +641,26 @@ export class ModerationService {
     }
   }
 
+
   /**
    * Registra la acción en el canal de logs
    */
+  /**
+   * Canal de logs de moderación: el de Logs del dashboard (el mismo que usa el
+   * AutoMod) y, si no hay, el creado por /setup.
+   */
+  public async getModerationLogChannel(guild: Guild): Promise<TextChannel | null> {
+    const loggingConfig = await this.db.prisma.loggingConfig.findUnique({
+      where: { guildId: guild.id },
+      select: { moderationLogChannel: true },
+    });
+    const config = await this.getModerationConfig(guild.id);
+    const channelId = loggingConfig?.moderationLogChannel || config.logChannelId;
+    if (!channelId) return null;
+    const channel = guild.channels.cache.get(channelId);
+    return channel?.isTextBased() ? (channel as TextChannel) : null;
+  }
+
   private async logModerationAction(
     guild: Guild,
     action: ModerationAction,
@@ -532,33 +668,30 @@ export class ModerationService {
     moderator: User
   ): Promise<void> {
     try {
-      const config = await this.getModerationConfig(guild.id);
-
-      if (!config.logChannelId) {
-        return;
-      }
-
-      const logChannel = guild.channels.cache.get(config.logChannelId) as TextChannel;
+      // Mismo canal que usa el AutoMod (Logs → canal de moderación);
+      // el de /setup queda como respaldo.
+      const logChannel = await this.getModerationLogChannel(guild);
 
       if (!logChannel) {
         return;
       }
 
+      const t = (key: string, vars?: Record<string, string>) => i18n.t(key, guild.id, vars);
       const embed = new EmbedBuilder()
         .setColor(this.getActionColor(action.type))
-        .setTitle(`${this.getActionEmoji(action.type)} ${action.type}`)
+        .setTitle(`${this.getActionEmoji(action.type)} ${t(`moderation.action_types.${action.type}`)}`)
         .addFields(
-          { name: 'Usuario', value: `${user.tag} (${user.id})`, inline: true },
-          { name: 'Moderador', value: `${moderator.tag}`, inline: true },
-          { name: 'Razón', value: action.reason, inline: false }
+          { name: t('moderation.log.user'), value: `${user.tag} (${user.id})`, inline: true },
+          { name: t('moderation.log.moderator'), value: `${moderator.tag}`, inline: true },
+          { name: t('moderation.log.reason'), value: action.reason.slice(0, 1024), inline: false }
         )
         .setTimestamp()
         .setFooter({ text: `ID: ${action.id}` });
 
       if (action.duration) {
         embed.addFields({
-          name: 'Duración',
-          value: `${action.duration} minutos`,
+          name: t('moderation.log.duration'),
+          value: t('moderation.log.minutes', { minutes: String(action.duration) }),
           inline: true,
         });
       }
@@ -569,59 +702,90 @@ export class ModerationService {
     }
   }
 
+
   /**
    * Verifica si se necesitan auto-acciones basadas en warnings
    */
   private async checkAutoActions(guild: Guild, user: User): Promise<void> {
     try {
-      const config = await this.getModerationConfig(guild.id);
+      // Configuración del dashboard (Moderación → Acciones automáticas)
+      // Los campos del escalado se leen sin tipar: son columnas aditivas (ver warnEscalation.ts)
+      const modConfig: any = await (this.db.prisma as any).moderationConfig.findUnique({
+        where: { guildId: guild.id },
+      });
+      const threshold = modConfig?.warnThreshold ?? 3;
+      const actionType = modConfig?.warnAction ?? 'timeout';
+      const durationSec = modConfig?.warnActionDuration ?? 3600;
+      const guildConfig = await this.getModerationConfig(guild.id);
 
-      // Contar warnings activos
-      const warningCount = await this.db.prisma.moderationActionLog.count({
+      // Avisos manuales vigentes (los del AutoMod no cuentan para la escalada)
+      const warningCount = await this.db.prisma.moderationCase.count({
         where: {
           guildId: guild.id,
-          userId: user.id,
-          type: 'WARN',
+          targetId: user.id,
+          action: 'WARN',
+          moderatorId: { not: guild.client.user!.id },
           createdAt: {
-            gte: new Date(Date.now() - config.warningExpireDays * 24 * 60 * 60 * 1000),
+            gte: new Date(Date.now() - guildConfig.warningExpireDays * 24 * 60 * 60 * 1000),
           },
         },
       });
 
-      // Buscar auto-acción aplicable
-      const autoAction = config.autoActions
-        .sort((a, b) => b.warnings - a.warnings)
-        .find((action) => warningCount >= action.warnings);
-
-      if (!autoAction) {
-        return;
-      }
-
       const member = await guild.members.fetch(user.id).catch(() => null);
+      const reason = i18n.t('moderation.auto_action_reason', guild.id, { count: String(warningCount) });
 
-      if (!member) {
+      // 1. Escalado por avisos (desactivado por defecto): se aplica el escalón más alto alcanzado
+      if (modConfig?.warnEscalationEnabled === true) {
+        const step = pickWarnEscalationStep(readWarnEscalation(modConfig.warnEscalationSteps), warningCount);
+        if (step) {
+          await this.applyAutoAction(guild, user, member, step.action, step.duration ?? null, reason);
+          return;
+        }
+      }
+
+      // 2. Umbral único: se aplica al llegar al límite y a cada múltiplo (3, 6, 9...)
+      if (threshold < 1 || warningCount < threshold || warningCount % threshold !== 0) {
         return;
       }
-
-      const botUser = guild.client.user!;
-      const reason = `Auto-action: ${warningCount} warnings reached`;
-
-      // Ejecutar auto-acción
-      switch (autoAction.action) {
-        case 'MUTE':
-          await this.muteUser(guild, member, botUser, reason, autoAction.duration);
-          break;
-        case 'KICK':
-          await this.kickUser(guild, member, botUser, reason);
-          break;
-        case 'BAN':
-          await this.banUser(guild, user, botUser, reason, autoAction.duration);
-          break;
-      }
+      const action = (['timeout', 'kick', 'ban'].includes(actionType) ? actionType : 'timeout') as WarnEscalationAction;
+      await this.applyAutoAction(guild, user, member, action, action === 'timeout' ? Math.round(durationSec / 60) : null, reason);
     } catch (error) {
       this.logger.error('Error checking auto actions:', error);
     }
   }
+
+  /** Ejecuta una acción automática por avisos. `durationMin`: silencio o baneo temporal (minutos). */
+  private async applyAutoAction(
+    guild: Guild,
+    user: User,
+    member: GuildMember | null,
+    action: WarnEscalationAction,
+    durationMin: number | null,
+    reason: string,
+  ): Promise<void> {
+    const botUser = guild.client.user!;
+    switch (action) {
+      case 'timeout': {
+        if (!member?.moderatable) return;
+        const ms = Math.min(Math.max(1, durationMin ?? 60) * 60_000, 28 * 24 * 60 * 60 * 1000);
+        await member.timeout(ms, reason);
+        await this.createCase({
+          guildId: guild.id, action: 'TIMEOUT', targetId: user.id, moderatorId: botUser.id,
+          reason, duration: Math.round(ms / 60_000), expiresAt: new Date(Date.now() + ms), active: true,
+        });
+        break;
+      }
+      case 'kick':
+        if (member?.kickable) await this.kickUser(guild, member, botUser, reason);
+        break;
+      case 'ban':
+        // Sin miembro (ya salió) se puede banear igualmente; nunca a alguien por encima del bot
+        if (member && !member.bannable) return;
+        await this.banUser(guild, user, botUser, reason, durationMin ?? undefined);
+        break;
+    }
+  }
+
 
   /**
    * Obtiene la configuración de moderación de un servidor
@@ -681,30 +845,33 @@ export class ModerationService {
     guildId: string,
     userId: string,
     limit: number = 10
-  ): Promise<ModerationAction[]> {
+  ): Promise<Array<{
+    id: string;
+    caseNumber: number;
+    type: string;
+    moderatorId: string;
+    reason: string | null;
+    duration: number | null;
+    active: boolean;
+    createdAt: Date;
+  }>> {
     try {
-      const actions = await this.db.prisma.moderationActionLog.findMany({
-        where: {
-          guildId,
-          userId,
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
+      // Incluye comandos y AutoMod (misma tabla que el dashboard)
+      const cases = await this.db.prisma.moderationCase.findMany({
+        where: { guildId, targetId: userId },
+        orderBy: { createdAt: 'desc' },
         take: limit,
       });
 
-      return actions.map((action) => ({
-        id: action.id,
-        type: action.type as ModerationAction['type'],
-        guildId: action.guildId,
-        userId: action.userId,
-        moderatorId: action.moderatorId,
-        reason: action.reason,
-        duration: action.duration || null,
-        expiresAt: action.expiresAt || null,
-        isActive: action.isActive,
-        createdAt: action.createdAt,
+      return cases.map((c) => ({
+        id: c.id,
+        caseNumber: c.caseNumber,
+        type: c.action,
+        moderatorId: c.moderatorId,
+        reason: c.reason,
+        duration: c.duration,
+        active: c.active,
+        createdAt: c.createdAt,
       }));
     } catch (error) {
       this.logger.error('Error getting user moderation history:', error);
@@ -712,6 +879,7 @@ export class ModerationService {
       return [];
     }
   }
+
 
   /**
    * Obtiene el color para el embed según el tipo de acción

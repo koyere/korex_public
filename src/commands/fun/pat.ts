@@ -50,7 +50,7 @@ export default class PatCommand extends Command {
       description = i18n.t('fun.pat.bot_pat', guildId, { user: author.toString() });
       color = botConfig.colors.info;
     } else {
-      const messages = i18n.t('fun.pat.messages', guildId) as unknown as string[];
+      const messages = i18n.getList('fun.pat.messages', guildId);
       const randomMessage = messages[Math.floor(Math.random() * messages.length)];
 
       description = `${i18n.t('fun.pat.user_pat', guildId, { 

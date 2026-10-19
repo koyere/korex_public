@@ -41,33 +41,33 @@ export default class WorkCommand extends Command {
       const workData = this.getRandomWork(guildId);
       const config = await this.client.economy.getConfig(guildId);
       
-      // Extraer la cantidad ganada del mensaje del resultado
-      const earnedMatch = result.message.match(/(\d+)/);
-      const earned = earnedMatch ? parseInt(earnedMatch[1]) : 0;
+      const earned = result.amount ?? 0;
+      const symbol = config.currencySymbol;
+      const t = (key: string, vars?: Record<string, string>) => i18n.t(key, guildId, vars);
 
       const embed = new EmbedBuilder()
-        .setTitle('💼 Work Completed!')
+        .setTitle(t('work.result.title'))
         .setColor(Colors.Green)
-        .setDescription(`**${workData.job}**\n${workData.description}\n\nYou earned ${earned} 🪙!`)
+        .setDescription(`**${workData.emoji} ${workData.job}**\n${workData.description}\n\n${t('work.result.earned', { amount: `${earned} ${symbol}` })}`)
         .addFields(
           {
-            name: '💰 Earnings',
-            value: `+${earned} 🪙`,
+            name: t('work.result.earnings'),
+            value: `+${earned} ${symbol}`,
             inline: true,
           },
           {
-            name: '💰 New Balance',
-            value: `${result.newBalance} 🪙`,
+            name: t('work.result.new_balance'),
+            value: `${result.newBalance} ${symbol}`,
             inline: true,
           },
           {
-            name: '⏰ Next Work',
-            value: 'Available in 5 minutes',
+            name: t('work.result.next'),
+            value: `<t:${Math.floor((Date.now() + config.workCooldown * 1000) / 1000)}:R>`,
             inline: true,
           }
         )
         .setFooter({
-          text: 'Keep working to earn more coins!',
+          text: t('work.result.footer'),
           iconURL: interaction.user.displayAvatarURL(),
         })
         .setTimestamp();

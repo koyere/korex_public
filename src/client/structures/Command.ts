@@ -7,6 +7,8 @@ import {
   SlashCommandSubcommandsOnlyBuilder,
 } from 'discord.js';
 import { KorexClient } from '../KorexClient';
+import { i18n } from '../../utils/i18n';
+import { isCoreModule } from '../../config/coreModules';
 
 export interface CommandOptions {
   name: string;
@@ -102,17 +104,17 @@ export abstract class Command {
   ): Promise<{ canExecute: boolean; reason?: string }> {
     // Verificar si el comando está habilitado
     if (!this.enabled) {
-      return { canExecute: false, reason: 'Comando deshabilitado' };
+      return { canExecute: false, reason: i18n.t('command_errors.disabled', guildId || 'global') };
     }
 
     // Verificar owner only
     if (this.ownerOnly && !this.client.isOwner(userId)) {
-      return { canExecute: false, reason: 'Solo el propietario puede usar este comando' };
+      return { canExecute: false, reason: i18n.t('command_errors.owner_only', guildId || 'global') };
     }
 
     // Verificar guild only
     if (this.guildOnly && !guildId) {
-      return { canExecute: false, reason: 'Este comando solo puede usarse en servidores' };
+      return { canExecute: false, reason: i18n.t('command_errors.guild_only', 'global') };
     }
 
     // Verificar addon habilitado
@@ -120,11 +122,19 @@ export abstract class Command {
       const addonEnabled = await this.client.addons.isEnabled(guildId, this.addon);
 
       if (!addonEnabled) {
+        // Módulos gratuitos (Ajustes) y addons de pago tienen mensajes distintos
+        const isCore = isCoreModule(this.addon);
         return {
           canExecute: false,
-          reason: `El addon \`${this.addon}\` no está habilitado en este servidor`,
+          reason: isCore
+            ? i18n.t('common.module_disabled', guildId)
+            : i18n.t('command_errors.addon_disabled', guildId, { addon: this.addon }),
         };
       }
+
+      // Interruptor propio del addon (configuración del servidor)
+      const blocked = await this.client.addons.getAddon(this.addon)?.commandBlockedReason(guildId, this.name).catch(() => null);
+      if (blocked) return { canExecute: false, reason: blocked };
     }
 
     // Verificar permisos del usuario (usando operaciones de bits con bigint)
@@ -134,7 +144,7 @@ export abstract class Command {
       );
 
       if (missingPerms.length > 0) {
-        return { canExecute: false, reason: 'No tienes los permisos necesarios' };
+        return { canExecute: false, reason: i18n.t('command_errors.missing_permissions', guildId || 'global') };
       }
     }
 

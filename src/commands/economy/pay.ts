@@ -44,6 +44,7 @@ export default class PayCommand extends Command {
       const toUser = interaction.options.getUser('user', true);
       const amount = interaction.options.getInteger('amount', true);
       const lang = i18n.getGuildLanguage(guildId);
+      const { currencySymbol } = await this.client.economy.getConfig(guildId);
 
       // Validations
       if (toUser.bot) {
@@ -93,14 +94,14 @@ export default class PayCommand extends Command {
         .setTitle(i18n.t('pay.success_title', lang))
         .setColor(Colors.Green)
         .setDescription(
-          i18n.t('pay.success_description', lang, {
+          i18n.t('pay.success_description', lang, { symbol: currencySymbol,
             amount: amount.toString(),
             user: toUser.toString(),
           })
         )
         .addFields({
           name: i18n.t('pay.your_new_balance', lang),
-          value: i18n.t('balance.amount', lang, { amount: result.newBalance!.toString() }),
+          value: i18n.t('balance.amount', lang, { symbol: currencySymbol, amount: result.newBalance!.toString() }),
           inline: true,
         })
         .setFooter({
@@ -117,7 +118,7 @@ export default class PayCommand extends Command {
           .setTitle(i18n.t('pay.received_title', lang))
           .setColor(Colors.Gold)
           .setDescription(
-            i18n.t('pay.received_description', lang, {
+            i18n.t('pay.received_description', lang, { symbol: currencySymbol,
               amount: amount.toString(),
               user: interaction.user.toString(),
               server: interaction.guild!.name,

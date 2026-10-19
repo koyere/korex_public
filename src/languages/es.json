@@ -40,7 +40,8 @@
       "form_expired": "❌ Este formulario ya no está disponible.",
       "component_error": "❌ Ocurrió un error al procesar este componente.",
       "generic": "Ha ocurrido un error inesperado.",
-      "service_unavailable": "El servicio no está disponible en este momento."
+      "service_unavailable": "El servicio no está disponible en este momento.",
+      "invalid_value": "Valor no válido: {field}"
     },
     "cosmetics": "Cosméticos",
     "consumables": "Consumibles",
@@ -48,7 +49,8 @@
     "guild_only": "Este comando solo puede usarse en servidores.",
     "unknown_role": "Rol desconocido",
     "next": "Siguiente",
-    "previous": "Anterior"
+    "previous": "Anterior",
+    "module_disabled": "❌ Este módulo está desactivado en este servidor. Un administrador puede activarlo en el panel web (Ajustes)."
   },
   "errors": {
     "system_disabled": "Este sistema está deshabilitado en este servidor.",
@@ -64,12 +66,28 @@
     "already_claimed": "Ya has reclamado tu recompensa {type}.",
     "database_error": "Ocurrió un error de base de datos.",
     "internal_error": "Ocurrió un error interno.",
-    "invalid_subcommand": "Subcomando inválido."
+    "invalid_subcommand": "Subcomando inválido.",
+    "not_authorized": "❌ No tienes permiso para hacer esto.",
+    "unknown_action": "❌ Acción desconocida.",
+    "unknown_setup_type": "❌ Tipo de configuración desconocido.",
+    "member_not_found": "❌ No se encontró al miembro.",
+    "rate_limit": "⏳ Vas demasiado rápido. Inténtalo de nuevo en {retryAfter} segundos."
   },
   "commands": {
     "ping": {
       "description": "Muestra la latencia y estado del bot",
-      "response": "🏓 ¡Pong! Latencia: {latency}ms | API: {api}ms"
+      "response": "🏓 ¡Pong! Latencia: {latency}ms | API: {api}ms",
+      "calculating": "🏓 Calculando ping...",
+      "title": "🏓 Pong!",
+      "api_latency": "Latencia de API",
+      "ws_latency": "Latencia WebSocket",
+      "uptime_label": "Uptime",
+      "memory_label": "Memoria",
+      "status_excellent": "Excelente",
+      "status_good": "Buena",
+      "status_fair": "Regular",
+      "status_poor": "Mala",
+      "footer": "Korex v{version}"
     },
     "help": {
       "description": "Muestra información de ayuda",
@@ -79,7 +97,33 @@
       "command_info": "Información del Comando",
       "usage": "Uso",
       "cooldown": "Cooldown: {seconds}s",
-      "permissions": "Permisos Requeridos"
+      "permissions": "Permisos Requeridos",
+      "category": "📂 Categoría",
+      "owner_only": "Solo Propietario",
+      "aliases": "🏷️ Aliases",
+      "addon": "🧩 Addon",
+      "not_found": "❌ No se encontró el comando `{name}`.",
+      "commands_count": "🎯 Comandos disponibles: {count}",
+      "addons_count": "🧩 Addons cargados: {count}",
+      "servers_count": "📊 Servidores: {count}",
+      "intro": "Usa el menú de abajo para explorar comandos por categoría, o usa `/help <comando>` para ayuda específica.",
+      "footer": "Korex v{version} - The Core of Your Community",
+      "cmd_count": "{count} comando(s) disponible(s)",
+      "yes": "Sí",
+      "no": "No",
+      "cat_moderation": "🛡️ Moderación",
+      "cat_utility": "🔧 Utilidades",
+      "cat_economy": "💰 Economía",
+      "cat_levels": "⭐ Niveles",
+      "cat_fun": "🎮 Diversión",
+      "cat_music": "🎵 Música",
+      "cat_admin": "⚙️ Administración",
+      "cat_giveaway": "🎁 Sorteos",
+      "cat_giveaways": "🎁 Sorteos",
+      "cat_polls": "📊 Encuestas",
+      "cat_welcome": "👋 Bienvenida",
+      "cat_logging": "📝 Registros",
+      "cat_addon": "🧩 Addons"
     },
     "botinfo": {
       "description": "Muestra información detallada del bot",
@@ -94,7 +138,27 @@
       "memory": "Uso de Memoria",
       "cpu": "Uso de CPU",
       "platform": "Plataforma",
-      "node_version": "Versión de Node.js"
+      "node_version": "Versión de Node.js",
+      "stats": "📊 Estadísticas",
+      "channels": "Canales",
+      "latency": "🏓 Latencia",
+      "latency_ws": "WebSocket",
+      "latency_status": "Estado",
+      "addons": "🧩 Addons",
+      "addons_loaded": "Cargados",
+      "addons_available": "Disponibles",
+      "services": "🔧 Estado de Servicios",
+      "links": "🔗 Enlaces",
+      "created": "Creado",
+      "status_excellent": "🟢 Excelente",
+      "status_good": "🟡 Buena",
+      "status_fair": "🟠 Regular",
+      "status_poor": "🔴 Mala",
+      "error": "❌ Ocurrió un error al obtener la información del bot.",
+      "footer": "Korex v{version} - The Core of Your Community",
+      "service_discord": "Discord",
+      "service_db": "Base de Datos",
+      "service_redis": "Redis"
     },
     "8ball": {
       "description": "Pregunta a la bola 8 mágica",
@@ -232,22 +296,36 @@
         "action_5_warnings": "5 advertencias: Expulsión",
         "action_7_warnings": "7 advertencias: Ban temporal (24h)",
         "error_mute_role": "No se pudo crear el rol de mute. Verifica los permisos del bot.",
-        "error_log_channel": "No se pudo crear el canal de logs. Verifica los permisos del bot."
+        "error_log_channel": "No se pudo crear el canal de logs. Verifica los permisos del bot.",
+        "auto_action_current": "{count} advertencias: {action}. Puedes cambiarlo en el panel web (Moderación → AutoMod).",
+        "escalation_title": "📈 Escalado por avisos",
+        "escalation_off": "Desactivado (por defecto)",
+        "escalation_step": "{count} advertencias: {action}",
+        "escalation_action_timeout": "Silencio de {minutes} min",
+        "escalation_action_kick": "Expulsión",
+        "escalation_action_ban": "Baneo ({minutes} min, 0 = permanente)",
+        "escalation_hint": "Se aplica el escalón más alto alcanzado; desactivado, solo se usa el umbral único de arriba. Edita los escalones en el panel (Moderación → AutoMod).",
+        "escalation_enable": "Activar escalado",
+        "escalation_disable": "Desactivar escalado",
+        "log_channel_topic": "Canal de logs de moderación - KOREX"
       },
       "logging": {
         "title": "📝 Configuración de Logs",
         "in_development": "🚧 En Desarrollo",
-        "description": "Los canales de logs automáticos se implementarán en la próxima actualización."
+        "description": "Los canales de logs automáticos se implementarán en la próxima actualización.",
+        "dashboard_hint": "Los canales de logs se configuran en el panel web, en **Logs → \"Enviar logs a Discord\"**.\n🔗 {url}"
       },
       "autoroles": {
         "title": "🎭 Configuración de Roles Automáticos",
         "in_development": "🚧 En Desarrollo",
-        "description": "Los roles automáticos se implementarán en la próxima actualización."
+        "description": "Los roles automáticos se implementarán en la próxima actualización.",
+        "dashboard_hint": "Usa `/autoroles setup` para configurar roles de entrada, reacción, botones, nivel y booster, o gestiónalos desde el panel web.\n🔗 {url}"
       },
       "welcome": {
         "title": "👋 Configuración de Bienvenida",
         "in_development": "🚧 En Desarrollo",
-        "description": "Los mensajes de bienvenida se implementarán en la próxima actualización."
+        "description": "Los mensajes de bienvenida se implementarán en la próxima actualización.",
+        "dashboard_hint": "Los mensajes de bienvenida se configuran en el panel web, en la sección **Bienvenida**.\n🔗 {url}"
       },
       "check": {
         "title": "🔍 Verificación de Configuración",
@@ -262,7 +340,40 @@
         "emojis": "Emojis",
         "boost_level": "Nivel de Boost",
         "missing_permissions": "⚠️ Permisos Faltantes",
-        "permissions_warning": "El bot necesita estos permisos para funcionar correctamente:"
+        "permissions_warning": "El bot necesita estos permisos para funcionar correctamente:",
+        "status": "Estado",
+        "commands": "Comandos",
+        "events": "Eventos",
+        "addons": "Addons"
+      },
+      "not_configured": "No configurado",
+      "days": "{days} días",
+      "save_error": "No se pudo guardar la configuración.",
+      "menu": {
+        "footer": "Usa los comandos individuales para configurar cada módulo",
+        "placeholder": "Selecciona un módulo para configurar",
+        "moderation_name": "🛡️ Moderación",
+        "moderation_value": "Configura la moderación",
+        "logging_name": "📝 Logs",
+        "logging_value": "Configura los canales de logs",
+        "music_name": "🎵 Música",
+        "music_value": "Configura la música",
+        "economy_name": "💰 Economía",
+        "economy_value": "Configura el sistema de economía",
+        "levels_name": "📊 Niveles",
+        "levels_value": "Configura el sistema de niveles",
+        "welcome_name": "🎉 Bienvenida",
+        "welcome_value": "Configura los mensajes de bienvenida",
+        "option_moderation_label": "Moderación",
+        "option_moderation_description": "Configura la moderación",
+        "option_logging_label": "Logs",
+        "option_logging_description": "Configura los canales de logs",
+        "option_autoroles_label": "Roles automáticos",
+        "option_autoroles_description": "Configura los roles automáticos",
+        "option_welcome_label": "Bienvenida",
+        "option_welcome_description": "Configura los mensajes de bienvenida",
+        "option_check_label": "Revisar configuración",
+        "option_check_description": "Revisa toda la configuración actual"
       }
     },
     "warn": {
@@ -469,7 +580,11 @@
           "duration": "Duración en horas (1-168)",
           "channel": "Canal donde publicar el sorteo",
           "winners": "Número de ganadores (1-10)",
-          "title": "Título personalizado para el sorteo"
+          "title": "Título personalizado para el sorteo",
+          "required_role": "Rol necesario para participar",
+          "required_level": "Nivel mínimo para participar",
+          "required_balance": "Saldo mínimo para participar",
+          "required_invites": "Invitaciones válidas mínimas para participar"
         },
         "wizard": {
           "title": "🎉 Asistente de Configuración de Sorteo",
@@ -498,7 +613,13 @@
         "options": {
           "id": "ID del sorteo para volver a sortear"
         },
-        "not_implemented": "🚧 ¡La función de re-sorteo estará disponible pronto!"
+        "not_implemented": "🚧 ¡La función de re-sorteo estará disponible pronto!",
+        "success": "🎉 Nuevo(s) ganador(es): {winners}",
+        "errors": {
+          "not_found": "❌ No se encontró ese sorteo en este servidor.",
+          "not_ended": "❌ El sorteo todavía no ha terminado.",
+          "no_participants": "❌ No quedan participantes sin premio para volver a sortear."
+        }
       },
       "list": {
         "description": "Listar todos los sorteos del servidor",
@@ -650,7 +771,71 @@
       },
       "config": {
         "description": "Configurar sistema de invitaciones",
-        "not_implemented": "Esta función aún no está implementada."
+        "not_implemented": "Esta función aún no está implementada.",
+        "options": {
+          "enabled": "Activar o desactivar las recompensas por invitaciones",
+          "stack": "Conservar los roles anteriores (sí) o solo el más alto (no)",
+          "remove_on_drop": "Retirar el rol si las invitaciones válidas bajan del umbral",
+          "announce_channel": "Canal donde se anuncian las recompensas",
+          "announce_off": "Desactivar los avisos de recompensas"
+        },
+        "error": "❌ No se pudo actualizar la configuración de invitaciones.",
+        "invalid_channel": "❌ No puedo publicar en {channel}: necesito Ver canal, Enviar mensajes e Insertar enlaces ahí.",
+        "title": "⚙️ Recompensas por invitaciones",
+        "updated": "✅ Configuración actualizada.",
+        "field_status": "Recompensas",
+        "status_on": "✅ Activadas",
+        "status_off": "⛔ Desactivadas",
+        "field_mode": "Modo",
+        "mode_stack": "Apilar (conservar roles anteriores)",
+        "mode_highest": "Solo el más alto",
+        "field_drop": "Si bajan las invitaciones",
+        "drop_remove": "Retirar el rol",
+        "drop_keep": "Conservar el rol",
+        "field_channel": "Avisos",
+        "channel_none": "Desactivados",
+        "field_rewards": "Recompensas ({count}/{max})",
+        "rewards_empty": "Aún no hay recompensas. Añade una con `/invites rewards add`.",
+        "reward_line": "**{invites}** invitaciones válidas → {role}",
+        "footer": "Invitaciones válidas = entradas menos salidas y cuentas falsas/nuevas, más bonus. Usa /invites rewards sync para aplicar cambios."
+      },
+      "rewards": {
+        "description": "Gestionar los roles que se entregan por invitaciones válidas",
+        "error": "❌ No se pudieron gestionar las recompensas por invitaciones.",
+        "add": {
+          "description": "Añadir un rol que se entrega al alcanzar un número de invitaciones válidas",
+          "options": {
+            "invites": "Invitaciones válidas necesarias",
+            "role": "Rol que se entrega"
+          },
+          "success": "✅ Quien alcance **{invites}** invitaciones válidas recibirá {role}. Usa `/invites rewards sync` para aplicarlo a los miembros actuales.",
+          "limit": "❌ Este servidor ya tiene el máximo de {max} recompensas por invitaciones.",
+          "duplicate_count": "❌ Ya hay una recompensa para **{invites}** invitaciones. Elimínala primero.",
+          "duplicate_role": "❌ {role} ya se usa en otra recompensa por invitaciones.",
+          "invalid_count": "❌ Número de invitaciones no válido."
+        },
+        "remove": {
+          "description": "Eliminar una recompensa por número de invitaciones o por rol",
+          "options": {
+            "invites": "Umbral de la recompensa a eliminar",
+            "role": "Rol de la recompensa a eliminar"
+          },
+          "missing_filter": "❌ Indica el número de invitaciones o el rol de la recompensa a eliminar.",
+          "success": "✅ Recompensa eliminada. Usa `/invites rewards sync` para actualizar a quienes la tenían.",
+          "not_found": "❌ Ninguna recompensa coincide con ese criterio."
+        },
+        "list": {
+          "description": "Ver las recompensas por invitaciones configuradas"
+        },
+        "sync": {
+          "description": "Recalcular las recompensas por invitaciones de todo el servidor",
+          "started": "⏳ Sincronizando recompensas por invitaciones... puede tardar en servidores grandes.",
+          "success": "✅ Sincronización terminada: **{processed}** miembros revisados, **{added}** roles añadidos, **{removed}** retirados, **{failed}** errores.",
+          "truncated": "⚠️ En esta pasada solo se procesaron los 5000 mayores invitadores.",
+          "cooldown": "⏳ Se sincronizó hace poco. Vuelve a intentarlo en {minutes} min.",
+          "running": "⏳ Ya hay una sincronización en curso en este servidor.",
+          "no_permission": "❌ Necesito el permiso Gestionar roles para sincronizar las recompensas."
+        }
       }
     },
     "purge": {
@@ -677,6 +862,17 @@
       "invalid_channel": "Canal inválido.",
       "old_messages_warning": "⚠️ Mensajes Antiguos",
       "old_messages_count": "{count} mensajes tienen más de 14 días y no pueden ser eliminados."
+    },
+    "antiraid": {
+      "description": "Gestiona el modo anti-raid de moderación",
+      "status_active_title": "🚨 Modo raid activo",
+      "status_active_desc": "Empezó {started} · termina {ends}\nEntradas: **{joins}** · acciones aplicadas: **{actions}**\nAcción sobre nuevas entradas: {action}",
+      "status_inactive": "✅ El modo raid no está activo.",
+      "end_done": "✅ Modo raid terminado y estado previo restaurado.",
+      "end_scheduled": "⏳ El modo raid terminará en unos segundos (el servidor lo gestiona otro shard).",
+      "end_not_active": "ℹ️ El modo raid no está activo.",
+      "end_busy": "⏳ El modo raid ya se está terminando.",
+      "error": "❌ No se pudo completar la acción."
     },
     "slowmode": {
       "description": "Configurar modo lento en un canal",
@@ -844,6 +1040,7 @@
       "caps_detected": "🔠 **Filtro de Mayúsculas:** {user}, evita el uso excesivo de mayúsculas.",
       "word_filtered": "🚫 **Filtro de Palabras:** {user}, tu mensaje contiene contenido no permitido.",
       "link_blocked": "🔗 **Filtro de Enlaces:** {user}, los enlaces no están permitidos aquí.",
+      "attachment_spam_detected": "🖼️ **Anti-Spam de Archivos:** {user}, estás enviando demasiados archivos o estás repitiendo el mismo contenido.",
       "ghost_ping": "👻 **Ghost Ping Detectado:** {user} mencionó a {mentioned} y eliminó el mensaje.",
       "action_warn": "Has recibido una advertencia automática.",
       "action_timeout": "Has recibido un timeout de {duration}.",
@@ -859,8 +1056,62 @@
         "caps": "Exceso de mayúsculas",
         "word": "Palabra prohibida",
         "link": "Enlace no permitido",
-        "ghost_ping": "Ghost ping"
-      }
+        "ghost_ping": "Ghost ping",
+        "attachment_spam": "Spam de archivos adjuntos"
+      },
+      "log_attachments": "Archivos adjuntos"
+    },
+    "action_types": {
+      "WARN": "Advertencia",
+      "MUTE": "Silencio",
+      "UNMUTE": "Fin del silencio",
+      "KICK": "Expulsión",
+      "BAN": "Baneo",
+      "UNBAN": "Desbaneo",
+      "TIMEOUT": "Aislamiento",
+      "TEMPBAN": "Baneo temporal",
+      "SOFTBAN": "Softban"
+    },
+    "log": {
+      "user": "Usuario",
+      "moderator": "Moderador",
+      "reason": "Razón",
+      "duration": "Duración",
+      "minutes": "{minutes} minutos",
+      "time": "Fecha",
+      "case": "Caso #{number}",
+      "unknown": "Desconocido"
+    },
+    "dm": {
+      "title": "🔨 Acción de moderación",
+      "server": "Servidor",
+      "action": "Acción"
+    },
+    "auto_action_reason": "Acción automática: {count} advertencias",
+    "antiraid": {
+      "audit_reason": "Anti-raid: acción automática durante el modo raid",
+      "audit_reason_end": "Anti-raid: fin del modo raid, restaurando el estado previo",
+      "start_title": "🚨 Raid detectado — modo raid activado",
+      "start_desc": "Han entrado **{count}** miembros en {window} s (umbral: {threshold}). El modo raid está activo.",
+      "start_footer": "Usa /antiraid end o el panel para terminar el modo raid manualmente",
+      "field_action": "Acción sobre nuevas entradas",
+      "field_ends": "Termina",
+      "field_lockdown": "Bloqueo",
+      "actions": {
+        "alert": "📋 Solo aviso",
+        "timeout": "⏱️ Aislar (silencio)",
+        "kick": "🦶 Expulsar",
+        "ban": "🔨 Banear"
+      },
+      "lockdown_verification": "🔒 Nivel de verificación subido al máximo",
+      "lockdown_channels": "🔒 {count} canales bloqueados para todos (sin enviar mensajes)",
+      "lockdown_none": "Ninguno (solo aviso y acciones sobre miembros)",
+      "lockdown_failed": "⚠️ No se pudo aplicar (faltan permisos)",
+      "lockdown_mod_roles": "✍️ Roles de moderación que pueden seguir escribiendo: {roles}",
+      "end_kept_locked": "🔒 {count} canales siguen bloqueados porque tienen un /lockdown manual activo",
+      "end_title": "✅ Modo raid terminado",
+      "end_desc": "Se ha restaurado el estado previo.\nEmpezó {started} · entradas durante el raid: **{joins}** · acciones aplicadas: **{actions}**\nTerminado por: {by}",
+      "ended_auto": "automáticamente (tiempo cumplido)"
     }
   },
   "economy": {
@@ -908,22 +1159,45 @@
     "transfer_success": "Transferiste {amount} {symbol} exitosamente.",
     "deposit_success": "Depositaste {amount} {symbol} en el banco.",
     "withdraw_success": "Retiraste {amount} {symbol} del banco.",
-    "error": "Error al procesar la transacción."
+    "error": "Error al procesar la transacción.",
+    "errors": {
+      "invalid_amount": "❌ La cantidad debe ser un número entero mayor que 0."
+    },
+    "tx": {
+      "disabled": "El sistema económico está deshabilitado en este servidor.",
+      "max_balance": "No puedes tener más de {max} {currency}.",
+      "added": "Se añadieron {amount} {symbol} a tu balance.",
+      "error": "Error al procesar la transacción.",
+      "insufficient": "No tienes suficientes {currency}.",
+      "removed": "Se quitaron {amount} {symbol} de tu balance.",
+      "self_transfer": "No puedes transferirte dinero a ti mismo.",
+      "receiver_limit": "El usuario receptor no puede recibir esa cantidad (límite: {max}).",
+      "transferred": "Transferiste {amount} {symbol} correctamente.",
+      "transfer_error": "Error al procesar la transferencia.",
+      "insufficient_wallet": "No tienes suficientes {currency} en tu cartera.",
+      "max_bank": "No puedes tener más de {max} {currency} en el banco.",
+      "deposited": "Depositaste {amount} {symbol} en el banco.",
+      "deposit_error": "Error al depositar.",
+      "insufficient_bank": "No tienes suficientes {currency} en el banco.",
+      "max_wallet": "No puedes tener más de {max} {currency} en tu cartera.",
+      "withdrew": "Retiraste {amount} {symbol} del banco.",
+      "withdraw_error": "Error al retirar."
+    }
   },
   "pay": {
     "success_title": "💸 ¡Pago Enviado!",
-    "success_description": "Enviaste exitosamente {amount} 🪙 a {user}",
+    "success_description": "Enviaste exitosamente {amount} {symbol} a {user}",
     "your_new_balance": "💰 Tu Nuevo Balance",
     "footer": "Transacción completada exitosamente",
     "received_title": "💰 ¡Dinero Recibido!",
-    "received_description": "Recibiste {amount} 🪙 de {user} en {server}",
+    "received_description": "Recibiste {amount} {symbol} de {user} en {server}",
     "cannot_pay_bot": "❌ No puedes enviar dinero a bots.",
     "cannot_pay_self": "❌ No puedes enviarte dinero a ti mismo.",
     "invalid_amount": "❌ Por favor ingresa una cantidad válida mayor a 0."
   },
   "deposit": {
     "success_title": "🏦 ¡Dinero Depositado!",
-    "success_description": "Depositaste exitosamente {amount} 🪙 en tu cuenta bancaria",
+    "success_description": "Depositaste exitosamente {amount} {symbol} en tu cuenta bancaria",
     "wallet_balance": "💰 Balance de Cartera",
     "bank_balance": "🏦 Balance del Banco",
     "total_balance": "💎 Balance Total",
@@ -933,7 +1207,7 @@
   },
   "withdraw": {
     "success_title": "🏦 ¡Dinero Retirado!",
-    "success_description": "Retiraste exitosamente {amount} 🪙 de tu cuenta bancaria",
+    "success_description": "Retiraste exitosamente {amount} {symbol} de tu cuenta bancaria",
     "wallet_balance": "💰 Balance de Cartera",
     "bank_balance": "🏦 Balance del Banco",
     "total_balance": "💎 Balance Total",
@@ -1050,7 +1324,14 @@
     "no_messages": "❌ No se encontraron mensajes para eliminar.",
     "no_messages_from_user": "❌ No se encontraron mensajes de {user} en el rango especificado.",
     "messages_too_old": "❌ Todos los mensajes son más antiguos de 14 días y no pueden ser eliminados.",
-    "no_permissions": "❌ No tengo permisos para eliminar mensajes en este canal."
+    "no_permissions": "❌ No tengo permisos para eliminar mensajes en este canal.",
+    "error": "No se pudieron borrar los mensajes.",
+    "log": {
+      "title": "🧹 Mensajes borrados",
+      "description": "Se borraron {count} mensajes en {channel}",
+      "channel": "Canal",
+      "target": "Usuario objetivo"
+    }
   },
   "levels": {
     "level_up": "🎉 ¡Subida de Nivel!",
@@ -1068,7 +1349,8 @@
       "messages": "Mensajes",
       "voice_time": "Tiempo en Voz",
       "server_rank": "Rango en Servidor",
-      "minutes": "minutos"
+      "minutes": "minutos",
+      "bot_no_rank": "🤖 Los bots no tienen nivel."
     },
     "leaderboard": {
       "name": "leaderboard",
@@ -1079,6 +1361,12 @@
       "page": "Página {current} de {total}",
       "level_short": "Nv.",
       "xp_short": "XP"
+    },
+    "levelup": {
+      "title": "🎉 ¡Subida de nivel!",
+      "default_message": "🎉 ¡{user} subió al nivel {level}!",
+      "progress": "📊 Progreso",
+      "progress_value": "**Nivel:** {level}\n**XP total:** {xp}"
     }
   },
   "logging": {
@@ -1104,7 +1392,11 @@
     "joined_at": "Se Unió",
     "time_in_server": "Tiempo en el Servidor",
     "roles": "Roles",
-    "days_old": "{days} días de antigüedad"
+    "days_old": "{days} días de antigüedad",
+    "voice_moved": "Cambio de canal de voz",
+    "from": "Desde",
+    "to": "Hacia",
+    "unknown_author": "Autor desconocido (mensaje antiguo)"
   },
   "welcome": {
     "default_message": "¡Bienvenido {mention} a {server}! ¡Ahora tenemos {memberCount} miembros!",
@@ -1119,7 +1411,14 @@
     "rules_info": "Por favor asegúrate de leer y seguir todas las reglas del servidor. Puedes encontrarlas en el canal de reglas.",
     "button_verify": "Verificar",
     "button_rules": "Reglas",
-    "button_roles": "Obtener Roles"
+    "button_roles": "Obtener Roles",
+    "test_prefix": "[MENSAJE DE PRUEBA]",
+    "image": {
+      "title_welcome": "¡Bienvenido!",
+      "title_goodbye": "¡Hasta pronto!",
+      "member_number": "Eres el miembro #{count}",
+      "members_now": "Ahora somos {count} miembros"
+    }
   },
   "goodbye": {
     "default_message": "¡Adiós {username}! Gracias por ser parte de {server}.",
@@ -1136,7 +1435,32 @@
     "level_role_assigned": "¡Felicidades! Se te ha asignado el rol {role} por alcanzar el nivel {level}!",
     "boost_role_assigned": "¡Gracias por impulsar el servidor! Se te ha asignado el rol {role}!",
     "reaction_role_created": "¡Mensaje de rol de reacción creado exitosamente!",
-    "reaction_role_deleted": "¡Mensaje de rol de reacción eliminado exitosamente!"
+    "reaction_role_deleted": "¡Mensaje de rol de reacción eliminado exitosamente!",
+    "wizard": {
+      "channel_invalid": "❌ Canal no encontrado o inválido.",
+      "emoji_required": "❌ Debes escribir al menos un emoji (uno por línea, uno por rol).",
+      "reaction_created": "✅ Mensaje de roles de reacción creado en {channel} con **{count}** rol(es).",
+      "reaction_error": "❌ Error al crear el mensaje. Verifica que el bot tenga permisos para enviar mensajes y agregar reacciones en ese canal.",
+      "no_valid_roles": "❌ No se encontraron roles válidos.",
+      "no_valid_button_roles": "❌ No se encontraron roles válidos. Formato: `emoji etiqueta roleId` (uno por línea).",
+      "button_created": "✅ Mensaje de roles con botones creado en {channel} con **{count}** rol(es).",
+      "button_error": "❌ Error al crear el mensaje. Verifica que el bot tenga permisos para enviar mensajes en ese canal.",
+      "duplicate_role": "❌ Cada rol solo puede aparecer una vez en el panel.",
+      "role_not_found": "❌ El rol {role} no existe en este servidor.",
+      "role_everyone": "❌ No se puede usar el rol @everyone.",
+      "role_managed": "❌ {role} está gestionado por una integración y no se puede asignar.",
+      "role_dangerous": "❌ Por seguridad, {role} no se puede autoasignar: tiene permisos de moderación o administración.",
+      "role_above_bot": "❌ {role} está por encima del rol más alto del bot.",
+      "role_above_actor": "❌ {role} es igual o superior a tu rol más alto."
+    },
+    "button": {
+      "member_not_found": "❌ No se pudo encontrar tu perfil en el servidor.",
+      "role_not_found": "❌ Rol no encontrado. Es posible que haya sido eliminado.",
+      "cannot_assign": "❌ Este rol no se puede asignar desde un panel (permisos o jerarquía). Avisa a un administrador.",
+      "removed": "✅ Se te quitó el rol **{role}**.",
+      "added": "✅ Se te asignó el rol **{role}**.",
+      "error": "❌ Error al asignar/quitar el rol."
+    }
   },
   "utility": {
     "avatar": {
@@ -1339,7 +1663,7 @@
     "nothing_playing": "❌ No se está reproduciendo nada actualmente.",
     "no_results": "❌ No se encontraron resultados para: **{query}**",
     "song_too_long": "❌ ¡La canción es muy larga! La duración máxima es {duration} minutos.",
-    "queue_full": "❌ ¡La cola está llena! El tamaño máximo es {maxSize} canciones.",
+    "queue_full": "❌ La cola está llena (máximo **{max}** canciones).",
     "skip_failed": "❌ Error al saltar la canción actual.",
     "stop_failed": "❌ Error al detener la música.",
     "volume_failed": "❌ Error al cambiar el volumen.",
@@ -1383,7 +1707,23 @@
     "skipped_by": "Saltado por {user}",
     "stopped_by": "Detenido por {user}",
     "changed_by": "Cambiado por {user}",
-    "queue_footer": "Página {page}/{totalPages} • {total} canciones totales"
+    "queue_footer": "Página {page}/{totalPages} • {total} canciones totales",
+    "requester": "Solicitado por",
+    "unknown": "Desconocido",
+    "playback_error": "No se pudo reproducir la canción.",
+    "queue_finished": "Cola de reproducción terminada.",
+    "track_too_long": "❌ La canción dura {duration}s y el máximo del servidor es {max}s.",
+    "unsupported_source": "❌ Solo se admite SoundCloud o un enlace directo a un archivo de audio. YouTube y Spotify no están disponibles.",
+    "url_not_allowed": "❌ Ese enlace no está permitido.",
+    "access": {
+      "disabled": "❌ La música está desactivada en este servidor.",
+      "channel": "❌ Los comandos de música no están permitidos en este canal.",
+      "dj_only": "❌ Solo el rol DJ puede usar los comandos de música en este servidor."
+    },
+    "vote_skip": {
+      "progress": "🗳️ Voto registrado para saltar: **{votes}/{required}**.",
+      "already": "🗳️ Ya votaste para saltar esta canción (**{votes}/{required}**)."
+    }
   },
   "giveaways": {
     "default_title": "🎉 Sorteo",
@@ -1401,14 +1741,17 @@
       "ends": "⏰ Termina",
       "channel": "📍 Canal",
       "requirements": "📋 Requisitos",
-      "footer": "ID del Sorteo: {id}"
+      "hostedBy": "👤 Hosteado por",
+      "footer": "ID del Sorteo: {id}",
+      "participants": "👥 Participantes"
     },
     "requirements": {
       "role": "Tener rol",
       "level": "Nivel mínimo {level}",
       "messages": "Mínimo {count} mensajes",
       "balance": "Mínimo {amount} monedas",
-      "account_age": "La cuenta debe tener {days} días de antigüedad"
+      "account_age": "La cuenta debe tener {days} días de antigüedad",
+      "invites": "Mínimo {count} invitaciones"
     },
     "buttons": {
       "join": "Unirse al Sorteo",
@@ -1421,7 +1764,15 @@
       "already_participating": "Ya estás participando en este sorteo.",
       "ended": "Este sorteo ya ha terminado.",
       "missing_role": "No tienes el rol requerido para unirte a este sorteo.",
-      "requirements_not_met": "No cumples con los requisitos para unirte a este sorteo."
+      "requirements_not_met": "No cumples con los requisitos para unirte a este sorteo.",
+      "req": {
+        "role": "Necesitas el rol requerido para participar.",
+        "level": "Necesitas al menos el nivel {value}.",
+        "messages": "Necesitas al menos {value} mensajes.",
+        "balance": "Necesitas un saldo de al menos {value}.",
+        "account_age": "Tu cuenta debe tener al menos {value} días.",
+        "invites": "Necesitas al menos {value} invitaciones."
+      }
     },
     "leave": {
       "success": "Saliste del sorteo exitosamente.",
@@ -1430,7 +1781,9 @@
       "error": "Error al salir del sorteo."
     },
     "info": {
-      "not_implemented": "¡La función de información de sorteos estará disponible pronto!"
+      "not_implemented": "¡La función de información de sorteos estará disponible pronto!",
+      "winners_list": "🏆 Ganadores",
+      "no_winners": "Sin ganadores (nadie participó)"
     },
     "setup": {
       "expired": "La configuración del sorteo ha expirado. Por favor comienza de nuevo.",
@@ -1656,6 +2009,11 @@
     "reward": {
       "title": "🎉 ¡Recompensa de Invitación Obtenida!",
       "description": "¡Felicidades {user}! Has obtenido una recompensa por alcanzar **{invites} invitaciones**:\n\n🎁 **{reward}**"
+    },
+    "rewards": {
+      "audit_add": "Recompensa por invitaciones: {invites} invitaciones válidas",
+      "audit_remove": "Recompensa por invitaciones: ya no cumple el umbral",
+      "announce": "¡{user} ha alcanzado **{invites}** invitaciones válidas y ha obtenido {roles}!"
     }
   },
   "autoroles": {
@@ -1751,6 +2109,47 @@
     },
     "toggle": {
       "success": "✅ El sistema de auto-roles ha sido **{status}**"
+    },
+    "wizard": {
+      "join_modal_title": "👋 Roles de Entrada",
+      "level_modal_title": "📈 Roles por Nivel",
+      "booster_modal_title": "💎 Roles de Booster",
+      "reaction_modal_title": "⭐ Crear Roles de Reacción",
+      "button_modal_title": "🔘 Crear Roles de Botón",
+      "role_input_label": "Mención o ID del rol",
+      "booster_role_input_label": "Mención o ID del rol para boosters",
+      "join_role_placeholder": "@Miembro  o  123456789012345678",
+      "delay_input_label": "Retraso en minutos (0 = inmediato)",
+      "level_role_placeholder": "@VIP  o  123456789012345678",
+      "booster_role_placeholder": "@Booster  o  123456789012345678",
+      "level_input_label": "Nivel requerido (1–1000)",
+      "remove_others_label": "¿Quitar otros roles al asignar? (si/no)",
+      "remove_others_placeholder": "no",
+      "invalid_role": "❌ Rol inválido. Usa una mención o un ID numérico.",
+      "role_not_in_guild": "❌ Rol no encontrado en este servidor.",
+      "invalid_level": "❌ Nivel inválido. Debe ser un número entre 1 y 1000.",
+      "channel_placeholder": "Selecciona el canal",
+      "reaction_channel_prompt": "📢 **¿En qué canal** quieres enviar el mensaje de roles de reacción?",
+      "button_channel_prompt": "📢 **¿En qué canal** quieres enviar el mensaje de roles con botones?",
+      "roles_placeholder": "Selecciona los roles",
+      "reaction_step1": "⭐ **Paso 1/3** — Selecciona los roles que quieres asignar con reacciones:",
+      "reaction_step2": "⭐ **Paso 2/3** — Roles: {roles}\n\nSelecciona el tipo de asignación:",
+      "type_placeholder": "Selecciona el tipo",
+      "type_multiple_label": "Múltiple",
+      "type_multiple_description": "El usuario puede tener varios roles a la vez",
+      "type_single_label": "Único",
+      "type_single_description": "Solo un rol activo, puede quitar el actual",
+      "type_unique_label": "Exclusivo",
+      "type_unique_description": "Solo un rol activo, se intercambia automáticamente",
+      "title_label": "Título del mensaje",
+      "title_placeholder": "Ej: Elige tus roles",
+      "description_label": "Descripción",
+      "reaction_description_placeholder": "Reacciona con el emoji del rol que deseas obtener",
+      "button_description_placeholder": "Haz clic en el botón del rol que deseas obtener",
+      "emojis_label": "Escribe un emoji por rol, en orden",
+      "color_label": "Color del embed en hex (opcional)",
+      "button_roles_label": "Roles (una por línea): emoji etiqueta roleId",
+      "button_roles_placeholder": "⭐ VIP 123456789012345678\n🎮 Gamer 987654321098765432"
     }
   },
   "welcome_image": {
@@ -1793,7 +2192,23 @@
     "templates": {
       "title": "🎨 Plantillas de Bienvenida Disponibles",
       "description": "Elige entre {count} plantillas diseñadas profesionalmente:",
-      "footer": "Usa /welcome-image preview <id-plantilla> para probar cualquier plantilla"
+      "footer": "Usa /welcome-image preview <id-plantilla> para probar cualquier plantilla",
+      "descriptions": {
+        "modern-dark": "Tema oscuro moderno",
+        "modern-light": "Tema claro moderno",
+        "sunset": "Atardecer cálido",
+        "ocean": "Océano profundo",
+        "forest": "Bosque verde",
+        "minimalist-light": "Diseño claro y minimalista",
+        "gaming-neon": "Fondo oscuro con acentos verde neón",
+        "corporate-blue": "Azul corporativo profesional",
+        "anime-kawaii": "Rosa pastel suave, estilo kawaii",
+        "retro-synthwave": "Synthwave ochentero en púrpura y cian",
+        "nature-green": "Verdes naturales y frescos",
+        "space-cosmic": "Espacio profundo con violeta cósmico",
+        "elegant-purple": "Púrpura elegante con detalles dorados",
+        "sunset-orange": "Naranjas de atardecer intensos"
+      }
     },
     "preview": {
       "title": "👀 Vista Previa de Plantilla",
@@ -1878,7 +2293,10 @@
       "error": "❌ Error al obtener las estadísticas del usuario."
     },
     "server": {
-      "error": "❌ Error al obtener las estadísticas del servidor."
+      "error": "❌ Error al obtener las estadísticas del servidor.",
+      "members_title": "👥 Miembros",
+      "channels_title": "📁 Canales más activos",
+      "top_voice_title": "🎤 Más tiempo en voz"
     },
     "channel": {
       "title": "📁 Estadísticas del Canal - #{channel}",
@@ -1895,7 +2313,8 @@
         "title": "🏆 Usuarios Más Activos"
       },
       "no_data": "No hay estadísticas disponibles para este canal aún.",
-      "error": "❌ Error al obtener las estadísticas del canal."
+      "error": "❌ Error al obtener las estadísticas del canal.",
+      "voice_title": "🎤 Actividad de voz"
     },
     "leaderboard": {
       "messages": {
@@ -1912,11 +2331,15 @@
       },
       "daily": {
         "title": "📅 Tabla de Actividad Diaria",
-        "label": "hoy"
+        "label": "hoy",
+        "label_messages": "mensajes hoy"
       },
       "footer": "Mostrando los {count} mejores usuarios por {type}",
       "no_data": "No hay datos de tabla disponibles aún.",
-      "error": "❌ Error al obtener los datos de la tabla."
+      "error": "❌ Error al obtener los datos de la tabla.",
+      "footer_window": "Top {count} · últimos {days} días",
+      "footer_streak": "Top {count} · días consecutivos con mensajes hasta hoy (UTC)",
+      "footer_today": "Top {count} · hoy (UTC)"
     },
     "compare": {
       "title": "⚖️ Comparación de Actividad - {user}",
@@ -1950,7 +2373,8 @@
       "title": "📊 Desglose de Actividad - {user} ({period})",
       "user_not_found": "❌ Usuario no encontrado en este servidor.",
       "hourly": {
-        "title": "🕐 Horas Pico"
+        "title": "🕐 Horas Pico",
+        "title_utc": "🕐 Horas pico (UTC)"
       },
       "daily": {
         "title": "📅 Patrón Semanal"
@@ -1960,7 +2384,19 @@
         "value": "**Hora Pico:** {peak}:00\n**Promedio Diario:** {average}\n**Racha Actual:** {streak} días"
       },
       "no_data": "No hay datos de actividad disponibles.",
-      "error": "❌ Error al obtener el desglose de actividad."
+      "error": "❌ Error al obtener el desglose de actividad.",
+      "hour_line": "`{hour}:00` — {count} mensajes",
+      "weekdays": {
+        "0": "Dom",
+        "1": "Lun",
+        "2": "Mar",
+        "3": "Mié",
+        "4": "Jue",
+        "5": "Vie",
+        "6": "Sáb"
+      },
+      "retention_note": "El detalle por hora y semana cubre los últimos {days} días (retención de datos) · horas en UTC",
+      "lifetime_title": "🗂️ Totales históricos"
     },
     "buttons": {
       "detailed": "Detallado",
@@ -1969,11 +2405,54 @@
       "channels": "Canales",
       "compare": "Comparar"
     },
+    "channels": {
+      "user_title": "📁 Canales más usados - {user}",
+      "server_title": "📁 Actividad por canal - {server}",
+      "text_title": "💬 Canales de texto",
+      "voice_title": "🎤 Canales de voz",
+      "no_data": "No hay actividad en canales registrada en los últimos 30 días."
+    },
+    "detailed": {
+      "title": "📈 Estadísticas detalladas - {server}",
+      "no_data": "No hay mensajes registrados en los últimos 30 días."
+    },
+    "growth": {
+      "title": "📊 Crecimiento de miembros - {server}",
+      "weekly_title": "📅 Por semana (desde el lunes, UTC)",
+      "week_line": "`{week}` +{joins} / -{leaves} ({net})",
+      "no_data": "No hay entradas ni salidas registradas en los últimos 30 días."
+    },
     "periods": {
       "7d": "7 días",
       "30d": "30 días",
       "90d": "90 días",
       "all": "Todo el tiempo"
+    },
+    "window_footer": "Datos de los últimos {days} días · horas en UTC",
+    "lines": {
+      "recent": "**Últimos 30 días:** {value}",
+      "lifetime": "**Total histórico:** {value}",
+      "daily_average": "**Promedio diario:** {value}",
+      "peak_hour": "**Hora pico:** {value}:00 UTC",
+      "voice_channels": "**Canales usados:** {value}",
+      "current_streak": "**Racha actual:** {value} días",
+      "longest_streak": "**Racha más larga:** {value} días",
+      "active_days": "**Días activo:** {value} de {days}",
+      "last_active": "**Última actividad:** {value}",
+      "messages": "**Mensajes:** {value}",
+      "voice_time": "**Tiempo de voz:** {value}",
+      "active_users": "**Usuarios activos:** {value}",
+      "unique_users": "**Usuarios únicos:** {value}",
+      "per_user_messages": "**Mensajes/usuario:** {value}",
+      "per_user_voice": "**Voz/usuario:** {value}",
+      "joins": "**Entradas:** {value}",
+      "leaves": "**Salidas:** {value}",
+      "net": "**Balance neto:** {value}",
+      "members_now": "**Miembros ahora:** {value}",
+      "growth": "**Crecimiento:** {value}%",
+      "top_text_channel": "**Texto:** {value}",
+      "top_voice_channel": "**Voz:** {value}",
+      "created": "**Creado:** {value}"
     }
   },
   "nuke": {
@@ -2012,6 +2491,11 @@
       "stage": "Canal de Escenario",
       "forum": "Canal de Foro",
       "unknown": "Desconocido"
+    },
+    "recreated": {
+      "title": "💥 Canal reiniciado",
+      "description": "Este canal fue borrado y recreado por {user}",
+      "footer": "Canal recreado correctamente"
     }
   },
   "clone": {
@@ -2129,7 +2613,8 @@
       "status": "Estado",
       "content": "Contenido",
       "refresh": "Actualizar Estado",
-      "error": "❌ Error al obtener la información del mensaje fijo."
+      "error": "❌ Error al obtener la información del mensaje fijo.",
+      "refreshed": "🔄 Mensaje fijado republicado."
     },
     "types": {
       "embed": "Embed",
@@ -2324,21 +2809,29 @@
     "browse": {
       "title": "🛒 Tienda del Servidor",
       "description": "¡Bienvenido a la tienda! Aquí puedes comprar items increíbles con tus {currency}.\n\n**Items disponibles:** {count}",
-      "empty": "❌ La tienda está vacía actualmente. ¡Vuelve más tarde!",
+      "empty": "La tienda está vacía.",
       "footer": "Usa /shop buy <id> para comprar un item",
       "select_placeholder": "Selecciona un item para comprar...",
       "refresh": "Actualizar",
-      "inventory": "Mi Inventario"
+      "inventory": "Mi Inventario",
+      "stock": "Stock",
+      "items": "Items"
     },
     "buy": {
       "success_title": "✅ ¡Compra Exitosa!",
-      "success_desc": "Has comprado **{item}** por {price} 🪙",
+      "success_desc": "Has comprado **{item}** por {price} {symbol}",
       "new_balance": "💰 Nuevo Balance",
       "inventory_hint_label": "🎒 Inventario",
       "inventory_hint": "Usa `/inventory view` para ver tus items",
       "error_title": "❌ Error de Compra",
       "purchased_item": "Item Comprado",
-      "remaining_balance": "Balance Restante"
+      "remaining_balance": "Balance Restante",
+      "not_found": "❌ Item no encontrado o no disponible.",
+      "out_of_stock": "❌ Este item está agotado.",
+      "insufficient": "❌ No tienes suficientes monedas. Necesitas {price} y tienes {balance}.",
+      "role_unavailable": "❌ Este rol no se puede vender (permisos de moderación o por encima del bot). Avisa a un administrador.",
+      "already_has_role": "❌ Ya tienes el rol **{role}**.",
+      "role_failed": "❌ No se pudo asignar el rol. Se te devolvió el dinero."
     },
     "info": {
       "not_found": "❌ Item no encontrado en la tienda.",
@@ -2369,6 +2862,17 @@
       "reaction": "Reacción",
       "role": "Rol",
       "sticker": "Sticker"
+    },
+    "inv": {
+      "unavailable": "❌ Servicio no disponible, inténtalo más tarde.",
+      "not_found": "❌ Item no encontrado en tu inventario.",
+      "only_cosmetic": "❌ Solo puedes equipar items cosméticos.",
+      "equipped": "✅ {item} equipado.",
+      "unequipped": "✅ {item} desequipado.",
+      "equip_error": "❌ Error al equipar el item.",
+      "not_consumable": "❌ Este item no es consumible.",
+      "used": "{item} usado. {description}",
+      "use_error": "❌ Error al usar el item."
     }
   },
   "inventory": {
@@ -2404,6 +2908,11 @@
       "recipient": "Destinatario",
       "transfer_success": "¡{item} ha sido enviado exitosamente a {user}!",
       "menu_placeholder": "🚧 Menú de regalo de items disponible pronto."
+    },
+    "action": {
+      "equip": "✅ Equipar",
+      "unequip": "❌ Desequipar",
+      "use": "Usar"
     }
   },
   "work": {
@@ -2475,6 +2984,14 @@
         "name": "Guardia de Seguridad",
         "desc": "Protegiste un edificio importante toda la noche"
       }
+    },
+    "result": {
+      "title": "💼 ¡Trabajo completado!",
+      "earned": "Ganaste {amount}.",
+      "earnings": "💰 Ganancias",
+      "new_balance": "💰 Nuevo balance",
+      "next": "⏰ Próximo trabajo",
+      "footer": "¡Sigue trabajando para ganar más!"
     }
   },
   "fun": {
@@ -3043,10 +3560,53 @@
       "success": "✅ **{addon}** ha sido activado exitosamente en **{server}**!\n\nYa puedes usar todas las funciones premium."
     },
     "deactivation": {
-      "cancelled": "⚠️ Tu suscripción de **{addon}** en **{server}** ha sido cancelada.\n\nEl addon permanecerá activo hasta la fecha de expiración."
+      "cancelled": "⚠️ Tu suscripción de **{addon}** en **{server}** ha sido cancelada.\n\nEl addon permanecerá activo hasta la fecha de expiración.",
+      "expired": "⚠️ Las siguientes licencias premium han expirado en **{server}**:\n{list}\n\nPara renovar el acceso, visita el panel: https://panel.korex.dev",
+      "data_warning": "⚠️ **Aviso de eliminación de datos — {addon}**\n\nLa licencia de **{addon}** en **{server}** expiró hace {days} días.\n\n**En 24 horas se eliminarán permanentemente todos los datos de este addon** (configuración, registros, historial).\n\nSi deseas conservar tus datos, renueva la licencia antes de que se cumpla el plazo:\nhttps://panel.korex.dev",
+      "data_deleted": "🗑️ **Datos eliminados — {addon}**\n\nLos datos del addon **{addon}** en **{server}** han sido eliminados tras 30 días sin licencia activa.\n\nPuedes volver a adquirir la licencia en cualquier momento, aunque el servidor comenzará desde cero:\nhttps://panel.korex.dev"
     },
     "payment": {
       "failed": "⚠️ Hubo un problema con el pago de **{addon}** en **{server}**.\n\nPor favor actualiza tu método de pago para continuar usando las funciones premium."
+    },
+    "billing": {
+      "your_server": "tu servidor",
+      "footer_addons": "Korex • Sistema de Addons",
+      "footer_bundle": "Korex • Paquete Bundle",
+      "activated_title": "✅ Addon activado",
+      "deactivated_title": "⚠️ Suscripción del addon cancelada",
+      "cancelled_until": "⚠️ Tu suscripción de **{addon}** en **{server}** ha sido cancelada.\n\nConservas el acceso hasta el {date}. Puedes volver a suscribirte desde el panel cuando quieras.",
+      "ended_title": "⚠️ Suscripción del addon finalizada",
+      "ended": "⚠️ Tu suscripción de **{addon}** en **{server}** ha terminado y el addon se ha desactivado.\n\nPuedes volver a suscribirte desde el panel cuando quieras.",
+      "suspended_title": "🚫 Addon suspendido — pago fallido",
+      "suspended_desc": "El addon **{addon}** en **{server}** ha sido suspendido porque PayPal no pudo cobrar tu suscripción tras varios intentos.\n\nActualiza tu método de pago en PayPal: el addon se reactivará automáticamente cuando el cobro se complete.",
+      "suspended_failures_desc": "El addon **{addon}** en **{server}** ha sido suspendido tras {count} intentos de cobro fallidos.\n\nActualiza tu método de pago en PayPal: el addon se reactivará automáticamente cuando el cobro se complete.",
+      "payment_failed_title": "⚠️ Fallo en el pago",
+      "payment_failed_desc": "No se pudo cobrar la renovación de **{addon}** en **{server}**.\n\nPayPal reintentará automáticamente. Asegúrate de que tu método de pago esté al día.",
+      "bundle_activated_title": "✅ Paquete Bundle activado",
+      "bundle_activated_desc": "¡Tu **Paquete Bundle** en **{server}** está activo!\n\n**Addons incluidos:** {list}.\n\nConfigura cada addon desde el panel de addons. ¡Gracias por apoyar Korex! 🎉",
+      "bundle_cancel_note": "\n\n✂️ **Suscripciones individuales canceladas automáticamente:** {names}.\nEstos addons ahora están cubiertos por el bundle. No se realizarán más cobros individuales.",
+      "bundle_cancelled_title": "⚠️ Paquete Bundle cancelado",
+      "bundle_cancelled_desc": "Tu suscripción del **Paquete Bundle** en **{server}** ha sido cancelada.\n\nConservas el acceso a los addons incluidos hasta el {date}. Puedes volver a suscribirte desde el panel cuando quieras.",
+      "bundle_ended_title": "⚠️ Paquete Bundle finalizado",
+      "bundle_ended_desc": "Tu **Paquete Bundle** en **{server}** ha terminado y los addons incluidos se han desactivado (salvo los que tengan licencia propia activa).\n\nPuedes volver a suscribirte desde el panel cuando quieras.",
+      "bundle_suspended_title": "🚫 Paquete Bundle suspendido — pago fallido",
+      "bundle_suspended_desc": "Tu suscripción del **Paquete Bundle** en **{server}** ha sido suspendida porque PayPal agotó los intentos de cobro.\n\nLos addons incluidos se han desactivado. Actualiza tu método de pago en PayPal: se reactivarán automáticamente cuando el cobro se complete.",
+      "bundle_suspended_failures_desc": "Tu suscripción del **Paquete Bundle** en **{server}** ha sido suspendida tras {count} intentos de cobro fallidos.\n\nLos addons incluidos se han desactivado. Actualiza tu método de pago en PayPal: se reactivarán automáticamente cuando el cobro se complete.",
+      "bundle_payment_failed_title": "⚠️ Fallo en el pago del Paquete Bundle",
+      "bundle_payment_failed_desc": "No se pudo cobrar la renovación del **Paquete Bundle** en **{server}**.\n\nPayPal reintentará automáticamente. Mantén tu método de pago actualizado.",
+      "courtesy_title": "🎁 Acceso de cortesía activado",
+      "courtesy_desc": "El equipo de **Korex** ha activado **{addon}** de forma gratuita en **{server}** durante **{days} día(s)**.\n\nMotivo: {reason}",
+      "bundle_expired_dm": "⚠️ El **Paquete Bundle** en **{server}** ha expirado. Los addons incluidos se han desactivado (salvo los que tengan licencia propia activa).\n\nPara renovar el acceso, visita el panel: https://panel.korex.dev",
+      "kickout_title": "⚠️ Bot removido de tu servidor",
+      "kickout_desc": "Hemos detectado que **Korex** fue removido de **{server}**.\n\nTienes **{days} días** (hasta {deadline}) para volver a añadir el bot y restaurar automáticamente todos tus addons y suscripciones.\n\nSi no añades el bot antes de esa fecha, tus suscripciones de PayPal serán canceladas.",
+      "kickout_restore_name": "🔄 ¿Cómo restaurar?",
+      "kickout_restore_value": "Añade el bot nuevamente a **{server}** antes de {deadline} y todo se restaurará automáticamente.",
+      "kickout_mistake_name": "❓ ¿Fue un error?",
+      "kickout_mistake_value": "Si el bot fue removido por error o sin tu autorización, añádelo de vuelta lo antes posible.",
+      "kickout_footer": "Korex Premium · Si necesitas ayuda, abre un ticket en nuestro servidor de soporte.",
+      "restored_title": "✅ Suscripciones restauradas",
+      "restored_desc": "¡Bienvenido de vuelta a **{server}**!\n\nTus addons y suscripciones premium aún vigentes han sido **restaurados automáticamente**.",
+      "restored_footer": "Korex Premium · Gracias por volver."
     },
     "tickets": {
       "panel": {
@@ -3062,7 +3622,15 @@
         "channel_not_found": "Canal no encontrado.",
         "refreshed": "✅ Panel reenviado.",
         "channel_not_text": "Canal no encontrado o no es un canal de texto.",
-        "created": "✅ Panel creado en {channel}."
+        "created": "✅ Panel creado en {channel}.",
+        "send_failed": "❌ No se pudo enviar el panel. Comprueba que el bot puede ver el canal, enviar mensajes e insertar enlaces.",
+        "default_title": "🎫 Soporte",
+        "default_description": "Abre un ticket para recibir ayuda del equipo.",
+        "modal_channel": "ID del canal",
+        "modal_title_field": "Título del embed",
+        "modal_description": "Descripción del embed",
+        "modal_type": "Tipo: buttons | select | hybrid",
+        "modal_color": "Color hex (ej.: #00D9FF)"
       },
       "open": {
         "select_category_title": "¿Qué tipo de soporte necesitas?",
@@ -3076,7 +3644,9 @@
         "limit_reached": "Has alcanzado el límite de **{max}** tickets abiertos.",
         "no_access": "No tienes acceso a esta categoría.",
         "blacklisted": "No puedes abrir tickets en este servidor.",
-        "outside_hours": "El soporte no está disponible ahora.\n📅 Horario: {schedule}\n🕐 Próxima apertura: {next}"
+        "outside_hours": "El soporte no está disponible ahora.\n📅 Horario: {schedule}",
+        "in_progress": "⏳ Ya se está creando tu ticket. Espera un momento.",
+        "log_message": "📋 Ticket #{number} abierto por {user} en la categoría **{category}** | {channel}"
       },
       "control_embed": {
         "title": "🎫 Ticket #{number} — {category}",
@@ -3123,7 +3693,9 @@
         "post_reason": "\nRazón: {reason}",
         "log_message": "🔒 Ticket #{number} cerrado por {staff}{reason}",
         "deleting": "🗑️ Eliminando canal...",
-        "already_closed": "⚠️ Este ticket ya está cerrado."
+        "already_closed": "⚠️ Este ticket ya está cerrado.",
+        "system": "el sistema",
+        "channel_deleted": "Se eliminó el canal del ticket"
       },
       "claim": {
         "success": "✅ Ticket reclamado por {staff}.",
@@ -3139,7 +3711,8 @@
         "modal_title": "Transferir Ticket #{number}",
         "target_label": "Miembro del staff (mención o ID)",
         "success": "🔄 Ticket transferido a {staff}.",
-        "log": "🔄 Ticket #{number} transferido: {from} → {to}"
+        "log": "🔄 Ticket #{number} transferido: {from} → {to}",
+        "target_not_staff": "❌ El destino debe ser un miembro del servidor con acceso de staff a esta categoría."
       },
       "priority": {
         "changed": "🔺 Prioridad cambiada a **{priority}** por {staff}.",
@@ -3156,7 +3729,8 @@
         "modal_title": "Nota Interna — Ticket #{number}",
         "content_label": "Contenido de la nota",
         "sent": "📝 **[NOTA INTERNA 🔒]**\n{content}",
-        "transcript_label": "[NOTA INTERNA]"
+        "transcript_label": "[NOTA INTERNA]",
+        "saved": "✅ Nota guardada."
       },
       "template": {
         "select_placeholder": "Selecciona una plantilla...",
@@ -3170,7 +3744,8 @@
         "cancelled": "✅ Auto-cierre cancelado. El ticket permanece abierto.",
         "executed": "🔒 Ticket cerrado automáticamente por inactividad.",
         "dm_warning": "Tu ticket **#{number}** en **{server}** se cerrará en {hours}h por inactividad.",
-        "dm_closed": "Tu ticket **#{number}** fue cerrado automáticamente por inactividad."
+        "dm_closed": "Tu ticket **#{number}** fue cerrado automáticamente por inactividad.",
+        "reason": "Cierre automático por inactividad"
       },
       "rating": {
         "dm_title": "🎫 Ticket #{number} cerrado — {server}",
@@ -3183,7 +3758,8 @@
         "feedback_modal_title": "Comentario sobre el soporte",
         "feedback_label": "Cuéntanos tu experiencia (opcional)",
         "feedback_saved": "✅ Gracias por tu feedback.",
-        "expired": "El período para valorar este ticket ha expirado."
+        "expired": "El período para valorar este ticket ha expirado.",
+        "select_first": "Elige primero una puntuación."
       },
       "info": {
         "title": "📋 Ticket #{number}",
@@ -3220,7 +3796,19 @@
         "blacklist_removed": "✅ **{user}** removido de la blacklist.",
         "question_added": "✅ Pregunta añadida a la categoría.",
         "question_removed": "✅ Pregunta eliminada.",
-        "limit_reached": "Has alcanzado el límite de **{limit}** {item}."
+        "limit_reached": "Has alcanzado el límite de **{limit}** {item}.",
+        "item_not_found": "❌ No se encontró ningún elemento con ese ID en este servidor.",
+        "max_questions": "❌ Una categoría admite como máximo 5 preguntas (límite de los formularios de Discord).",
+        "select_needs_options": "❌ Una pregunta de selección necesita al menos una opción.",
+        "invalid_field": "❌ Valor no válido: **{field}**.",
+        "tag_exists": "❌ Ya existe un tag con ese nombre.",
+        "warning_must_be_lower": "❌ El aviso debe enviarse con menos horas de antelación que el tiempo de auto-cierre.",
+        "items": {
+          "questions": "preguntas",
+          "tags": "tags",
+          "templates": "plantillas",
+          "rules": "reglas"
+        }
       },
       "stats": {
         "overview_title": "📊 Estadísticas de Tickets",
@@ -3240,7 +3828,22 @@
         "category_month": "Tickets este mes",
         "category_closed": "Cerrados",
         "no_data": "Sin datos para el período seleccionado.",
-        "export_sent": "📄 CSV exportado con {count} tickets."
+        "export_sent": "📄 CSV exportado con {count} tickets.",
+        "csv": {
+          "id": "id",
+          "number": "numero",
+          "category": "categoria",
+          "author": "autor",
+          "staff": "staff",
+          "status": "estado",
+          "priority": "prioridad",
+          "tags": "tags",
+          "opened_at": "apertura",
+          "closed_at": "cierre",
+          "duration_min": "duracion_min",
+          "first_response": "primera_respuesta",
+          "rating": "valoracion"
+        }
       },
       "transcript": {
         "header_title": "Transcripción del Ticket",
@@ -3261,7 +3864,9 @@
         "label_note": "[NOTA INTERNA]",
         "label_staff": "Staff",
         "label_user": "Usuario",
-        "footer": "Generado por Korex • panel.korex.dev"
+        "footer": "Generado por Korex • panel.korex.dev",
+        "no_messages": "Sin mensajes.",
+        "attachment": "adjunto"
       },
       "errors": {
         "not_a_ticket": "Este comando solo puede usarse dentro de un canal de ticket.",
@@ -3284,7 +3889,8 @@
         "transcript_not_found": "⚠️ No hay transcripción guardada para este ticket.",
         "channel_not_text": "Canal no encontrado o no es un canal de texto.",
         "rating_error": "❌ Error al procesar la calificación.",
-        "generic": "❌ Ocurrió un error. Por favor intenta de nuevo."
+        "generic": "❌ Ocurrió un error. Por favor intenta de nuevo.",
+        "ticket_not_closed": "⚠️ El ticket debe estar cerrado antes de eliminar su canal."
       },
       "add": {
         "success": "✅ {user} añadido al ticket."
@@ -3293,17 +3899,128 @@
         "success": "✅ {user} removido del ticket."
       },
       "rename": {
-        "success": "✅ Canal renombrado a **{name}**."
+        "success": "✅ Canal renombrado a **{name}**.",
+        "rate_limited": "⏳ Discord limita los cambios de nombre de canal (2 cada 10 minutos). El nuevo nombre se aplicará en cuanto sea posible."
       },
       "reopen": {
-        "success": "🔓 Ticket reabierto por {staff}"
+        "success": "🔓 Ticket reabierto por {staff}",
+        "not_closed": "⚠️ Este ticket no está cerrado."
       },
       "add_user": {
         "modal_title": "Añadir usuario al ticket",
-        "user_id_label": "ID o mención del usuario"
+        "user_id_label": "ID o mención del usuario",
+        "success": "✅ {user} se ha añadido al ticket."
+      },
+      "common": {
+        "done": "✅ Hecho."
+      },
+      "cfg": {
+        "setup": {
+          "title": "Configuración inicial — Tickets",
+          "transcript_channel": "ID canal de transcripciones (opcional)",
+          "log_channel": "ID canal de logs (opcional)",
+          "discord_category": "ID categoría Discord para los canales",
+          "max_open": "Máx. tickets abiertos por usuario (1-{max})",
+          "autoclose_hours": "Auto-cierre por inactividad (horas, 0=no)"
+        },
+        "category": {
+          "add_title": "Añadir categoría",
+          "edit_title": "Editar: {name}",
+          "name": "Nombre de la categoría",
+          "description": "Descripción (opcional)",
+          "emoji": "Emoji (opcional)",
+          "staff_roles": "Roles de staff (IDs separados por coma)",
+          "discord_category": "ID categoría Discord (opcional)",
+          "welcome_message": "Mensaje de bienvenida ({user}, {number})"
+        },
+        "question": {
+          "add_title": "Añadir pregunta de apertura",
+          "label": "Texto de la pregunta",
+          "placeholder": "Placeholder (opcional)",
+          "type": "Tipo: short | long | select",
+          "options": "Opciones (solo select, separadas por coma)",
+          "required": "¿Obligatoria? (true/false)"
+        },
+        "tag": {
+          "add_title": "Añadir tag",
+          "name": "Nombre del tag",
+          "emoji": "Emoji (opcional)",
+          "color": "Color hex (ej.: #5865F2)"
+        },
+        "template": {
+          "add_title": "Añadir plantilla de respuesta",
+          "name": "Nombre de la plantilla",
+          "content": "Contenido del mensaje"
+        },
+        "rule": {
+          "add_title": "Añadir regla de prioridad",
+          "role_id": "ID del rol",
+          "priority": "Prioridad: LOW | NORMAL | HIGH | URGENT",
+          "label": "Etiqueta (ej.: Miembros VIP)",
+          "category_id": "ID de categoría (vacío = todas)"
+        },
+        "list": {
+          "categories_title": "📂 Categorías de tickets",
+          "categories_empty": "No hay categorías configuradas.",
+          "category_line": "• {emoji} **{name}** (`{id}`) — Roles de staff: {count}",
+          "questions_title": "❓ Preguntas de apertura",
+          "questions_empty": "Sin preguntas configuradas.",
+          "tags_title": "🏷️ Tags",
+          "tags_empty": "Sin tags.",
+          "templates_title": "📋 Plantillas",
+          "templates_empty": "Sin plantillas.",
+          "rules_title": "⚡ Reglas de prioridad",
+          "rules_empty": "Sin reglas.",
+          "blacklist_title": "🚫 Blacklist",
+          "blacklist_empty": "No hay usuarios en la blacklist."
+        }
       }
     },
     "forms": {
+      "templates": {
+        "created": "✅ Formulario **{name}** creado desde la plantilla con {count} campos (`{id}`). Revísalo con `/form edit` y publícalo con `/formpanel`.",
+        "unknown": "❌ Plantilla desconocida.",
+        "staff_application": {
+          "name": "Solicitud de staff",
+          "description": "Solicita unirte al equipo de staff. Responde con sinceridad y con el mayor detalle posible.",
+          "fields": {
+            "age": { "label": "¿Cuántos años tienes?" },
+            "timezone": { "label": "¿Cuál es tu zona horaria?", "placeholder": "p. ej. UTC+1, Europe/Madrid" },
+            "availability": { "label": "¿Cuántas horas a la semana puedes ayudar?", "placeholder": "p. ej. 10 horas, tardes y fines de semana" },
+            "experience": { "label": "Experiencia previa en moderación" },
+            "motivation": { "label": "¿Por qué quieres unirte al staff?" }
+          }
+        },
+        "report": {
+          "name": "Reporte de usuario",
+          "description": "Reporta a un miembro que incumple las normas. El staff lo revisará en privado.",
+          "fields": {
+            "reported_user": { "label": "Usuario al que reportas", "placeholder": "Nombre o ID de usuario" },
+            "what_happened": { "label": "¿Qué ha pasado?" },
+            "when": { "label": "¿Cuándo ocurrió?", "placeholder": "p. ej. hoy sobre las 18:00" },
+            "evidence": { "label": "Enlace a pruebas (opcional)", "placeholder": "https://… (captura o enlace al mensaje)" }
+          }
+        },
+        "suggestion": {
+          "name": "Sugerencia",
+          "description": "Comparte una idea para mejorar el servidor.",
+          "fields": {
+            "title": { "label": "Título de la sugerencia" },
+            "details": { "label": "Describe tu sugerencia" },
+            "benefit": { "label": "¿Cómo ayudaría a la comunidad?" }
+          }
+        },
+        "appeal": {
+          "name": "Apelación de sanción",
+          "description": "Pide al staff que revise una sanción que has recibido.",
+          "fields": {
+            "sanction": { "label": "¿Qué sanción quieres apelar?", "placeholder": "p. ej. advertencia, silencio, baneo" },
+            "reason_given": { "label": "Motivo que te dieron" },
+            "why": { "label": "¿Por qué debería retirarse?" },
+            "anything_else": { "label": "¿Algo más que añadir?" }
+          }
+        }
+      },
       "errors": {
         "service_unavailable": "El addon de formularios no está disponible ahora mismo. Intenta de nuevo más tarde.",
         "not_configured": "El addon de formularios no está configurado. Usa `/form config channels` para comenzar.",
@@ -3318,7 +4035,15 @@
         "cooldown": "Debes esperar antes de volver a enviar este formulario.",
         "form_max_reached": "Este formulario ha alcanzado el número máximo de respuestas.",
         "form_closed": "Este formulario está cerrado.",
-        "generic": "Ocurrió un error. Por favor intenta de nuevo."
+        "generic": "Ocurrió un error. Por favor intenta de nuevo.",
+        "not_reviewer": "❌ Solo los revisores de este formulario (o quien tenga Gestionar servidor) pueden revisar envíos.",
+        "no_permission": "❌ Necesitas el permiso Gestionar servidor para hacer esto.",
+        "name_required": "El nombre del formulario no puede estar vacío.",
+        "invalid_channel": "El canal de revisión debe ser un canal de texto de este servidor.",
+        "invalid_roles": "Los roles revisores deben ser hasta 25 IDs de roles de este servidor (no @everyone), separados por comas.",
+        "label_required": "La etiqueta del campo no puede estar vacía.",
+        "invalid_field_type": "Tipo no válido. Usa: short, paragraph, number, email o url.",
+        "invalid_max_length": "La longitud máxima debe ser un número entre 1 y 4000."
       },
       "cmd": {
         "create_modal_title": "Crear Formulario",
@@ -3339,7 +4064,7 @@
         "config_saved": "✅ Configuración guardada.",
         "field_add_title": "Añadir Campo",
         "field_label_label": "Etiqueta del campo (pregunta)",
-        "field_type_label": "Tipo (short / long)",
+        "field_type_label": "Tipo: short/paragraph/number/email/url",
         "field_placeholder_label": "Placeholder (opcional)",
         "field_required_label": "¿Requerido? (true / false)",
         "field_maxlength_label": "Longitud máxima (opcional)",
@@ -3347,7 +4072,9 @@
         "field_removed": "✅ Campo eliminado.",
         "field_list_title": "Campos de **{name}**",
         "field_list_empty": "Sin campos. Añádelos con `/form field add`.",
-        "field_list_steps": "Nota: se mostrarán {steps} pasos de modal al usuario."
+        "field_list_steps": "Nota: se mostrarán {steps} pasos de modal al usuario.",
+        "reviewer_roles_placeholder": "IDs de roles separados por comas",
+        "field_maxlength_placeholder": "ej: 500"
       },
       "panel": {
         "create_modal_title": "Crear Panel de Formularios",
@@ -3370,7 +4097,10 @@
         "list_empty": "No hay paneles configurados.",
         "list_forms": "{count} formularios",
         "form_added": "✅ Formulario **{name}** añadido al panel.",
-        "form_removed": "✅ Formulario eliminado del panel."
+        "form_removed": "✅ Formulario eliminado del panel.",
+        "missing_permissions": "No puedo publicar en {channel}: necesito Ver canal, Enviar mensajes e Insertar enlaces.",
+        "form_not_linked": "Ese formulario no está vinculado a este panel.",
+        "select_more_placeholder": "Más formularios..."
       },
       "review": {
         "embed_title": "📝 Nueva Respuesta — {form}",
@@ -3403,7 +4133,10 @@
         "success_title": "✅ Formulario Enviado",
         "success_desc": "Tu respuesta a **{form}** ha sido enviada para revisión.",
         "success_footer": "ID de respuesta: {id}",
-        "export_sent": "📄 CSV exportado con {count} respuestas."
+        "export_sent": "📄 CSV exportado con {count} respuestas.",
+        "export_sent_json": "📄 JSON exportado con {count} respuestas.",
+        "continue_button": "Continuar ({step}/{total})",
+        "step_saved": "✅ Paso {step} de {total} guardado. Pulsa el botón para continuar."
       },
       "status": {
         "active": "🟢 Activo",
@@ -3421,6 +4154,23 @@
         "pending": "🟡 Pendientes",
         "approved": "🟢 Aprobados",
         "denied": "🔴 Rechazados"
+      },
+      "validation": {
+        "title": "⚠️ Algunas respuestas no son válidas. Pulsa el botón para corregirlas:",
+        "required": "**{field}** es obligatorio.",
+        "number": "**{field}** debe ser un número.",
+        "email": "**{field}** debe ser un email válido.",
+        "url": "**{field}** debe ser un enlace válido (http:// o https://).",
+        "min_length": "**{field}** debe tener al menos {min} caracteres.",
+        "max_length": "**{field}** puede tener como máximo {max} caracteres."
+      },
+      "log": {
+        "submitted_title": "📥 Nuevo envío",
+        "submitted_desc": "{user} ha enviado **{form}**.",
+        "approved_title": "✅ Envío aprobado",
+        "approved_desc": "El envío de {user} a **{form}** ha sido aprobado por {reviewer}.",
+        "denied_title": "❌ Envío rechazado",
+        "denied_desc": "El envío de {user} a **{form}** ha sido rechazado por {reviewer}."
       }
     },
     "staff": {
@@ -3429,7 +4179,16 @@
         "updated": "✅ Panel de staff actualizado.",
         "deleted": "✅ Panel de staff eliminado.",
         "no_panel": "No hay ningún panel configurado. Usa `/staffpanel create` primero.",
-        "not_text_channel": "El canal seleccionado debe ser un canal de texto."
+        "not_text_channel": "El canal seleccionado debe ser un canal de texto.",
+        "title": "🛡️ Equipo de Staff — {guild}",
+        "section_voice": "**🎙️ En voz ahora**",
+        "section_active": "**🛡️ Staff activo**",
+        "section_off": "**⚫ Fuera de servicio**",
+        "empty": "_No hay staff registrado._",
+        "summary_name": "📊 Resumen",
+        "summary_value": "Total: **{total}** | Activos: **{active}** | En voz: **{voice}**",
+        "footer": "Korex Staff Panel • Actualizado",
+        "missing_permissions": "No puedo publicar en {channel}: necesito Ver canal, Enviar mensajes e Insertar enlaces."
       },
       "member": {
         "added": "✅ {user} añadido al equipo de staff como **{role}**.",
@@ -3470,7 +4229,10 @@
         "total_members_label": "Total miembros",
         "saved": "✅ Configuración guardada correctamente.",
         "view_title": "⚙️ Configuración de Staff",
-        "channel_not_found": "No se encontró el canal con ese ID. Verifica e intenta de nuevo."
+        "channel_not_found": "No se encontró el canal con ese ID. Verifica e intenta de nuevo.",
+        "channel_id_placeholder": "ID del canal (vacío = sin cambios)",
+        "ai_channel_label": "Canal de informes IA",
+        "ai_weekly_label": "Informe semanal automático"
       },
       "stats": {
         "overview_title": "📊 Estadísticas de Staff",
@@ -3487,10 +4249,13 @@
         "voice_time_total": "Voz (total)",
         "sessions_count": "Sesiones de voz",
         "last_active": "Última actividad",
-        "top_voice": "🎙️ Top por tiempo en voz (30d)",
+        "top_voice": "🎙️ Top por tiempo en voz ({days}d)",
         "recent_activity": "📋 Actividad reciente",
         "export_sent": "📄 CSV exportado con {count} miembro(s).",
-        "no_data": "Sin datos para el período seleccionado."
+        "no_data": "Sin datos para el período seleccionado.",
+        "moderation_title": "🛡️ Moderación y tickets ({days}d)",
+        "moderation_value": "Warns: **{warns}** · Aislamientos: **{timeouts}** · Expulsiones: **{kicks}** · Baneos: **{bans}**\nTickets cerrados: **{closed}** · reclamados: **{claimed}**",
+        "moderation_team_value": "Warns: **{warns}** · Aislamientos: **{timeouts}** · Expulsiones: **{kicks}** · Baneos: **{bans}** · Tickets cerrados: **{closed}**"
       },
       "errors": {
         "addon_disabled": "⚠️ El addon de Staff no está activo en este servidor. Contacta al administrador.",
@@ -3498,7 +4263,59 @@
         "service_unavailable": "El servicio de Staff no está disponible en este momento.",
         "no_permission": "No tienes permisos para realizar esta acción.",
         "max_members_reached": "Has alcanzado el límite de **{max}** miembros de staff.",
-        "cannot_add_bot": "No puedes añadir bots al equipo de staff."
+        "cannot_add_bot": "No puedes añadir bots al equipo de staff.",
+        "invalid_role_name": "El nombre del rol no puede estar vacío.",
+        "not_in_guild": "Ese usuario no es miembro de este servidor."
+      },
+      "ai": {
+        "generating_report": "⏳ Generando informe semanal con IA... esto puede tardar unos segundos.",
+        "generating_eval": "⏳ Generando evaluación individual con IA... esto puede tardar unos segundos.",
+        "report_generated": "✅ Informe generado y publicado. Cuota restante: **{left}/{limit}** esta semana.",
+        "eval_generated": "✅ Evaluación generada y publicada. Cuota restante: **{left}/{limit}** esta semana.",
+        "quota_reports_exceeded": "❌ Cuota agotada: ya usaste los **{limit}** informes semanales permitidos.\nSe reinicia {reset}.",
+        "quota_evals_exceeded": "❌ Cuota agotada: ya usaste las **{limit}** evaluaciones semanales permitidas.\nSe reinicia {reset}.",
+        "no_api_key": "❌ La clave API de IA para Staff no está configurada. Contacta al administrador de Korex.",
+        "member_not_staff": "❌ Este usuario no está registrado como miembro del staff.",
+        "generation_failed": "❌ Error al generar el informe. Inténtalo de nuevo más tarde.",
+        "quota_status": "📊 **Cuota semanal de IA — Staff**\n\n🗒️ Informes: **{reportsUsed}/{reportsLimit}** usados | **{reportsLeft}** disponibles\n📋 Evaluaciones: **{evalsUsed}/{evalsLimit}** usadas | **{evalsLeft}** disponibles\n\n🔄 Reinicio: {reset}",
+        "report_generated_here": "✅ Informe generado (no hay canal de informes IA configurado, así que se muestra aquí). Cuota restante: **{left}/{limit}** esta semana.",
+        "eval_generated_here": "✅ Evaluación generada (no hay canal de informes IA configurado, así que se muestra aquí). Cuota restante: **{left}/{limit}** esta semana.",
+        "report_embed_title": "🤖 Informe Semanal IA — {guild}",
+        "eval_embed_title": "📋 Evaluación IA — {user}",
+        "field_mvp": "🏆 MVP de la Semana",
+        "not_enough_data": "_Sin datos suficientes_",
+        "field_sessions": "📊 Sesiones",
+        "field_tokens": "⚡ Tokens usados",
+        "field_role": "🎯 Rol",
+        "field_voice_week": "🕐 Voz esta semana",
+        "field_verdict": "⚖️ Veredicto",
+        "verdict_outstanding": "🟢 Destacado",
+        "verdict_satisfactory": "🟡 Satisfactorio",
+        "verdict_needs_improvement": "🔴 Necesita mejora",
+        "report_footer": "Generado con IA • Korex Staff",
+        "eval_footer": "Evaluación generada con IA • Korex Staff"
+      },
+      "activity": {
+        "member_added": "Añadido al equipo por {actor}",
+        "note_added": "Nota actualizada por {actor}",
+        "status_changed": "Estado cambiado a {status} por {actor}",
+        "voice_leave": "Sesión de voz: {duration}"
+      },
+      "log": {
+        "member_added_title": "👤 Miembro de staff añadido",
+        "member_added_desc": "{user} se ha unido al equipo de staff como **{role}** ({department}).\nPor: {actor}",
+        "member_removed_title": "🚪 Miembro de staff retirado",
+        "member_removed_desc": "{user} ha sido retirado del equipo de staff.\nPor: {actor}",
+        "status_changed_title": "🔄 Estado de staff cambiado",
+        "status_changed_desc": "El estado de {user} ahora es **{status}**.\nPor: {actor}",
+        "note_updated_title": "📝 Nota de staff actualizada",
+        "note_updated_desc": "Se ha actualizado la nota de {user}.\nPor: {actor}",
+        "config_updated_title": "⚙️ Configuración de Staff actualizada",
+        "config_updated_desc": "Configurado por {actor}"
+      },
+      "alerts": {
+        "inactivity_title": "⚠️ Alerta de Inactividad — Staff",
+        "inactivity_desc": "Los siguientes miembros llevan **{days}+ días** sin actividad:\n\n{list}"
       }
     },
     "links": {
@@ -3531,7 +4348,49 @@
       "error_user_limit": "Alcanzaste tu límite total de links.",
       "error_not_found": "Link no encontrado.",
       "error_forbidden": "Solo puedes eliminar tus propios links.",
-      "error_generic": "Ocurrió un error. Inténtalo de nuevo."
+      "error_generic": "Ocurrió un error. Inténtalo de nuevo.",
+      "error_addon_disabled": "El addon Links no está activo en este servidor.",
+      "error_role_required": "No tienes un rol autorizado para crear links.",
+      "error_invalid_password": "La contraseña puede tener como máximo 100 caracteres.",
+      "error_invalid_max_clicks": "El límite de clics no es válido.",
+      "password_field": "Contraseña",
+      "password_set": "🔒 Protegido",
+      "status_field": "Estado",
+      "pending_approval": "⏳ Pendiente de aprobación de un moderador",
+      "clicks_count": "{n} clics",
+      "list_footer": "Página {page}/{pages} · {total} links",
+      "log": {
+        "created_title": "🔗 Link creado",
+        "deleted_title": "🗑️ Link eliminado",
+        "approved_title": "✅ Link aprobado",
+        "slug": "Slug",
+        "destination": "Destino",
+        "status": "Estado",
+        "status_active": "✅ Activo",
+        "status_pending": "⏳ Pendiente de aprobación",
+        "created_by": "Creado por",
+        "deleted_by": "Eliminado por",
+        "moderator": "moderador",
+        "high_traffic_title": "📈 Tráfico alto",
+        "high_traffic_desc": "El link `{slug}` ha alcanzado {clicks} clics."
+      },
+      "redirect": {
+        "not_found_title": "Link no encontrado",
+        "not_found_desc": "Este link no existe o no está activo.",
+        "expired_title": "Link caducado",
+        "expired_desc": "Este link ha caducado.",
+        "limit_title": "Link no disponible",
+        "limit_desc": "Este link alcanzó su límite de clics.",
+        "password_title": "Link protegido",
+        "password_desc": "Introduce la contraseña para continuar.",
+        "password_placeholder": "Contraseña",
+        "password_submit": "Continuar",
+        "password_wrong": "Contraseña incorrecta.",
+        "rate_title": "Demasiadas peticiones",
+        "rate_desc": "Espera un momento y vuelve a intentarlo.",
+        "unavailable_title": "Servicio no disponible",
+        "unavailable_desc": "Inténtalo de nuevo más tarde."
+      }
     },
     "paste": {
       "modal_create_title": "Crear Paste",
@@ -3643,7 +4502,19 @@
       "password_verified": "✅ Contraseña correcta",
       "raw_url_title": "📄 Raw del paste",
       "raw_url_value": "Accede al contenido en crudo en el siguiente enlace.",
-      "raw_url_protected": "Este paste está protegido con contraseña. Usa `/paste get` para verlo."
+      "raw_url_protected": "Este paste está protegido con contraseña. Usa `/paste get` para verlo.",
+      "content_truncated": "[Contenido truncado a 100.000 caracteres]",
+      "views_count": "{n} vistas",
+      "list_footer": "Página {page}/{pages} · {total} pastes",
+      "privacy_public": "Público",
+      "privacy_unlisted": "No listado",
+      "privacy_private": "Privado",
+      "config_invalid_channel": "Ese canal no existe en este servidor o no es un canal de texto.",
+      "error_empty_content": "El contenido del paste no puede estar vacío.",
+      "error_invalid_title": "El título puede tener como máximo 200 caracteres.",
+      "error_invalid_privacy": "Valor de privacidad no válido.",
+      "error_invalid_password": "La contraseña puede tener como máximo 100 caracteres.",
+      "error_invalid_expiration": "La expiración debe estar entre 0 y 365 días."
     },
     "analytics-pro": {
       "error_addon_disabled": "❌ El addon Analytics Pro no está habilitado en este servidor.",
@@ -3657,6 +4528,7 @@
       "heatmap_footer": "░ = Sin actividad · ▁▂▃▄▅▆▇█ = Nivel de actividad",
       "top_title": "🏆 Top Comandos — Últimos {days} días",
       "top_empty": "No hay datos de comandos para este período.",
+      "top_disabled": "ℹ️ El seguimiento de comandos está desactivado en la configuración de Analytics Pro.",
       "predict_title": "🔮 Predicción de Crecimiento",
       "predict_no_data": "Se necesitan al menos 7 días de datos para generar predicciones.",
       "predict_disclaimer": "Las predicciones son estimaciones basadas en datos históricos.",
@@ -3666,6 +4538,7 @@
       "field_net_growth": "Crecimiento neto",
       "field_joins_leaves": "Entradas / Salidas",
       "field_commands": "Comandos ejecutados",
+      "field_moderations": "Acciones de moderación",
       "field_messages": "Mensajes registrados",
       "field_voice": "Minutos de voz",
       "field_joins": "Entradas",
@@ -3718,7 +4591,241 @@
       "ai_usage_global": "Total del servidor",
       "ai_config_set": "✅ Configuración IA guardada.",
       "ai_provider_invalid": "❌ Proveedor inválido. Usa: openai, deepseek, anthropic, custom.",
-      "ai_ratelimit_invalid": "❌ Modo de límite inválido. Usa: per_user_daily, per_user_hourly, global_daily, global_hourly, disabled."
+      "ai_ratelimit_invalid": "❌ Modo de límite inválido. Usa: per_user_daily, per_user_hourly, global_daily, global_hourly, disabled.",
+      "insights_title": "🤖 Insights IA — Analytics Pro",
+      "insights_no_data": "Se necesitan al menos 3 días de datos para generar insights.",
+      "insights_generating": "Generando análisis con IA...",
+      "insights_error": "Error al generar el análisis.",
+      "weekly_report_title": "📊 Reporte Semanal — Analytics Pro",
+      "weekly_report_desc": "Resumen de los últimos 7 días",
+      "weekly_report_joins_leaves": "Entradas / Salidas",
+      "weekly_report_messages": "Mensajes",
+      "weekly_report_voice": "Minutos de voz",
+      "weekly_report_insights": "🤖 Insights IA",
+      "unit_min": "min",
+      "heatmap_day_names": "Dom,Lun,Mar,Mié,Jue,Vie,Sáb",
+      "top_line": "{i}. `/{cmd}` — {count} usos · {rate}% ✓",
+      "config_members_per_day": "≥{n} miembros/día",
+      "config_alert_message_drop": "Alerta de caída de mensajes",
+      "config_alert_voice_drop": "Alerta de caída de voz",
+      "config_alert_inactive": "Alerta de inactividad (días)",
+      "config_tracking": "Seguimiento",
+      "schedule_daily": "Diario",
+      "schedule_weekly": "Semanal",
+      "schedule_monthly": "Mensual",
+      "predict": {
+        "title": "Proyección del servidor (30 días)",
+        "state": "Estado",
+        "health": "Salud",
+        "confidence": "Confianza",
+        "scenario": "Escenario principal",
+        "scenario_value": "{range} miembros ({pct}%)",
+        "members": "Miembros",
+        "method": "Método",
+        "method_ai": "🤖 IA",
+        "method_rules": "📐 Reglas",
+        "diagnosis": "Diagnóstico",
+        "action": "Acción recomendada",
+        "state_dead": "Muerto",
+        "state_critical": "Crítico",
+        "state_early_stage": "Etapa inicial",
+        "state_stable": "Estable",
+        "state_growing": "Creciendo",
+        "state_declining": "En declive",
+        "confidence_none": "Sin señal",
+        "confidence_low": "Baja",
+        "confidence_medium": "Media",
+        "confidence_high": "Alta"
+      },
+      "alert": {
+        "title": "⚠️ Analytics Pro — Alertas de tendencia",
+        "growth": "📈 **Pico de altas:** {n} miembros nuevos ayer (umbral {threshold}).",
+        "loss": "📉 **Pérdida de miembros:** {n} miembros se fueron ayer (umbral {threshold}).",
+        "messages_drop": "💬 **Caída de mensajes:** {today} mensajes ayer, un {pct}% menos que la media de 7 días ({avg}).",
+        "voice_drop": "🔊 **Caída de voz:** {today} minutos de voz ayer, un {pct}% menos que la media de 7 días ({avg}).",
+        "inactive": "😴 **Inactividad:** {days} días seguidos sin mensajes.",
+        "footer": "Datos del {date} (UTC) · Umbrales en /analyticsconfig o en el panel"
+      },
+      "report": {
+        "title_daily": "📊 Informe diario — Analytics Pro",
+        "title_weekly": "📊 Informe semanal — Analytics Pro",
+        "title_monthly": "📊 Informe mensual — Analytics Pro",
+        "desc": "Resumen de los últimos {days} días de **{guild}** (entre paréntesis, cambio respecto al periodo anterior)",
+        "field_joins_leaves": "Entradas / Salidas",
+        "field_messages": "Mensajes",
+        "field_voice": "Minutos de voz",
+        "field_commands": "Comandos",
+        "field_members": "Miembros actuales",
+        "insights": "💡 Conclusiones",
+        "footer": "Analytics Pro · cambia la frecuencia en /analyticsconfig o en el panel"
+      },
+      "insight": {
+        "growth_title": "El servidor creció {net} miembros en {days} días",
+        "growth_desc": "{joins} entradas frente a {leaves} salidas: crecimiento neto positivo.",
+        "loss_title": "El servidor perdió {net} miembros en {days} días",
+        "loss_desc": "{leaves} salidas frente a {joins} entradas. Revisa la bienvenida y la retención.",
+        "loss_action": "Revisa el canal de bienvenida y las normas en busca de puntos de fricción.",
+        "stable_title": "Número de miembros estable en {members}",
+        "stable_desc": "Crecimiento neto 0 en {days} días: ni se ganan ni se pierden miembros.",
+        "top_cmd_title": "Comando más usado: /{cmd}",
+        "top_cmd_desc": "Ejecutado {count} veces en los últimos {days} días.",
+        "avg_msg_title": "Media de {avg} mensajes al día",
+        "avg_msg_desc": "{total} mensajes registrados en {days} días."
+      },
+      "pattern": {
+        "hollow_server": "{members} miembros generan solo {avg} mensajes/día (tasa del {rate}%)",
+        "bot_driven": "El {pct}% de las interacciones son comandos del bot frente a mensajes sociales",
+        "single_point_failure": "Los 5 usuarios más activos generan el {pct}% de los mensajes",
+        "activity_collapse": "La actividad de mensajes cayó un {pct}% respecto a la semana anterior",
+        "cold_start_failure": "Solo {total} mensajes en {days} días: la comunidad no llegó a formarse",
+        "declining_retention": "{leaves} salidas frente a {joins} entradas: neto {net} en {days} días",
+        "healthy_growth": "Participación activa: tasa diaria de mensajes del {rate}% con retención estable",
+        "voice_dominant": "Media de {voice} minutos de voz/día frente a {avg} mensajes: comunidad centrada en voz"
+      },
+      "proj": {
+        "confidence": {
+          "none": "Solo {days} días de datos",
+          "zero": "Sin actividad registrada: no hay señal para proyectar",
+          "low": "{days} días de datos (se necesitan mínimo 14)",
+          "unstable": "{days} días de datos: patrón aún inestable",
+          "medium": "{days} días: patrón parcialmente establecido",
+          "high": "{days} días: patrón bien establecido"
+        },
+        "scenario_label": {
+          "dominant": "Escenario principal",
+          "alternative": "Escenario alternativo",
+          "risk": "Escenario de riesgo"
+        },
+        "impact": {
+          "none": "Sin impacto estimado",
+          "low": "+1 a +3 usuarios activos",
+          "medium": "+3 a +8 usuarios activos",
+          "high": "+5 a +15 usuarios activos"
+        },
+        "state": {
+          "dead": {
+            "diagnosis": "El servidor no muestra actividad real. El número de miembros es irrelevante frente a la ausencia total de interacción.",
+            "insight": "No necesitas más usuarios. Necesitas actividad base. Traer gente a un servidor muerto empeora la calidad.",
+            "action_title": "Reactivar usuarios clave manualmente",
+            "action_reason": "Sin núcleo activo, cualquier otra acción es inútil. El primer paso es crear masa crítica mínima.",
+            "activity": "Actividad casi nula. Sin intervención no hay señal de recuperación."
+          },
+          "critical": {
+            "diagnosis": "El servidor tiene miembros pero casi ninguna actividad. El riesgo de pérdida gradual de usuarios es alto si no se actúa pronto.",
+            "insight": "El 100% del trabajo útil es reactivar usuarios existentes, no captar nuevos.",
+            "action_title": "Crear una actividad cerrada (grupo pequeño)",
+            "action_reason": "Un evento con 5–10 personas genera el primer núcleo. Más efectivo que eventos abiertos sin audiencia.",
+            "activity": "Actividad muy baja, vulnerable a colapso."
+          },
+          "early_stage": {
+            "diagnosis": "El servidor está en sus primeras etapas. Hay pocos datos para proyecciones fiables, pero el comportamiento actual marcará la dirección.",
+            "insight": "Con pocos datos, cualquier proyección es estimación. Lo importante ahora es crear el primer núcleo activo.",
+            "action_title": "Establecer actividad diaria consistente",
+            "action_reason": "La consistencia importa más que la escala en esta fase. Un canal activo cada día vale más que un evento grande.",
+            "activity": "Actividad irregular, aún sin patrón establecido."
+          },
+          "declining": {
+            "diagnosis": "El servidor muestra una tendencia negativa tanto en crecimiento como en actividad. Sin intervención, el declive continuará.",
+            "insight": "La causa probable no es la falta de usuarios: es la pérdida del núcleo activo. Ahí está el problema.",
+            "action_title": "Identificar y contactar usuarios que antes eran activos",
+            "action_reason": "Recuperar un usuario que ya confió en el servidor es más eficiente que captar uno nuevo.",
+            "activity": "Actividad en descenso: tendencia a seguir bajando."
+          },
+          "growing": {
+            "diagnosis": "El servidor está creciendo de forma consistente. Es el momento de afianzar la comunidad y mejorar la retención.",
+            "insight": "El crecimiento es real, pero sin retención sólida se perderá. Asegura la experiencia de los nuevos usuarios.",
+            "action_title": "Mejorar el onboarding para nuevos usuarios",
+            "action_reason": "El crecimiento sin retención es pérdida disfrazada. Cada nuevo usuario debe entender el valor en las primeras 24 h.",
+            "activity": "Actividad en ascenso: esperar incremento progresivo."
+          },
+          "stable": {
+            "diagnosis": "El servidor mantiene un estado estable. No hay señales de crecimiento ni declive marcados.",
+            "insight": "La estabilidad puede ser una trampa: sin empuje activo, tiende al declive gradual.",
+            "action_title": "Introducir gamificación o retos semanales",
+            "action_reason": "La estabilidad necesita un empujón para activar usuarios pasivos sin romper lo que ya funciona.",
+            "activity": "Actividad consistente dentro del rango habitual."
+          }
+        },
+        "scenario": {
+          "dead": {
+            "dominant": "Estancamiento estructural. Sin actividad real, el servidor permanece en su estado actual o pierde miembros inactivos.",
+            "alternative": "Activación puntual",
+            "alternative_condition": "Solo si se ejecuta una acción externa (campaña, evento, contacto directo con usuarios)",
+            "risk": "Degradación. Usuarios inactivos empiezan a salir limpiando el servidor."
+          },
+          "critical": {
+            "dominant": "Estancamiento con riesgo. Actividad mínima que puede colapsar ante cualquier distracción.",
+            "alternative": "Recuperación moderada",
+            "alternative_condition": "Si se crea un grupo activo central de 5–10 personas en las próximas 2 semanas",
+            "risk": "Pérdida acelerada de usuarios que perciben el servidor como muerto."
+          },
+          "early_stage": {
+            "dominant": "Incertidumbre. Con pocos datos, el servidor puede ir en cualquier dirección.",
+            "alternative": "Crecimiento inicial",
+            "alternative_condition": "Si se consolida una comunidad de usuarios recurrentes en el primer mes",
+            "risk": "Muerte temprana. El servidor no llega a desarrollar identidad propia."
+          },
+          "declining": {
+            "dominant": "Declive continuado. La tendencia negativa prosigue sin intervención.",
+            "alternative": "Estabilización",
+            "alternative_condition": "Si se identifica y contacta a usuarios que antes estaban activos",
+            "risk": "Colapso. Abandono masivo de usuarios al percibir la muerte del servidor."
+          },
+          "growing": {
+            "dominant": "Crecimiento sostenido basado en la tendencia actual.",
+            "alternative": "Estabilización o meseta. El crecimiento se ralentiza al agotarse el canal de adquisición actual.",
+            "risk": "Reversión. Un evento negativo o falta de onboarding invierte la tendencia."
+          },
+          "stable": {
+            "dominant": "Estabilidad mantenida. Sin cambios significativos.",
+            "alternative": "Crecimiento moderado",
+            "alternative_condition": "Si se introduce una acción de engagement o gamificación",
+            "risk": "Declive gradual. La estabilidad sin empuje tiende al descenso lento."
+          }
+        },
+        "sim": {
+          "reactivate_core": {
+            "title": "Reactivar usuarios clave (DM directo)",
+            "timeframe": "3–7 días",
+            "condition": "Más efectivo cuando hay usuarios previamente activos"
+          },
+          "closed_event": {
+            "title": "Actividad cerrada (grupo pequeño)",
+            "timeframe": "1–3 días",
+            "condition": "Ideal para crear núcleo inicial en servidores pequeños"
+          },
+          "daily_topic": {
+            "title": "Pregunta o tema diario automático",
+            "timeframe": "7–14 días",
+            "condition": "Genera recurrencia sin esfuerzo manual continuo"
+          },
+          "open_event": {
+            "title": "Evento abierto (voz o chat)",
+            "timeframe": "1 día",
+            "condition": "Requiere audiencia previa para tener impacto"
+          },
+          "gamification": {
+            "title": "Gamificación o retos semanales",
+            "timeframe": "14–30 días",
+            "condition": "Activa usuarios pasivos en servidores con base activa"
+          },
+          "invite_campaign": {
+            "title": "Campaña de invitaciones",
+            "timeframe": "7–14 días",
+            "condition": "Solo recomendado si ya existe actividad real"
+          },
+          "channel_cleanup": {
+            "title": "Simplificación de canales",
+            "timeframe": "1 día",
+            "condition": "Reduce confusión y mejora onboarding"
+          },
+          "onboarding": {
+            "title": "Mejorar bienvenida y guía de inicio",
+            "timeframe": "1–2 días",
+            "condition": "Impacto directo en retención del primer día"
+          }
+        }
+      }
     },
     "events": {
       "addon_disabled": "❌ El addon Calendario y Eventos no está habilitado en este servidor.",
@@ -3734,6 +4841,13 @@
       "rsvp_maybe": "🤔 Marcaste como tentativo en **{title}**.",
       "rsvp_declined": "❌ Rechazaste **{title}**.",
       "waitlist_promoted": "🎉 ¡Se liberó un cupo! Ya estás confirmado en **{title}**.",
+      "waitlist_offer": "🎟️ ¡Se liberó un cupo en **{title}**! Confírmalo {deadline} o pasará a la siguiente persona de la lista de espera.",
+      "waitlist_offer_confirmed": "✅ Plaza confirmada: ¡nos vemos en **{title}**!",
+      "waitlist_offer_declined": "👋 Has renunciado a tu plaza en **{title}**. Se ha ofrecido a la siguiente persona.",
+      "waitlist_offer_unavailable": "⌛ Esta oferta para **{title}** ya no está disponible (caducó o ya se respondió).",
+      "waitlist_offer_expired": "⌛ No confirmaste tu plaza en **{title}** a tiempo, así que se ha ofrecido a la siguiente persona de la lista de espera.",
+      "btn_confirm_spot": "Confirmar mi plaza",
+      "btn_decline_spot": "Renunciar a la plaza",
       "reminder": "⏰ **Recordatorio — {title}** empieza en **{time}**.",
       "cancelled_notify": "❌ El evento **{title}** fue cancelado. Razón: {reason}",
       "recurrence_next": "✅ Próxima ocurrencia de **{title}** programada para {date}.",
@@ -3745,7 +4859,26 @@
       "outlook_disconnected": "✅ Outlook Calendar desvinculado.",
       "outlook_not_connected": "❌ Outlook Calendar no está conectado.",
       "outlook_connect_url": "Autoriza el acceso a Outlook Calendar aquí: {url}",
-      "date_parse_error": "❌ No se pudo interpretar la fecha. Prueba: viernes 9pm, mañana a las 20h, 2026-05-01 20:00",
+      "calendar_sync_revoked": "⚠️ Se revocó el acceso a {provider}: la conexión se ha desactivado y los eventos ya no se sincronizan. Vuelve a conectarla con `/eventconfig google` o desde el panel.",
+      "calendar_sync_error_calendar_unavailable": "⚠️ {provider}: no se puede escribir en el calendario configurado (no existe o la cuenta conectada no tiene permiso). Elige otro con `/eventconfig calendar-sync` o desde el panel.",
+      "calendar_sync_error_request_rejected": "⚠️ {provider} rechazó un evento al sincronizarlo. Revisa los datos del evento y vuelve a editarlo.",
+      "calendar_sync_error_sync_failed": "⚠️ {provider}: la sincronización de un evento falló tras varios reintentos. Se volverá a intentar cuando el evento cambie.",
+      "calendar_sync_status": "✅ Google Calendar: {calendar}\nSincronización: {state}\nÚltima sincronización: {last}\nPendientes: {pending} · Con error: {failed}",
+      "calendar_sync_status_error": "Último error: {error}",
+      "calendar_sync_on": "activada",
+      "calendar_sync_off": "desactivada",
+      "calendar_sync_never": "nunca",
+      "calendar_sync_was_revoked": "El acceso se revocó desde Google; vuelve a conectarlo para reanudar la sincronización.",
+      "calendar_sync_saved": "✅ Ajustes de sincronización con Google Calendar guardados.",
+      "calendar_sync_invalid_calendar": "❌ ID de calendario no válido. Usa `primary` o el ID que aparece en «Integrar el calendario» dentro de la configuración del calendario de Google.",
+      "calendar_sync_calendar_unavailable": "❌ La cuenta conectada no puede escribir en ese calendario (no existe o no tiene permiso).",
+      "calendar_sync_revoked_reply": "❌ El acceso a Google Calendar fue revocado. Vuelve a conectarlo con `/eventconfig google`.",
+      "calendar_sync_retry_later": "⏳ Google Calendar no responde ahora mismo. Inténtalo de nuevo en unos minutos.",
+      "calendar_sync_err_revoked": "acceso revocado",
+      "calendar_sync_err_calendar_unavailable": "calendario no disponible",
+      "calendar_sync_err_request_rejected": "evento rechazado",
+      "calendar_sync_err_sync_failed": "reintentos agotados",
+      "date_parse_error": "❌ No se pudo entender la fecha. Prueba: \"mañana 20:00\", \"el viernes a las 21:00\", \"2026-11-20 19:30\".",
       "availability_created": "✅ Encuesta de disponibilidad creada.",
       "availability_closed": "✅ Encuesta cerrada — ganador: **{winner}** con {votes} votos.",
       "availability_desc": "Vota por la opción que mejor te quede. Puedes votar varias.",
@@ -3782,7 +4915,44 @@
       "config_organizer_roles": "Roles organizadores",
       "config_none": "No configurado",
       "config_footer": "Usa /eventconfig para modificar la configuración.",
-      "config_saved": "✅ Configuración guardada."
+      "config_saved": "✅ Configuración guardada.",
+      "field_and_more": "y {n} más",
+      "field_recurrence": "🔁 Recurrencia",
+      "recurrence_daily": "Diaria",
+      "recurrence_weekly": "Semanal",
+      "recurrence_monthly": "Mensual",
+      "status_scheduled": "Programado",
+      "status_active": "En curso",
+      "status_ended": "Finalizado",
+      "status_cancelled": "Cancelado",
+      "waitlist_full": "❌ El evento está completo y su lista de espera ha llegado al límite.",
+      "availability_unvoted": "✅ Se ha retirado tu voto a **{option}**.",
+      "poll_votes": "{n} votos",
+      "poll_participants": "{n} participantes",
+      "poll_closes": "Cierra {time}.",
+      "poll_closed_desc": "Esta encuesta está cerrada.",
+      "poll_winner": "Ganadora: **{winner}** ({votes} votos)",
+      "poll_already_closed": "ℹ️ Esta encuesta ya está cerrada.",
+      "no_permission_create": "❌ Solo los organizadores (permiso Gestionar eventos o un rol organizador) pueden hacerlo.",
+      "limit_active": "❌ Este servidor ya tiene {max} eventos activos. Cancela uno o espera a que termine.",
+      "limit_polls": "❌ Este servidor ya tiene {max} encuestas abiertas. Cierra una primero.",
+      "invalid_timezone": "❌ Zona horaria desconocida. Usa un nombre IANA como Europe/Madrid o America/Mexico_City.",
+      "date_in_past": "❌ Esa fecha ya ha pasado.",
+      "channel_no_access": "❌ No puedo publicar en ese canal (o tú no puedes). Elige un canal de texto donde ambos podamos escribir.",
+      "recurrence_end_invalid": "❌ La fecha de fin de la recurrencia no es válida o es anterior al evento.",
+      "list_footer": "Página {page}/{pages} · {total} eventos",
+      "log_created": "📅 {user} creó el evento **{title}** (`{id}`).",
+      "log_edited": "✏️ {user} editó el evento **{title}**.",
+      "log_cancelled": "🚫 {user} canceló el evento **{title}**. Motivo: {reason}",
+      "log_promoted": "⏫ {user} pasó de la lista de espera a confirmado en **{title}**.",
+      "log_offered": "🎟️ Se ofreció una plaza de **{title}** a {user} desde la lista de espera (pendiente de confirmar).",
+      "config_log_channel": "Canal de registro",
+      "config_timezone": "Zona horaria del servidor",
+      "config_organizer_default": "Ninguno — cualquiera puede crear eventos (Gestionar eventos siempre puede gestionarlos)",
+      "config_reminders_off": "Desactivados",
+      "config_no_changes": "No se indicó ningún cambio.",
+      "reminders_invalid": "❌ Usa hasta 5 valores en minutos entre 1 y 43200 (30 días), p. ej. 60,30,15.",
+      "organizer_roles_limit": "❌ Puedes configurar hasta 20 roles organizadores."
     },
     "ai-assistant": {
       "error_addon_disabled": "❌ El addon Asistente IA no está habilitado en este servidor.",
@@ -3802,6 +4972,7 @@
       "summary_messages_analyzed": "Mensajes analizados: **{count}**",
       "summary_footer": "Asistente IA · Resumen generado con IA",
       "summary_no_messages": "❌ No hay mensajes para resumir en este canal.",
+      "summary_disabled": "❌ Los resúmenes están desactivados en este servidor. Un administrador puede activarlos con `/aiconfig summary set permitir:true` o desde el panel.",
       "translate_title": "🌐 Traducción",
       "translate_original": "Original",
       "translate_result": "Traducción",
@@ -3838,7 +5009,8 @@
       "config_chatbot": "Chatbot",
       "config_automod": "Auto-moderación",
       "config_sentiment": "Sentimiento",
-      "config_summary": "Resúmenes",
+      "config_summary": "Resúmenes automáticos",
+      "config_summary_allowed": "Resúmenes permitidos",
       "config_translate": "Traducción",
       "config_enabled": "Habilitado",
       "config_disabled": "Deshabilitado",
@@ -3884,7 +5056,34 @@
       "limits_cooldown": "Cooldown entre solicitudes",
       "limits_context": "Mensajes de contexto",
       "limits_response": "Tokens max respuesta",
-      "limits_concurrent": "Solicitudes simultáneas"
+      "limits_concurrent": "Solicitudes simultáneas",
+      "channels_list_empty": "No hay canales configurados (todos los canales).",
+      "error_specify_channel": "❌ Indica un canal.",
+      "error_specify_role": "❌ Indica un rol.",
+      "error_specify_word": "❌ Indica una palabra o frase.",
+      "faq_entries_count": "{count} entradas",
+      "faq_triggers_label": "disparadores",
+      "limits_value_req_day": "**{n}** solicitudes/día",
+      "limits_value_req_hour": "**{n}** solicitudes/hora",
+      "limits_value_tokens_day": "**{n}** tokens/día",
+      "limits_value_tokens": "**{n}** tokens",
+      "limits_value_seconds": "**{n}** segundos",
+      "limits_value_messages": "**{n}** mensajes",
+      "limits_value_concurrent": "**{n}** simultáneas",
+      "sentiment_alert_title": "⚠️ Alerta de sentimiento negativo",
+      "sentiment_alert_desc": "El sentimiento del servidor ha sido muy negativo durante la última hora.",
+      "sentiment_alert_score": "Puntuación media",
+      "sentiment_alert_messages": "Mensajes analizados",
+      "sentiment_alert_footer": "Asistente IA — Análisis de sentimiento",
+      "summary_auto_title": "📝 Resumen automático de la conversación",
+      "summary_channels_empty": "No hay canales con resúmenes automáticos. Añade uno con `/aiconfig summary channels`.",
+      "summary_no_access": "❌ Solo puedes resumir canales de este servidor que tanto tú como el bot podáis leer.",
+      "usage_background": "Funciones automáticas hoy (servidor)",
+      "usage_bg_moderation": "Auto-moderación",
+      "usage_bg_sentiment": "Análisis de sentimiento",
+      "usage_bg_summary": "Resúmenes automáticos",
+      "whitelist_roles": "Roles",
+      "whitelist_channels": "Canales"
     },
     "store": {
       "errors": {
@@ -3893,12 +5092,36 @@
         "store_not_configured": "La tienda no está configurada. Un administrador debe completar la configuración.",
         "product_not_found": "Producto no encontrado o no disponible.",
         "out_of_stock": "Este producto está agotado.",
+        "monthly_limit": "Esta tienda ha alcanzado su límite de {max} pedidos este mes. Inténtalo de nuevo el mes que viene.",
         "payment_failed": "No se pudo crear la orden de pago. Inténtalo de nuevo.",
         "dm_failed": "No se pudo enviarte el mensaje privado. Asegúrate de tener los DMs abiertos.",
         "coupon_invalid": "El código de cupón no es válido o ha expirado.",
         "coupon_min_amount": "Este cupón requiere un monto mínimo de {min} {currency}.",
         "coupon_max_uses": "Este cupón ya alcanzó su límite de usos.",
-        "not_authorized": "No tienes permiso para realizar esta acción."
+        "not_authorized": "No tienes permiso para realizar esta acción.",
+        "coupon_not_applicable": "Este cupón no se puede aplicar a este producto.",
+        "product_unavailable": "Este producto no se puede entregar ahora mismo. Contacta con el staff del servidor.",
+        "already_owned": "Ya tienes este rol.",
+        "guild_not_found": "El bot no está en el servidor.",
+        "member_not_found": "El comprador ya no es miembro del servidor.",
+        "role_not_found": "El rol ya no existe.",
+        "role_everyone": "El rol @everyone no se puede vender.",
+        "role_managed": "El rol lo gestiona una integración y no se puede asignar.",
+        "role_dangerous": "El rol tiene permisos de moderación o administración y no se puede vender.",
+        "role_above_bot": "El rol está por encima del rol más alto del bot.",
+        "role_above_actor": "El rol está por encima del rol más alto de quien lo configuró.",
+        "role_add_failed": "El bot no pudo asignar el rol.",
+        "channel_not_found": "Uno de los canales ya no existe.",
+        "channel_permission_failed": "El bot no pudo dar acceso al canal (le falta Gestionar permisos).",
+        "file_unavailable": "El archivo de este producto no está configurado.",
+        "no_codes_available": "No quedan códigos para este producto.",
+        "delivery_error": "Error inesperado durante la entrega.",
+        "interrupted": "La entrega se interrumpió (reinicio del bot).",
+        "order_not_found": "No se encontró ese pedido o no te pertenece.",
+        "order_refunded": "Este pedido fue reembolsado.",
+        "order_not_delivered": "Este pedido aún no se ha entregado.",
+        "paypal_auth_failed": "PayPal rechazó las credenciales de la tienda.",
+        "paypal_unavailable": "PayPal no responde. Inténtalo más tarde."
       },
       "browse": {
         "title": "🛒 Tienda — {store}",
@@ -3906,7 +5129,8 @@
         "footer": "Usa /store buy <product_id> para comprar directamente.",
         "buy_button": "Comprar {name}",
         "default_store_name": "Servidor",
-        "default_description": "Explora nuestros productos y adquiere lo que necesites."
+        "default_description": "Explora nuestros productos y adquiere lo que necesites.",
+        "refund_policy": "Política de reembolso"
       },
       "buy_modal": {
         "title": "Comprar: {name}",
@@ -3918,7 +5142,12 @@
         "checkout_desc": "Estás por comprar **{name}** por **{price}**.\nHaz clic en el botón para completar el pago en PayPal.",
         "order_id": "ID de Orden",
         "pay_button": "Pagar con PayPal",
-        "checkout_footer": "Tienes 15 minutos para completar el pago antes de que expire."
+        "checkout_footer": "Tienes 15 minutos para completar el pago antes de que expire.",
+        "breakdown": "Desglose del precio",
+        "subtotal": "Subtotal",
+        "discount": "Descuento ({code})",
+        "tax": "Impuestos",
+        "total": "Total"
       },
       "order": {
         "status_title": "📦 Estado de tu Orden",
@@ -3936,7 +5165,14 @@
         "status_completed": "✅ Completado",
         "status_refunded": "↩️ Reembolsado",
         "status_failed": "❌ Fallido",
-        "status_timed_out": "⏰ Expirado"
+        "status_timed_out": "⏰ Expirado",
+        "role_expires": "El rol caduca",
+        "delivery_issue": "⚠️ Entrega pendiente",
+        "delivery_issue_desc": "Recibimos tu pago pero la entrega falló. Se reintenta automáticamente y el staff del servidor ya está avisado.",
+        "status_capturing": "💳 Procesando el pago",
+        "status_delivering": "📦 Entregando",
+        "status_cancelled": "🚫 Cancelado (sin cobro)",
+        "status_expired": "⌛ Rol caducado"
       },
       "product": {
         "type": "Tipo",
@@ -3945,25 +5181,37 @@
         "type_digital": "Código digital",
         "stock": "Stock",
         "unlimited_stock": "Ilimitado",
-        "stock_count": "{n} disponibles"
+        "stock_count": "{n} disponibles",
+        "type_file": "Archivo digital",
+        "duration": "Duración: {days} días"
       },
       "delivery": {
         "dm_title": "🎉 ¡Tu compra ha sido procesada!",
         "dm_reveal_button": "Revelar código",
         "dm_reveal_note": "Haz clic en el botón para revelar tu código digital. Solo puedes verlo una vez.",
-        "dm_footer": "Gracias por tu compra. Guarda este código en un lugar seguro.",
+        "dm_footer": "Pedido {order} · Gracias por tu compra.",
         "already_claimed": "Este código ya fue revelado anteriormente.",
-        "dm_file_desc": "Tu archivo está listo para descargar.",
+        "dm_file_desc": "Tu archivo está listo para descargar. El enlace caduca en {hours} horas.",
         "dm_file_link_button": "Descargar archivo",
         "reveal_title": "🔑 Tu código digital",
-        "reveal_footer": "Guarda este código. No podrás verlo de nuevo."
+        "reveal_footer": "Guarda este código. No podrás verlo de nuevo.",
+        "dm_role_desc": "Se te ha asignado tu rol en **{server}**.",
+        "dm_access_desc": "Ya tienes acceso a los canales comprados en **{server}**.",
+        "not_charged_title": "🚫 Pedido no completado",
+        "not_charged_desc": "Tu pedido de **{product}** no se pudo completar: {reason}\n**No** se te ha cobrado nada.",
+        "delayed_title": "⏳ Entrega retrasada",
+        "delayed_desc": "Recibimos tu pago de **{product}** pero la entrega falló. Se reintentará automáticamente y el staff del servidor ya está avisado. Pedido: `{order}`",
+        "reveal_legacy": "Este botón es de una versión anterior. Usa /order status en el servidor para ver tu pedido.",
+        "role_expired_title": "⌛ Rol caducado",
+        "role_expired_desc": "Tu rol **{product}** en **{server}** ha caducado y se ha retirado."
       },
       "refund": {
         "dm_title": "↩️ Reembolso procesado",
         "dm_role_revoked": "El rol **{role}** ha sido revocado.",
         "dm_access_revoked": "Tu acceso al canal ha sido revocado.",
         "dm_digital_note": "Los códigos digitales ya revelados no pueden recuperarse.",
-        "unrevokable_log": "No se pudo revocar beneficios: el usuario {userId} ya no está en el servidor."
+        "unrevokable_log": "No se pudieron retirar los beneficios: el usuario {userId} ya no está en el servidor (producto {product}, pedido {order}).",
+        "partial_log": "↩️ Reembolso parcial del pedido {order}: {amount} de {total}. Se mantienen los beneficios."
       },
       "sale_notify": {
         "title": "💰 Nueva venta registrada",
@@ -3971,6 +5219,13 @@
         "amount": "Monto",
         "buyer": "Comprador",
         "footer": "Korex Store · Notificación de venta"
+      },
+      "owner_alert": {
+        "title": "⚠️ Pedido cobrado sin entregar",
+        "desc": "Un comprador pagó pero la entrega falló. El bot lo reintentará automáticamente. Corrige la causa indicada o reembolsa al comprador desde PayPal.",
+        "final_title": "❌ La entrega falló tras varios reintentos",
+        "final_desc": "El bot dejó de reintentar este pedido cobrado. Corrige la causa y usa \"Reintentar entrega\" en el panel, o reembolsa al comprador desde PayPal.",
+        "reason": "Motivo"
       }
     }
   },
@@ -3980,7 +5235,7 @@
     "previous": "Anterior"
   },
   "balance": {
-    "amount": "{amount} 🪙"
+    "amount": "{amount} {symbol}"
   },
   "rank": {
     "title": "📊 Estadísticas de {user}",
@@ -3994,7 +5249,13 @@
     "levels_title": "🏆 Ranking de Niveles",
     "economy_title": "💰 Ranking de Economía",
     "description": "Top {count} usuarios del servidor",
-    "no_data": "No hay datos disponibles."
+    "no_data": "No hay datos disponibles.",
+    "page": "Página {page}",
+    "unknown_user": "Usuario desconocido",
+    "line_levels": "**{position}.** {user} — Nivel {level} ({xp} XP)",
+    "line_economy": "**{position}.** {user} — {amount}",
+    "previous": "Anterior",
+    "next": "Siguiente"
   },
   "serverinfo": {
     "title": "📋 Información del Servidor",
@@ -4090,7 +5351,29 @@
       "cooldown": "Cooldown",
       "vote_threshold": "Umbral de votos",
       "auto_threads": "Hilos automáticos",
-      "notify_author": "Notificar autor"
+      "notify_author": "Notificar autor",
+      "cooldown_value": "{seconds} segundos",
+      "buttons": {
+        "enable": "Activar",
+        "disable": "Desactivar",
+        "settings": "Ajustes",
+        "roles": "Gestionar roles"
+      },
+      "toggled_on": "✅ Sugerencias activadas en {channel}.",
+      "toggled_off": "❌ Sugerencias desactivadas. Pulsa de nuevo el botón para reactivarlas en el mismo canal.",
+      "no_channel": "❌ No hay un canal de sugerencias que reactivar. Configúralo con `/suggestions setup`.",
+      "settings_title": "⚙️ Ajustes de sugerencias",
+      "settings_description": "Usa los botones para activar o desactivar los hilos automáticos y el aviso al autor, o para cambiar el cooldown.",
+      "cooldown_modal_title": "Cooldown de sugerencias",
+      "cooldown_label": "Segundos entre sugerencias (0-86400)",
+      "invalid_cooldown": "❌ El cooldown debe ser un número entero entre 0 y 86400 segundos.",
+      "updated": "✅ Ajustes actualizados.",
+      "roles_title": "👥 Roles de sugerencias",
+      "roles_description": "Los **roles de staff** pueden aprobar, rechazar o actualizar sugerencias (los administradores siempre pueden). Los **roles de votantes** limitan quién puede votar; déjalo vacío para que vote todo el mundo.",
+      "staff_roles": "Roles de staff",
+      "voter_roles": "Roles de votantes",
+      "staff_placeholder": "Roles de staff (ninguno = solo administradores)",
+      "voter_placeholder": "Roles que pueden votar (ninguno = todos)"
     },
     "setup": {
       "success": {
@@ -4122,7 +5405,7 @@
       "title": "📋 Sugerencias",
       "description": "Lista de sugerencias del servidor.",
       "no_suggestions": "No hay sugerencias.",
-      "footer": "Página {page}/{total}"
+      "footer": "Mostrando {shown} de {total}"
     },
     "categories": {
       "feature": "Nueva función",
@@ -4142,7 +5425,7 @@
       "rejected": "Rechazada",
       "considering": "En consideración",
       "in_progress": "En progreso",
-      "completed": "Completada"
+      "completed": "Implementada"
     },
     "buttons": {
       "approve": "Aprobar",
@@ -4176,7 +5459,8 @@
       "step2_title": "💡 Nueva Sugerencia",
       "step2_description": "Ahora selecciona la **prioridad** de tu sugerencia:",
       "priority_placeholder": "Elige una prioridad..."
-    }
+    },
+    "vote_removed": "🗑️ Voto retirado."
   },
   "guildCreate": {
     "title": "¡Gracias por añadir Korex!",
@@ -4216,181 +5500,293 @@
     "cmd_setup_desc": "Configura y despliega la puerta de verificación",
     "cmd_setup_channel": "Canal donde se enviará el embed de verificación",
     "cmd_setup_role": "Rol a asignar cuando un usuario se verifica",
-    "cmd_setup_type": "Estilo de verificación: botón o reacción",
+    "cmd_setup_type": "Estilo de verificación: botón, reacción o captcha",
     "cmd_setup_emoji": "Emoji a usar (para tipo reacción)",
     "cmd_setup_title": "Título del embed",
     "cmd_setup_desc_opt": "Descripción del embed",
     "cmd_redeploy_desc": "Reenvía el embed de verificación al canal configurado",
     "cmd_disable_desc": "Desactiva el sistema de verificación",
-    "cmd_status_desc": "Muestra la configuración actual de verificación"
+    "cmd_status_desc": "Muestra la configuración actual de verificación",
+    "status_label": "Estado",
+    "cmd_captcha_desc": "Configura las opciones de la verificación por captcha",
+    "cmd_captcha_attempts": "Intentos fallidos permitidos antes de la espera (1-10)",
+    "cmd_captcha_cooldown": "Minutos de espera tras agotar los intentos (1-1440)",
+    "cmd_captcha_fail_action": "Qué hacer cuando un usuario agota los intentos",
+    "cmd_timeout_desc": "Expulsa a quien no se verifique a tiempo tras unirse",
+    "cmd_timeout_minutes": "Minutos para verificarse tras unirse (0 = desactivado, máx. 10080)",
+    "captcha_saved": "Opciones del captcha guardadas.",
+    "captcha_type_hint": "Estas opciones solo se aplican cuando el tipo de verificación es Captcha (usa /verification setup type:Captcha).",
+    "kick_permission_warning": "El bot no tiene el permiso Expulsar miembros, así que no podrá expulsar a nadie.",
+    "timeout_saved": "Los miembros sin verificar serán expulsados {minutes} minutos después de unirse.",
+    "timeout_disabled": "Tiempo límite de verificación desactivado.",
+    "timeout_kick_reason": "No completó la verificación a tiempo",
+    "status_timeout": "Tiempo límite",
+    "status_captcha_attempts": "Intentos del captcha",
+    "status_captcha_cooldown": "Espera del captcha",
+    "status_captcha_fail_action": "Al agotar los intentos",
+    "minutes": "{count} min",
+    "fail_action": {
+      "none": "No hacer nada",
+      "kick": "Expulsar"
+    },
+    "kick_dm": {
+      "captcha": "Has sido expulsado de **{server}** tras demasiados intentos de verificación fallidos. Puedes volver a unirte e intentarlo de nuevo.",
+      "timeout": "Has sido expulsado de **{server}** porque no completaste la verificación a tiempo. Puedes volver a unirte e intentarlo de nuevo."
+    },
+    "captcha": {
+      "title": "🔐 Captcha de verificación",
+      "description": "Escribe los {length} caracteres de la imagen pulsando **Introducir código**.\nDa igual mayúsculas o minúsculas. El código caduca {time}.",
+      "button_enter": "Introducir código",
+      "modal_title": "Captcha de verificación",
+      "modal_label": "Código de la imagen",
+      "modal_placeholder": "p. ej. AB3K7Q",
+      "wrong": "❌ Código incorrecto. Intentos restantes: **{remaining}**.",
+      "expired": "⌛ Tu código caducó o ya se usó. Pulsa **Verificar** de nuevo para obtener otro.",
+      "locked": "🔒 Demasiados intentos fallidos. Podrás volver a intentarlo {time}.",
+      "cooldown": "🔒 Demasiados intentos fallidos. Podrás volver a intentarlo {time}.",
+      "rate_limited": "⏳ Estás pidiendo códigos nuevos demasiado seguido. Espera unos minutos.",
+      "unavailable": "❌ El captcha no está disponible en este momento. Inténtalo más tarde o avisa a un administrador.",
+      "kick_reason": "Demasiados intentos fallidos en el captcha de verificación"
+    },
+    "deploy_errors": {
+      "not_configured": "❌ Configura primero el canal y el rol de verificación.",
+      "channel_not_found": "❌ No se encontró el canal de verificación.",
+      "missing_permissions": "❌ El bot no tiene permisos para enviar mensajes o reaccionar en ese canal.",
+      "no_access": "❌ El bot no tiene acceso a ese canal.",
+      "deploy_failed": "❌ No se pudo publicar el mensaje de verificación."
+    }
   },
   "music_pro": {
-    "addon_unavailable": "❌ El addon Music DJ IA no está disponible en este momento.",
-    "not_premium": "⭐ Este addon requiere una suscripción premium. Visita https://korex.dev/addons/music-pro para activarlo.",
-    "not_enabled": "❌ Music DJ IA no está habilitado en este servidor.",
-    "no_dj_permission": "❌ No tienes permiso de DJ para usar esta función.",
-    "not_in_voice": "❌ Debes estar en un canal de voz para usar este comando.",
-    "nothing_playing": "❌ No hay ninguna pista reproduciéndose ahora mismo.",
-    "queue_empty": "La cola está vacía.",
-    "filter_set": "✅ Filtro **{filter}** aplicado correctamente.",
-    "filter_cleared": "✅ Filtros eliminados.",
-    "filter_list_title": "Filtros disponibles",
-    "filter_list_active": "Activo",
-    "filter_list_none": "Ninguno activo",
-    "filter_invalid": "❌ Filtro inválido. Usa `/filter list` para ver los disponibles.",
-    "filter_none_active": "No hay ningún filtro activo.",
-    "filter_bassboost": "Graves Potenciados",
-    "filter_nightcore": "Nightcore",
-    "filter_8d": "Audio 8D",
-    "filter_vaporwave": "Vaporwave",
-    "filter_karaoke": "Karaoke",
+    "not_premium": "Este comando requiere el addon **Music DJ IA**. Actívalo en https://korex.dev/addons/music-pro",
+    "filter_set": "✅ Filtro **{filter}** aplicado.",
+    "filter_cleared": "✅ Filtro eliminado.",
+    "filter_invalid": "❌ Filtro no válido. Usa `/filter list` para ver los disponibles.",
+    "filter_list": "Filtros disponibles: **Graves potenciados**, **Nightcore**, **Audio 8D**, **Vaporwave**, **Karaoke**. El filtro activo se mantiene en las siguientes sesiones.",
+    "filter_list_title": "Filtros de audio",
+    "filter_none": "Ninguno",
+    "filter_name_bassboost": "Graves potenciados",
+    "filter_name_nightcore": "Nightcore",
+    "filter_name_8d": "Audio 8D",
+    "filter_name_vaporwave": "Vaporwave",
+    "filter_name_karaoke": "Karaoke",
     "playlist_created": "✅ Playlist **{name}** creada.",
-    "playlist_deleted": "✅ Playlist eliminada.",
-    "playlist_not_found": "❌ Playlist no encontrada.",
-    "playlist_limit_reached": "❌ Límite de {limit} playlists por servidor alcanzado.",
-    "playlist_track_added": "✅ Pista añadida a **{playlist}**.",
-    "playlist_track_limit": "❌ La playlist ya tiene el máximo de {limit} pistas.",
-    "playlist_playing": "▶️ Reproduciendo playlist **{name}** ({count} pistas).",
+    "playlist_added": "✅ **{track}** añadida a **{playlist}**.",
+    "playlist_playing": "▶️ Cargando **{count}** pistas de **{playlist}**...",
+    "playlist_loaded": "✅ **{added}** de **{count}** pistas de **{playlist}** añadidas a la cola.",
     "playlist_empty": "❌ La playlist está vacía.",
-    "playlist_name_required": "❌ El nombre de la playlist es obligatorio.",
+    "playlist_not_found": "❌ No se encontró la playlist **{name}**.",
+    "playlist_not_owner": "❌ Solo quien creó la playlist o un miembro con Gestionar canales puede modificarla.",
+    "playlist_position_invalid": "❌ Esa posición no existe en la playlist.",
+    "playlist_track_removed": "✅ **{track}** quitada de **{playlist}**.",
+    "playlist_shuffled": "🔀 Se han mezclado las pistas de **{playlist}**.",
+    "playlist_deleted": "✅ Playlist **{name}** eliminada.",
+    "playlist_limit": "❌ Este servidor ha alcanzado el límite de 20 playlists.",
+    "playlist_track_limit": "❌ La playlist ya tiene el máximo de 200 pistas.",
+    "playlist_name_taken": "❌ Ya existe una playlist con ese nombre.",
+    "playlist_list_empty": "No hay playlists guardadas.",
     "playlist_list_title": "Playlists del servidor",
-    "playlist_list_empty": "No hay playlists creadas aún.",
-    "playlist_list_entry": "**{name}** — {count} pistas · por <@{userId}>",
-    "playlist_track_required": "❌ Debes indicar una pista para añadir.",
+    "playlists_tracks": "{count} pistas",
+    "history_empty": "No hay historial de reproducción en este servidor.",
     "history_title": "Historial de reproducción",
-    "history_empty": "No hay historial de reproducción aún.",
-    "history_entry": "{pos}. **{title}** · {duration} · <@{userId}>",
-    "history_replaying": "▶️ Añadiendo **{title}** a la cola.",
-    "dj_role_added": "✅ Rol DJ <@&{roleId}> añadido.",
-    "dj_role_removed": "✅ Rol DJ <@&{roleId}> eliminado.",
-    "dj_role_not_found": "❌ Ese rol DJ no está en la lista.",
-    "dj_role_limit": "❌ Máximo {limit} roles DJ permitidos.",
-    "dj_mode_enabled": "✅ Modo DJ activado. Solo los DJs pueden controlar la música.",
-    "dj_mode_disabled": "✅ Modo DJ desactivado. Todos pueden controlar la música.",
-    "dj_list_title": "Roles DJ configurados",
-    "dj_list_empty": "No hay roles DJ configurados.",
-    "dj_list_mode": "Modo DJ",
-    "dj_list_mode_on": "Activado",
-    "dj_list_mode_off": "Desactivado",
-    "247_enabled": "✅ Modo 24/7 activado. El bot se mantendrá en el canal de voz.",
+    "history_replaying": "▶️ Añadiendo **{track}** a la cola.",
+    "history_position_invalid": "❌ Esa posición no existe en el historial.",
+    "dj_role_added": "✅ Rol {role} añadido como DJ.",
+    "dj_role_removed": "✅ Rol {role} quitado de los DJ.",
+    "dj_role_not_found": "❌ Ese rol no está configurado como DJ.",
+    "dj_role_already": "❌ Ese rol ya es un rol DJ.",
+    "dj_role_limit": "❌ Máximo 3 roles DJ permitidos.",
+    "dj_only_enabled": "✅ Modo DJ exclusivo activado: solo los DJ pueden usar los controles de Music DJ IA.",
+    "dj_only_disabled": "✅ Modo DJ exclusivo desactivado.",
+    "dj_no_permission": "❌ Necesitas un rol DJ para usar este comando.",
+    "dj_list_title": "Configuración de DJ",
+    "dj_roles_field": "Roles DJ",
+    "dj_only_field": "Modo DJ exclusivo",
+    "dj_roles_empty": "No hay roles DJ configurados.",
+    "247_enabled": "✅ Modo 24/7 activado: me quedaré en {channel}.",
     "247_disabled": "✅ Modo 24/7 desactivado.",
-    "247_already_enabled": "ℹ️ El modo 24/7 ya está activado.",
-    "247_already_disabled": "ℹ️ El modo 24/7 ya está desactivado.",
-    "247_reconnecting": "🔄 Reconectando al canal de voz (intento {attempt}/{max})...",
-    "247_max_retries": "⚠️ Se alcanzó el máximo de intentos de reconexión. Modo 24/7 desactivado automáticamente.",
-    "config_updated": "✅ Configuración actualizada.",
-    "config_volume_set": "✅ Volumen por defecto establecido a **{volume}%**.",
-    "config_autojoin_set": "✅ Canal de unión automática: {channel}.",
-    "config_autojoin_cleared": "✅ Canal de unión automática eliminado.",
-    "config_announce_set": "✅ Canal de anuncios: {channel}.",
-    "config_announce_cleared": "✅ Canal de anuncios eliminado.",
-    "config_limits_updated": "✅ Límites actualizados — cola máx: {queue}, duración máx: {duration}min.",
-    "config_info_title": "Configuración de Music DJ IA",
-    "config_info_mode247": "Modo 24/7",
-    "config_info_djmode": "Modo DJ",
-    "config_info_volume": "Volumen por defecto",
-    "config_info_filter": "Filtro activo",
-    "config_info_queue_limit": "Límite de cola",
-    "config_info_duration_limit": "Duración máxima (min)",
-    "config_info_autojoin": "Canal de unión auto",
-    "config_info_announce": "Canal de anuncios",
-    "config_info_none": "Ninguno",
-    "config_info_on": "Activado",
-    "config_info_off": "Desactivado",
-    "quota_title": "Cuota de IA — {guildName}",
-    "quota_used": "Generaciones usadas este mes",
-    "quota_remaining": "Restantes",
-    "quota_resets": "Reinicio estimado",
-    "quota_no_subscription": "❌ Este servidor no tiene una suscripción activa de Music DJ IA. Adquiere el addon en korex.dev para usar la generación de IA.",
-    "quota_exhausted": "❌ Cuota mensual de IA agotada ({used}/{limit} usadas).\nSe renueva el **{date}**.",
-    "quota_bar_full": "Cuota mensual completa.",
-    "ai_generating": "⏳ Generando tu música con IA... esto puede tardar entre 1-3 minutos. Te notificaré cuando esté lista.",
-    "ai_already_running": "❌ Ya hay una generación de IA en progreso para este servidor. Espera a que termine.",
-    "ai_cooldown": "⏳ Espera {seconds}s antes de lanzar otra generación.",
-    "ai_prompt_too_long": "❌ El prompt no puede superar {max} caracteres.",
-    "ai_prompt_invalid": "❌ El prompt contiene contenido no permitido.",
-    "ai_job_done_title": "🎵 ¡Música IA lista!",
-    "ai_job_done_prompt": "Prompt",
-    "ai_job_done_type": "Tipo",
-    "ai_job_done_duration": "Duración",
-    "ai_job_done_play1": "▶ Opción 1",
-    "ai_job_done_play2": "▶ Opción 2",
-    "ai_job_done_save": "💾 Guardar en playlist",
-    "ai_job_failed_title": "❌ Generación de IA fallida",
-    "ai_job_failed_reason": "Motivo",
-    "ai_playing_result": "▶️ Reproduciendo resultado IA en el canal de voz.",
-    "ai_saved_to_playlist": "✅ Pista IA guardada en **{playlist}**.",
-    "ai_save_select_placeholder": "Selecciona una playlist...",
-    "ai_no_playlists": "❌ No hay playlists en este servidor. Crea una con `/playlist create`.",
-    "ai_type_generate": "Generación",
-    "ai_type_cover": "Cover IA",
-    "ai_type_remix": "Remix IA",
-    "ai_error": "❌ Error al procesar la solicitud de IA. Inténtalo de nuevo.",
-    "btn_play_v1": "▶️ Play v1",
-    "btn_play_v2": "▶️ Play v2",
+    "247_no_access": "❌ No puedo entrar en {channel}. Comprueba que tengo los permisos Ver canal y Conectar.",
+    "resumed": "Reproducción reanudada",
+    "shuffled": "🔀 Cola mezclada",
+    "generating": "🎵 Generando tu música... Puede tardar hasta 2 minutos.",
+    "generating_cover": "🎵 Creando tu cover... esto puede tardar hasta 2 minutos.\n\n💡 **Tip:** `/cover` y `/remix` trabajan con previews de ~30 segundos. Para resultados más largos, genera primero tu propia canción con `/generate` y luego hazle el cover. ¡Es más divertido y la música es 100% tuya!",
+    "generating_remix": "🎵 Creando tu remix... esto puede tardar hasta 2 minutos.\n\n💡 **Tip:** `/remix` y `/cover` trabajan con previews de ~30 segundos. Para resultados más largos, genera primero tu propia canción con `/generate` y luego hazle el remix. ¡Es más divertido y la música es 100% tuya!",
+    "ai_done_generate": "✨ ¡Tu canción está lista!",
+    "ai_done_cover": "✨ ¡Tu cover está listo!",
+    "ai_done_remix": "✨ ¡Tu remix está listo!",
+    "ai_failed": "❌ La generación ha fallado. No se ha consumido tu cuota. Inténtalo de nuevo.",
+    "searching_track": "🔍 Buscando la canción...",
+    "track_not_found": "❌ No se encontró **{track}**. Prueba añadiendo el artista (ej: \"Katy Perry Firework\") o usa el parámetro opcional `url` con un enlace de audio directo. No se ha consumido tu cuota.",
+    "voice_not_found": "❌ No se encontró ninguna voz con ese nombre. Prueba otro nombre de artista.",
+    "ai_footer": "Música generada con IA",
+    "ai_prompt_label": "Prompt",
+    "ai_requested_by": "Pedido por",
+    "ai_elapsed": "Tiempo",
+    "ai_job_not_ready": "Esta generación no está disponible",
+    "ai_saved_to_playlist": "✅ Pista guardada en la playlist.",
+    "save_select_placeholder": "Elige una playlist...",
+    "btn_play_v1": "▶️ Reproducir v1",
+    "btn_play_v2": "▶️ Reproducir v2",
     "btn_download_v1": "⬇️ Descargar v1",
     "btn_download_v2": "⬇️ Descargar v2",
     "btn_save": "💾 Guardar en playlist",
-    "btn_pause": "⏸ Pausar",
-    "btn_resume": "▶ Reanudar",
-    "btn_skip": "⏭ Saltar",
-    "btn_stop": "⏹ Detener",
-    "btn_shuffle": "🔀 Mezclar",
-    "btn_loop": "🔁 Bucle",
-    "btn_loop_off": "🔁 Sin bucle",
-    "cmd_filter_desc": "Aplica efectos de audio a la reproducción",
-    "cmd_filter_set_desc": "Activa un filtro de audio",
-    "cmd_filter_clear_desc": "Elimina todos los filtros activos",
-    "cmd_filter_list_desc": "Lista los filtros disponibles",
-    "cmd_filter_opt_filter": "Filtro a aplicar",
-    "cmd_playlist_desc": "Gestiona las playlists del servidor",
-    "cmd_playlist_create_desc": "Crea una nueva playlist",
-    "cmd_playlist_add_desc": "Añade una pista a una playlist",
-    "cmd_playlist_play_desc": "Reproduce una playlist completa",
-    "cmd_playlist_list_desc": "Lista todas las playlists",
-    "cmd_playlist_delete_desc": "Elimina una playlist",
-    "cmd_playlist_opt_name": "Nombre de la playlist",
-    "cmd_playlist_opt_description": "Descripción opcional",
-    "cmd_playlist_opt_track": "URL o nombre de la pista a añadir",
-    "cmd_history_desc": "Muestra el historial de reproducción del servidor",
-    "cmd_history_list_desc": "Ver el historial de pistas reproducidas",
-    "cmd_history_replay_desc": "Vuelve a reproducir una pista del historial",
-    "cmd_history_opt_position": "Posición en el historial (1-50)",
-    "cmd_dj_desc": "Gestiona los permisos y roles de DJ",
-    "cmd_dj_add_desc": "Añade un rol de DJ",
-    "cmd_dj_remove_desc": "Elimina un rol de DJ",
-    "cmd_dj_list_desc": "Lista los roles DJ configurados",
-    "cmd_dj_mode_desc": "Activa o desactiva el modo DJ exclusivo",
-    "cmd_dj_opt_role": "Rol de Discord a asignar como DJ",
-    "cmd_dj_opt_enabled": "true para activar, false para desactivar",
-    "cmd_247_desc": "Controla el modo 24/7 (permanecer en canal de voz)",
-    "cmd_247_enable_desc": "Activa el modo 24/7",
-    "cmd_247_disable_desc": "Desactiva el modo 24/7",
-    "cmd_musicconfig_desc": "Configura las opciones de Music DJ IA",
-    "cmd_musicconfig_volume_desc": "Establece el volumen por defecto (1-150)",
-    "cmd_musicconfig_autojoin_desc": "Canal de voz al que unirse automáticamente",
-    "cmd_musicconfig_announce_desc": "Canal donde anunciar las pistas en reproducción",
-    "cmd_musicconfig_limits_desc": "Configura límites de cola y duración",
-    "cmd_musicconfig_info_desc": "Muestra la configuración actual",
-    "cmd_musicconfig_opt_volume": "Volumen (1-150)",
-    "cmd_musicconfig_opt_channel": "Canal de voz para unión automática (vacío = desactivar)",
-    "cmd_musicconfig_opt_announce": "Canal de texto para anuncios (vacío = desactivar)",
-    "cmd_musicconfig_opt_queue": "Número máximo de pistas en cola",
-    "cmd_musicconfig_opt_duration": "Duración máxima de pista en minutos",
-    "cmd_generate_desc": "Genera una canción original con IA a partir de un prompt",
-    "cmd_generate_opt_prompt": "Descripción de la música que quieres generar (máx. 200 caracteres)",
-    "cmd_cover_desc": "Genera un cover de una canción con voz IA",
-    "cmd_cover_opt_query": "URL de audio directa a cubrir (ej: .mp3 de un resultado de /generate)",
-    "cmd_cover_opt_voice": "Nombre de voz a usar (ej: Joji, Adele, Drake)",
-    "voice_not_found": "❌ No se encontró ninguna voz con ese nombre. Prueba otro nombre de artista.",
-    "searching_track": "🔍 Buscando la canción...",
-    "track_not_found": "❌ No se encontró **{track}**. Prueba añadiendo el artista (ej: \"Katy Perry Firework\") o usa el parámetro opcional `url` con un enlace de audio directo.",
-    "cmd_remix_desc": "Genera un remix de una canción en el estilo que elijas",
-    "cmd_remix_opt_query": "URL de audio directa a remezclar (ej: .mp3 de un resultado de /generate)",
-    "cmd_remix_opt_style": "Estilo o género del remix",
-    "cmd_musicquota_desc": "Muestra el uso de cuota de generaciones IA del mes actual",
-    "quota_type_exhausted": "❌ Límite mensual para **/{type}** alcanzado ({typeUsed}/{typeLimit}).\nCuota global: {used}/{limit}. Se renueva el **{date}**.",
-    "queue_full": "❌ ¡La cola del servidor está llena! Máximo **{max}** canciones. Espera a que terminen algunas antes de añadir más.",
-    "track_too_long": "❌ Esta canción supera el límite del servidor de **{max} segundos** ({duration}s). Un admin puede ajustarlo con `/musicconfig limits`."
+    "quota_no_subscription": "❌ Este servidor no tiene una licencia activa de Music DJ IA. Adquiere el addon en korex.dev para usar la generación con IA.",
+    "quota_exhausted": "❌ Cuota mensual de IA agotada ({used}/{limit} usadas).\nSe renueva el **{date}**.",
+    "quota_type_exhausted": "❌ Límite mensual de **/{type}** alcanzado ({typeUsed}/{typeLimit}).\nCuota global: {used}/{limit}. Se renueva el **{date}**.",
+    "quota_title": "Cuota de generación IA — {guildName}",
+    "quota_used_field": "Usadas este mes",
+    "quota_resets_field": "Se renueva el",
+    "quota_by_type_field": "Por comando",
+    "quota_footer": "Las generaciones fallidas no cuentan para la cuota",
+    "prompt_too_long": "❌ El prompt es demasiado largo (máx. 200 caracteres).",
+    "prompt_blocked": "❌ El prompt contiene contenido no permitido.",
+    "job_in_progress": "⏳ Ya hay una generación en curso en este servidor. Espera a que termine.",
+    "config_saved": "✅ Configuración guardada.",
+    "config_no_options": "❌ Indica al menos una opción para cambiar.",
+    "config_toggle_on": "✅ Las funciones de Music DJ IA están ahora **activadas** en este servidor.",
+    "config_toggle_off": "⏸️ Las funciones de Music DJ IA están ahora **desactivadas** en este servidor. Usa `/musicconfig toggle` para volver a activarlas.",
+    "config_enabled": "Music DJ IA activado",
+    "disabled_by_config": "⏸️ Las funciones de Music DJ IA están desactivadas en este servidor. Un administrador puede activarlas con `/musicconfig toggle` o desde el panel.",
+    "config_info_title": "Music DJ IA — Configuración",
+    "config_volume": "Volumen por defecto",
+    "config_persist": "Recordar volumen",
+    "config_247": "Modo 24/7",
+    "config_filter": "Filtro activo",
+    "config_dj_only": "Modo DJ exclusivo",
+    "config_max_duration": "Duración máxima de pista",
+    "config_max_queue": "Tamaño máximo de cola",
+    "config_max_queue_default": "Ajuste del módulo Música",
+    "config_announce": "Canal de anuncios"
+  },
+  "starboard": {
+    "setup": {
+      "success": {
+        "title": "⭐ Starboard Configurado",
+        "desc": "El canal de starboard se ha establecido en {channel}.",
+        "emoji": "Emoji",
+        "threshold": "Mínimo de reacciones"
+      }
+    },
+    "config": {
+      "updated": {
+        "title": "⚙️ Configuración Actualizada",
+        "emoji": "Emoji",
+        "threshold": "Umbral",
+        "self_star": "Auto-estrella",
+        "ignore_nsfw": "Ignorar NSFW",
+        "ignore_bots": "Ignorar Bots"
+      }
+    },
+    "ignore": {
+      "added": "✅ {channel} añadido a la lista de ignorados.",
+      "removed": "✅ {channel} eliminado de la lista de ignorados."
+    },
+    "stats": {
+      "title": "⭐ Estadísticas del Starboard",
+      "total": "Entradas totales",
+      "channel": "Canal",
+      "emoji": "Emoji",
+      "threshold": "Umbral",
+      "top_author": "Autor más destacado"
+    },
+    "disabled": "⭐ Starboard desactivado.",
+    "errors": {
+      "not_configured": "❌ El starboard no está configurado. Usa `/starboard setup` primero."
+    },
+    "unknown_author": "Desconocido",
+    "original_message": "Mensaje original",
+    "jump_to_message": "Ir al mensaje"
+  },
+  "teamAccess": {
+    "notify": {
+      "accepted": {
+        "title": "🔔 Nuevo colaborador en tu servidor",
+        "desc": "**{user}** ha aceptado la invitación de **{inviter}** y ahora tiene acceso al panel de control de **{server}**.",
+        "footer": "Puedes revocar su acceso en cualquier momento desde Panel → Accesos del Equipo"
+      }
+    }
+  },
+  "command_errors": {
+    "disabled": "Este comando está deshabilitado.",
+    "owner_only": "Solo el propietario del bot puede usar este comando.",
+    "guild_only": "Este comando solo puede usarse en servidores.",
+    "addon_disabled": "El addon `{addon}` no está activo en este servidor.",
+    "missing_permissions": "No tienes los permisos necesarios para usar este comando."
+  },
+  "honeypot": {
+    "reasons": {
+      "channel_message": "Escribió en el canal trampa {channel}",
+      "new_account": "Cuenta de {days} días (mínimo {min})",
+      "mass_join": "Raid detectado: {threshold} entradas en {window}s"
+    },
+    "audit_reason": "Honeypot — acción automática",
+    "types": {
+      "channel_message": "🪤 Canal trampa",
+      "mass_join": "🚨 Anti-raid",
+      "new_account": "🆕 Cuenta nueva"
+    },
+    "log": {
+      "user": "Usuario",
+      "action": "Acción",
+      "reason": "Motivo"
+    },
+    "actions": {
+      "kicked": "🦶 Expulsado",
+      "banned": "🔨 Baneado",
+      "timed_out": "⏱️ Aislado 1 h",
+      "logged": "📋 Solo registro",
+      "lockdown": "🔒 Lockdown (verificación máxima 10 min)",
+      "failed": "⚠️ No se pudo aplicar (permisos o jerarquía)"
+    }
+  },
+  "language_cmd": {
+    "title": "🌍 Idioma del servidor",
+    "current": "Idioma actual",
+    "available": "Idiomas disponibles",
+    "usage": "Usa `/language` y elige un idioma para cambiarlo.",
+    "unavailable": "❌ El idioma `{lang}` no está disponible.",
+    "changed_title": "✅ Idioma cambiado",
+    "changed_description": "El idioma del servidor ahora es **{language}**. Las respuestas del bot y el panel usarán este idioma."
+  },
+  "autoresponse": {
+    "unsafe_regex": "❌ La expresión regular no es válida o es demasiado compleja (máx. 200 caracteres, sin cuantificadores anidados como (a+)+)."
+  },
+  "prefix_commands": {
+    "disabled_info": "👋 Los comandos con prefijo están desactivados en este servidor. Escribe `/` para usar mis comandos de barra.",
+    "mention_info": "👋 Mi prefijo en este servidor es `{prefix}`. Usa `{prefix}help` para ver los comandos que puedes usar con él, o escribe `/` para los comandos de barra.",
+    "rate_limited": "Estás usando comandos demasiado rápido. Espera unos segundos.",
+    "use_slash_modal": "Este comando abre un formulario, y eso no se puede hacer desde un mensaje de texto. Usa la versión slash: `/{command}`.",
+    "use_slash_sensitive": "Este comando maneja datos sensibles y no se puede usar desde un mensaje público. Usa la versión slash: `/{command}`.",
+    "use_slash_generic": "Este comando no se puede usar con prefijo. Usa la versión slash: `/{command}`.",
+    "sensitive_option": "La opción `{option}` contiene datos sensibles y no se puede enviar en un mensaje. Usa `/{command}` en su lugar.",
+    "message_deleted": "Tu mensaje se ha borrado por seguridad.",
+    "nsfw_only": "Este comando solo se puede usar en canales NSFW.",
+    "usage": "Uso: {usage}",
+    "usage_hint": "Usa `{prefix}help {command}` para ver cómo se usa.",
+    "errors": {
+      "missing_subcommand": "Falta el subcomando. Disponibles: {list}",
+      "unknown_subcommand": "Subcomando desconocido `{value}`. Disponibles: {list}",
+      "missing_option": "Falta la opción obligatoria `{option}`.",
+      "invalid_value": "Valor no válido para `{option}`: `{value}`.",
+      "invalid_value_generic": "No he entendido los argumentos.",
+      "too_many_arguments": "Sobran argumentos: `{value}`.",
+      "duplicate_option": "La opción `{option}` se ha indicado más de una vez.",
+      "missing_attachment": "Adjunta un archivo al mensaje para `{option}`.",
+      "too_many_tokens": "El mensaje tiene demasiados argumentos."
+    },
+    "help": {
+      "title": "📖 Comandos con prefijo",
+      "description": "Prefijo en este servidor: `{prefix}` (también puedes mencionarme en su lugar).\nLos argumentos van en el mismo orden que en la versión slash. Usa comillas para valores con espacios y `nombre:valor` para cualquier opción.\nEjemplo: `{prefix}ban @usuario \"spam en el chat\" 1`",
+      "footer": "{count} comandos disponibles · {prefix}help <comando> para más detalles",
+      "partial_note": "* algunos subcomandos requieren la versión slash",
+      "none": "No hay comandos con prefijo disponibles para ti aquí.",
+      "more": "…y {count} más",
+      "not_found": "No se ha encontrado el comando `{name}`.",
+      "command_title": "📖 {prefix}{command}",
+      "usage_field": "Uso",
+      "slash_only": "solo slash",
+      "slash_only_command": "Este comando solo se puede usar como comando de barra: `/{command}`.",
+      "aliases": "Alias",
+      "syntax_footer": "<obligatorio> [opcional] [nombre:…] solo por nombre · comillas para espacios · menciones o IDs para usuarios, roles y canales · adjunta los archivos al mensaje"
+    }
   }
 }

@@ -17,7 +17,7 @@ import { KorexClient } from '../client/KorexClient';
 import { i18n } from '../utils/i18n';
 import { botConfig } from '../config/bot.config';
 
-export default class GiveawayComponents extends Component {
+export class GiveawayComponents extends Component {
   constructor(client: KorexClient) {
     super(client, {
       customId: 'giveaway_*',
@@ -99,11 +99,14 @@ export default class GiveawayComponents extends Component {
         case 'Giveaway has ended':
           errorMessage = i18n.t('giveaways.join.ended', guildId);
           break;
-        case 'Missing required role':
-          errorMessage = i18n.t('giveaways.join.missing_role', guildId);
+        case 'Giveaway not found':
+        case 'Internal error':
+        case undefined:
+          errorMessage = i18n.t('giveaways.join.requirements_not_met', guildId);
           break;
         default:
-          errorMessage = i18n.t('giveaways.join.requirements_not_met', guildId);
+          // Requisitos y detección de alts ya vienen traducidos desde el servicio
+          errorMessage = result.reason;
       }
 
       await interaction.editReply({
@@ -150,12 +153,13 @@ export default class GiveawayComponents extends Component {
 
   private async handleInfo(interaction: ButtonInteraction, giveawayId: string): Promise<void> {
     const guildId = interaction.guildId!;
+    const embed = await this.client.giveawayService.buildInfoEmbed(giveawayId, guildId);
 
-    await interaction.reply({
-      content: i18n.t('giveaways.info.not_implemented', guildId),
-      ephemeral: true
-    });
+    await interaction.reply(embed
+      ? { embeds: [embed], ephemeral: true }
+      : { content: i18n.t('commands.giveaway.reroll.errors.not_found', guildId), ephemeral: true });
   }
+
 
   private async handleSetup(interaction: ButtonInteraction, setupType: string, userId: string): Promise<void> {
     const guildId = interaction.guildId!;
@@ -349,7 +353,7 @@ export default class GiveawayComponents extends Component {
 export class GiveawayRequirementsModal extends Component {
   constructor(client: KorexClient) {
     super(client, {
-      customId: 'giveaway_requirements',
+      customId: 'giveaway_requirements_*',
       type: 'modal'
     });
   }
@@ -423,7 +427,7 @@ export class GiveawayRequirementsModal extends Component {
 export class GiveawayBonusModal extends Component {
   constructor(client: KorexClient) {
     super(client, {
-      customId: 'giveaway_bonus',
+      customId: 'giveaway_bonus_*',
       type: 'modal'
     });
   }
@@ -485,3 +489,7 @@ export class GiveawayBonusModal extends Component {
     });
   }
 }
+
+// El ComponentManager solo registra el export por defecto: incluir los modales
+export default [GiveawayComponents, GiveawayRequirementsModal, GiveawayBonusModal];
+

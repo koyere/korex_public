@@ -14,6 +14,7 @@ import {
 import { Command } from '../../client/structures/Command';
 import { KorexClient } from '../../client/KorexClient';
 import { i18n } from '../../utils/i18n';
+import { WelcomeImageService } from '../../services/WelcomeImageService';
 
 export default class WelcomeImageCommand extends Command {
   constructor(client: KorexClient) {
@@ -53,18 +54,8 @@ export default class WelcomeImageCommand extends Command {
               .setName('template')
               .setDescription('Template ID to preview')
               .setRequired(true)
-              .addChoices(
-                { name: 'Modern Dark', value: 'modern-dark' },
-                { name: 'Minimalist Light', value: 'minimalist-light' },
-                { name: 'Gaming Neon', value: 'gaming-neon' },
-                { name: 'Corporate Blue', value: 'corporate-blue' },
-                { name: 'Anime Kawaii', value: 'anime-kawaii' },
-                { name: 'Retro Synthwave', value: 'retro-synthwave' },
-                { name: 'Nature Green', value: 'nature-green' },
-                { name: 'Space Cosmic', value: 'space-cosmic' },
-                { name: 'Elegant Purple', value: 'elegant-purple' },
-                { name: 'Sunset Orange', value: 'sunset-orange' }
-              )
+              // Generadas de las plantillas que existen de verdad en WelcomeImageService
+              .addChoices(...WelcomeImageService.getInstance().getTemplates().map(tpl => ({ name: tpl.name, value: tpl.id })))
           )
       )
       .addSubcommand(subcommand =>
@@ -76,18 +67,8 @@ export default class WelcomeImageCommand extends Command {
               .setName('template')
               .setDescription('Template ID to use')
               .setRequired(true)
-              .addChoices(
-                { name: 'Modern Dark', value: 'modern-dark' },
-                { name: 'Minimalist Light', value: 'minimalist-light' },
-                { name: 'Gaming Neon', value: 'gaming-neon' },
-                { name: 'Corporate Blue', value: 'corporate-blue' },
-                { name: 'Anime Kawaii', value: 'anime-kawaii' },
-                { name: 'Retro Synthwave', value: 'retro-synthwave' },
-                { name: 'Nature Green', value: 'nature-green' },
-                { name: 'Space Cosmic', value: 'space-cosmic' },
-                { name: 'Elegant Purple', value: 'elegant-purple' },
-                { name: 'Sunset Orange', value: 'sunset-orange' }
-              )
+              // Generadas de las plantillas que existen de verdad en WelcomeImageService
+              .addChoices(...WelcomeImageService.getInstance().getTemplates().map(tpl => ({ name: tpl.name, value: tpl.id })))
           )
       )
       .addSubcommand(subcommand =>
@@ -185,14 +166,15 @@ export default class WelcomeImageCommand extends Command {
 
     const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selectMenu);
 
-    await interaction.reply({
+    const reply = await interaction.reply({
       embeds: [embed],
       components: [row],
-      ephemeral: true
+      ephemeral: true,
+      fetchReply: true
     });
 
-    // Handle select menu interaction
-    const collector = interaction.channel?.createMessageComponentCollector({
+    // Solo los selects de ESTE mensaje (antes capturaba cualquier select del canal)
+    const collector = reply.createMessageComponentCollector({
       componentType: ComponentType.StringSelect,
       time: 300000 // 5 minutes
     });
@@ -247,10 +229,10 @@ export default class WelcomeImageCommand extends Command {
       .setDescription(i18n.t('welcome_image.templates.description', guildId, { count: templates.length.toString() }));
 
     // Add template information
-    for (const template of templates.slice(0, 10)) { // Show first 10 templates
+    for (const template of templates.slice(0, 25)) { // Límite de campos de un embed
       embed.addFields({
         name: `${template.name} (${template.id})`,
-        value: `${template.description}\n📐 ${template.width}x${template.height}px`,
+        value: `${i18n.t(`welcome_image.templates.descriptions.${template.id}`, guildId)}\n📐 ${template.width}x${template.height}px`,
         inline: true
       });
     }
@@ -372,7 +354,7 @@ export default class WelcomeImageCommand extends Command {
         if (template) {
           embed.addFields({
             name: i18n.t('welcome_image.status.template_info', guildId),
-            value: `**${template.name}**\n${template.description}\n📐 ${template.width}x${template.height}px`,
+            value: `**${template.name}**\n${i18n.t(`welcome_image.templates.descriptions.${template.id}`, guildId)}\n📐 ${template.width}x${template.height}px`,
             inline: false
           });
         }

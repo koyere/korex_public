@@ -17,7 +17,9 @@ export default class GuildCreateEvent extends Event<'guildCreate'> {
 
     try {
       // 1. Crear configuración inicial del servidor en la base de datos
-      await this.client.database.getOrCreateGuild(guild.id);
+      // El idioma inicial sale del idioma preferido del servidor (es/en)
+      const record = await this.client.database.getOrCreateGuild(guild.id, this.detectLanguage(guild));
+      i18n.setGuildLanguage(guild.id, record.language);
 
       // 2. Intentar restaurar licencias en periodo de gracia (KICKOUT)
       const restored = await this.client.kickoutService.handleGuildRejoined(guild.id);
@@ -52,17 +54,15 @@ export default class GuildCreateEvent extends Event<'guildCreate'> {
       const owner = await this.client.users.fetch(guild.ownerId).catch(() => null);
       if (!owner) return;
 
+      const lang = await i18n.getGuildLanguageAsync(this.client.db as any, guild.id);
       const embed = new EmbedBuilder()
         .setColor(0x22C55E) // green
-        .setTitle('✅ Suscripciones restauradas')
-        .setDescription(
-          `¡Bienvenido de vuelta a **${guild.name}**!\n\n` +
-          `Todos tus addons y suscripciones premium han sido **restaurados automáticamente**. No hubo ninguna interrupción en tu facturación de PayPal.`
-        )
-        .setFooter({ text: 'Korex Premium · Gracias por volver.' })
+        .setTitle(i18n.t('addons.billing.restored_title', lang))
+        .setDescription(i18n.t('addons.billing.restored_desc', lang, { server: guild.name }))
+        .setFooter({ text: i18n.t('addons.billing.restored_footer', lang) })
         .setTimestamp();
 
-      await owner.send({ embeds: [embed] }).catch(() => null);
+      await owner.send({ embeds: [embed], allowedMentions: { parse: [] } }).catch(() => null);
     } catch (error) {
       this.client.logger.error(
         `Error notificando restauración de kickout al owner de ${guild.id}:`,

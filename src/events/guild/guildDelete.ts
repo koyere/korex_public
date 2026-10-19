@@ -2,6 +2,7 @@ import { Guild, EmbedBuilder } from 'discord.js';
 import { Event } from '../../client/structures/Event';
 import { KorexClient } from '../../client/KorexClient';
 import { KICKOUT_GRACE_DAYS } from '../../services/GuildKickoutService';
+import { i18n } from '../../utils/i18n';
 
 export default class GuildDeleteEvent extends Event<'guildDelete'> {
   constructor(client: KorexClient) {
@@ -66,28 +67,28 @@ export default class GuildDeleteEvent extends Event<'guildDelete'> {
       );
       const deadlineStr = `<t:${Math.floor(graceDeadline.getTime() / 1000)}:F>`;
 
+      // Idioma del servidor (el registro sigue en BD durante la gracia)
+      const lang = await i18n.getGuildLanguageAsync(this.client.db as any, guildId);
+      const vars = { server: guild.name, deadline: deadlineStr, days: String(KICKOUT_GRACE_DAYS) };
+
       const embed = new EmbedBuilder()
         .setColor(0xF59E0B) // amber
-        .setTitle('⚠️ Bot removido de tu servidor')
-        .setDescription(
-          `Hemos detectado que **Korex** fue removido de **${guild.name}**.\n\n` +
-          `Tienes **${KICKOUT_GRACE_DAYS} días** (hasta ${deadlineStr}) para volver a añadir el bot y restaurar automáticamente todos tus addons y suscripciones.\n\n` +
-          `Si no añades el bot antes de esa fecha, tus suscripciones de PayPal serán canceladas.`
-        )
+        .setTitle(i18n.t('addons.billing.kickout_title', lang))
+        .setDescription(i18n.t('addons.billing.kickout_desc', lang, vars))
         .addFields(
           {
-            name: '🔄 ¿Cómo restaurar?',
-            value: `Añade el bot nuevamente a **${guild.name}** antes de ${deadlineStr} y todo se restaurará automáticamente.`,
+            name: i18n.t('addons.billing.kickout_restore_name', lang),
+            value: i18n.t('addons.billing.kickout_restore_value', lang, vars),
           },
           {
-            name: '❓ ¿Fue un error?',
-            value: 'Si el bot fue removido por error o sin tu autorización, añádelo de vuelta lo antes posible.',
+            name: i18n.t('addons.billing.kickout_mistake_name', lang),
+            value: i18n.t('addons.billing.kickout_mistake_value', lang),
           }
         )
-        .setFooter({ text: 'Korex Premium · Si necesitas ayuda, abre un ticket en nuestro servidor de soporte.' })
+        .setFooter({ text: i18n.t('addons.billing.kickout_footer', lang) })
         .setTimestamp();
 
-      await owner.send({ embeds: [embed] }).catch(() => {
+      await owner.send({ embeds: [embed], allowedMentions: { parse: [] } }).catch(() => {
         // Owner tiene DMs cerrados — no hay nada que hacer
         this.client.logger.debug(`No se pudo enviar DM al owner de ${guild.id} (${guild.ownerId})`);
       });

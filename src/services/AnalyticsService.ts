@@ -52,28 +52,26 @@ export class AnalyticsService {
     moderationActions: number;
   }> {
     const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const startOfWeek = new Date(now);
-
-    startOfWeek.setDate(now.getDate() - 7);
+    const last30Days = new Date(now);
+    last30Days.setDate(now.getDate() - 30);
 
     try {
       const [commandsUsed, messagesCount, levelUps, moderationActions] = await Promise.all([
-        // Comandos usados este mes
+        // Comandos usados últimos 30 días
         this.prisma.commandUsage.count({
-          where: { guildId, createdAt: { gte: startOfMonth } }
+          where: { guildId, createdAt: { gte: last30Days } }
         }),
-        // Mensajes este mes (desde LogEntry)
+        // Mensajes últimos 30 días (desde LogEntry)
         this.prisma.logEntry.count({
-          where: { guildId, type: 'message', createdAt: { gte: startOfMonth } }
+          where: { guildId, type: 'message', createdAt: { gte: last30Days } }
         }),
-        // Level ups esta semana
+        // Level ups últimos 30 días
         this.prisma.logEntry.count({
-          where: { guildId, type: 'levelup', createdAt: { gte: startOfWeek } }
+          where: { guildId, type: 'levelup', createdAt: { gte: last30Days } }
         }),
-        // Acciones de moderación esta semana
+        // Acciones de moderación últimos 30 días
         this.prisma.moderationCase.count({
-          where: { guildId, createdAt: { gte: startOfWeek } }
+          where: { guildId, createdAt: { gte: last30Days } }
         })
       ]);
 

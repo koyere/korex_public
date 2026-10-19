@@ -35,7 +35,7 @@ export default class CatCommand extends Command {
 
     try {
       // Try to fetch from cat API
-      const response = await fetch('https://api.thecatapi.com/v1/images/search');
+      const response = await fetch('https://api.thecatapi.com/v1/images/search', { signal: AbortSignal.timeout(5000) });
       
       if (!response.ok) {
         throw new Error('Failed to fetch cat');
@@ -75,4 +75,4 @@ export default class CatCommand extends Command {
       await interaction.editReply({ embeds: [embed] });
     }
   }
-}
+}

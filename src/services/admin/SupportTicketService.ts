@@ -151,7 +151,11 @@ export class SupportTicketService {
 
   // ─── Detalle del ticket ─────────────────────────────────────────────────────
 
-  async getTicketDetail(ticketId: string, markReadForGuild = false) {
+  /**
+   * Detalle del ticket. Con `guildId` el ticket debe pertenecer a ese servidor:
+   * si no, devuelve null SIN marcarlo como leído (antes se marcaba el de otro guild).
+   */
+  async getTicketDetail(ticketId: string, markReadForGuild = false, guildId?: string) {
     const ticket = await this.db.supportTicket.findUnique({
       where: { id: ticketId },
       include: {
@@ -168,10 +172,11 @@ export class SupportTicketService {
     });
 
     if (!ticket) return null;
+    if (guildId !== undefined && ticket.guildId !== guildId) return null;
 
     if (markReadForGuild && ticket.unreadGuild > 0) {
-      await this.db.supportTicket.update({
-        where: { id: ticketId },
+      await this.db.supportTicket.updateMany({
+        where: { id: ticketId, guildId: ticket.guildId },
         data:  { unreadGuild: 0 },
       });
     }

@@ -18,6 +18,8 @@ export default class MessageReactionAddEvent extends Event<'messageReactionAdd'>
     try {
       // Handle reaction roles
       await this.client.autoRole.handleReactionAdd(reaction, user);
+      // Handle starboard
+      await this.client.starboard.handleReactionAdd(reaction, user);
     } catch (error) {
       this.client.logger.error('Error handling message reaction add event:', error);
     }

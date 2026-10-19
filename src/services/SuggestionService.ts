@@ -35,6 +35,7 @@ export interface Suggestion {
   createdAt: Date;
   updatedAt: Date;
   messageId?: string;
+  channelId?: string;
   threadId?: string;
 }
 
@@ -49,13 +50,16 @@ export interface SuggestionConfig {
   autoCreateThreads: boolean;
   voteThreshold: number;
   notifyAuthor: boolean;
+  // Último canal usado: permite reactivar el sistema (botón de /suggestions config) tras desactivarlo
+  lastChannelId?: string;
 }
 
 export class SuggestionService {
   private client: KorexClient;
-  private suggestions: Map<string, Suggestion> = new Map();
   private configs: Map<string, SuggestionConfig> = new Map();
   private cooldowns: Map<string, number> = new Map();
+  // Serializa votos/acciones por sugerencia (evita perder votos con clics simultáneos)
+  private locks = new Map<string, Promise<unknown>>();
 
   constructor(client: KorexClient) {
     this.client = client;
@@ -63,47 +67,102 @@ export class SuggestionService {
   }
 
   async initialize(): Promise<void> {
-    // Load configurations and suggestions from database
     await this.loadConfigurations();
-    await this.loadSuggestions();
-    console.log('SuggestionService initialized');
   }
 
   private async loadConfigurations(): Promise<void> {
     try {
       const rows = await this.client.db.guildConfig.findMany({
         where: { suggestionChannelId: { not: null } },
-        select: { guildId: true, suggestionChannelId: true }
+        select: { guildId: true, suggestionChannelId: true, suggestionSettings: true }
       });
 
       for (const row of rows) {
-        this.configs.set(row.guildId, {
-          guildId: row.guildId,
-          enabled: true,
-          channelId: row.suggestionChannelId!,
-          staffRoleIds: [],
-          voterRoleIds: [],
-          cooldown: 300,
-          requireApproval: false,
-          autoCreateThreads: true,
-          voteThreshold: 10,
-          notifyAuthor: true
-        });
+        this.configs.set(row.guildId, this.buildConfig(row.guildId, row.suggestionChannelId!, row.suggestionSettings));
       }
-
-      console.log(`SuggestionService: loaded ${rows.length} guild config(s) from database`);
     } catch (error) {
       console.error('Error loading suggestion configurations:', error);
     }
   }
 
-  private async loadSuggestions(): Promise<void> {
-    try {
-      // Load active suggestions from database when implemented
-      // For now, start with empty map
-    } catch (error) {
-      console.error('Error loading suggestions:', error);
-    }
+  private defaultConfig(guildId: string, channelId?: string): SuggestionConfig {
+    return {
+      guildId,
+      enabled: !!channelId,
+      channelId,
+      staffRoleIds: [],
+      voterRoleIds: [],
+      cooldown: 300,
+      requireApproval: false,
+      autoCreateThreads: true,
+      voteThreshold: 10,
+      notifyAuthor: true
+    };
+  }
+
+  private withLock<T>(id: string, fn: () => Promise<T>): Promise<T> {
+    const previous = this.locks.get(id) ?? Promise.resolve();
+    const run = previous.catch(() => undefined).then(fn);
+    this.locks.set(id, run);
+    run.finally(() => { if (this.locks.get(id) === run) this.locks.delete(id); }).catch(() => undefined);
+    return run;
+  }
+
+  // ─── Persistencia (la BD es la fuente de verdad) ──────────────────────────
+
+  private rowToSuggestion(row: any): Suggestion {
+    const meta = (row.meta && typeof row.meta === 'object' ? row.meta : {}) as {
+      votes?: { up?: string[]; down?: string[]; neutral?: string[] };
+      priority?: Suggestion['priority'];
+      displayStatus?: Suggestion['status'];
+    };
+    const [firstLine, ...rest] = String(row.content ?? '').split('\n');
+    return {
+      id: row.id,
+      guildId: row.guildId,
+      authorId: row.authorId,
+      title: firstLine,
+      description: rest.join('\n').trim() || firstLine,
+      category: (row.category as Suggestion['category']) || 'other',
+      priority: meta.priority || 'medium',
+      status: meta.displayStatus || this.mapDbStatus(row.status),
+      votes: {
+        upvotes: meta.votes?.up ?? [],
+        downvotes: meta.votes?.down ?? [],
+        neutral: meta.votes?.neutral ?? [],
+      },
+      staffNotes: row.response ?? undefined,
+      assignedTo: row.responderId ?? undefined,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+      messageId: row.messageId ?? undefined,
+      channelId: row.channelId || undefined,
+    };
+  }
+
+  private async loadSuggestion(id: string, guildId?: string): Promise<Suggestion | null> {
+    const row = await this.client.db.suggestion.findUnique({ where: { id } });
+    if (!row || (guildId && row.guildId !== guildId)) return null;
+    return this.rowToSuggestion(row);
+  }
+
+  private async persist(suggestion: Suggestion, extra: Record<string, unknown> = {}): Promise<void> {
+    const dbStatus = { approved: 'APPROVED', rejected: 'DENIED', completed: 'IMPLEMENTED' }[suggestion.status as string] ?? 'PENDING';
+    await this.client.db.suggestion.update({
+      where: { id: suggestion.id },
+      data: {
+        upvotes: suggestion.votes.upvotes.length,
+        downvotes: suggestion.votes.downvotes.length,
+        status: dbStatus as any,
+        meta: {
+          votes: { up: suggestion.votes.upvotes, down: suggestion.votes.downvotes, neutral: suggestion.votes.neutral },
+          priority: suggestion.priority,
+          // Estados sin equivalente en la BD (p. ej. "en consideración")
+          displayStatus: ['considering', 'reviewing', 'in_progress'].includes(suggestion.status) ? suggestion.status : undefined,
+        } as any,
+        ...extra,
+      },
+    });
   }
 
   getCooldown(key: string): number | undefined {
@@ -112,61 +171,58 @@ export class SuggestionService {
 
   async getConfig(guildId: string): Promise<SuggestionConfig> {
     if (!this.configs.has(guildId)) {
-      // Try loading from DB before returning default
       try {
         const row = await this.client.db.guildConfig.findUnique({
           where: { guildId },
-          select: { suggestionChannelId: true }
+          select: { suggestionChannelId: true, suggestionSettings: true }
         });
-
-        const config: SuggestionConfig = {
-          guildId,
-          enabled: !!row?.suggestionChannelId,
-          channelId: row?.suggestionChannelId ?? undefined,
-          staffRoleIds: [],
-          voterRoleIds: [],
-          cooldown: 300,
-          requireApproval: false,
-          autoCreateThreads: true,
-          voteThreshold: 10,
-          notifyAuthor: true
-        };
-
-        this.configs.set(guildId, config);
+        this.configs.set(guildId, this.buildConfig(guildId, row?.suggestionChannelId ?? undefined, row?.suggestionSettings));
       } catch {
-        this.configs.set(guildId, {
-          guildId,
-          enabled: false,
-          staffRoleIds: [],
-          voterRoleIds: [],
-          cooldown: 300,
-          requireApproval: false,
-          autoCreateThreads: true,
-          voteThreshold: 10,
-          notifyAuthor: true
-        });
+        // Fallo de BD: no se cachea, se reintenta en la siguiente llamada
+        return this.defaultConfig(guildId);
       }
     }
 
     return this.configs.get(guildId)!;
   }
 
-  async updateConfig(guildId: string, config: Partial<SuggestionConfig>): Promise<void> {
+  /** Config efectiva: canal (suggestionChannelId) + ajustes guardados en suggestionSettings. */
+  private buildConfig(guildId: string, channelId: string | undefined, raw: unknown): SuggestionConfig {
+    const settings = (raw && typeof raw === 'object' ? raw : {}) as Partial<SuggestionConfig>;
+    const base = this.defaultConfig(guildId, channelId);
+    return {
+      ...base,
+      staffRoleIds: Array.isArray(settings.staffRoleIds) ? settings.staffRoleIds.map(String) : base.staffRoleIds,
+      voterRoleIds: Array.isArray(settings.voterRoleIds) ? settings.voterRoleIds.map(String) : base.voterRoleIds,
+      cooldown: Number.isInteger(settings.cooldown) ? Number(settings.cooldown) : base.cooldown,
+      autoCreateThreads: typeof settings.autoCreateThreads === 'boolean' ? settings.autoCreateThreads : base.autoCreateThreads,
+      notifyAuthor: typeof settings.notifyAuthor === 'boolean' ? settings.notifyAuthor : base.notifyAuthor,
+      lastChannelId: channelId ?? (typeof settings.lastChannelId === 'string' ? settings.lastChannelId : undefined),
+    };
+  }
+
+  async updateConfig(guildId: string, config: Partial<SuggestionConfig>): Promise<SuggestionConfig> {
     const currentConfig = await this.getConfig(guildId);
-    const updatedConfig = { ...currentConfig, ...config };
+    const updated = { ...currentConfig, ...config };
+    const suggestionChannelId = updated.enabled ? (updated.channelId ?? null) : null;
+    const suggestionSettings = {
+      staffRoleIds: updated.staffRoleIds,
+      voterRoleIds: updated.voterRoleIds,
+      cooldown: updated.cooldown,
+      autoCreateThreads: updated.autoCreateThreads,
+      notifyAuthor: updated.notifyAuthor,
+      lastChannelId: updated.channelId ?? updated.lastChannelId,
+    };
 
-    this.configs.set(guildId, updatedConfig);
+    await this.client.db.guildConfig.upsert({
+      where: { guildId },
+      update: { suggestionChannelId, suggestionSettings: suggestionSettings as any },
+      create: { guildId, suggestionChannelId, suggestionSettings: suggestionSettings as any },
+    });
 
-    // Persist channelId to database
-    try {
-      await this.client.db.guildConfig.upsert({
-        where: { guildId },
-        update: { suggestionChannelId: updatedConfig.enabled ? (updatedConfig.channelId ?? null) : null },
-        create: { guildId, suggestionChannelId: updatedConfig.enabled ? (updatedConfig.channelId ?? null) : null }
-      });
-    } catch (error) {
-      console.error('Error saving suggestion config to database:', error);
-    }
+    const effective = this.buildConfig(guildId, suggestionChannelId ?? undefined, suggestionSettings);
+    this.configs.set(guildId, effective);
+    return effective;
   }
 
   async createSuggestion(
@@ -178,7 +234,7 @@ export class SuggestionService {
     priority: Suggestion['priority']
   ): Promise<Suggestion | null> {
     const config = await this.getConfig(guild.id);
-    
+
     if (!config.enabled) {
       return null;
     }
@@ -200,17 +256,32 @@ export class SuggestionService {
       category,
       priority,
       status: 'new',
-      votes: {
-        upvotes: [],
-        downvotes: [],
-        neutral: []
-      },
+      votes: { upvotes: [], downvotes: [], neutral: [] },
       createdAt: new Date(),
       updatedAt: new Date()
     };
 
-    this.suggestions.set(suggestion.id, suggestion);
     this.cooldowns.set(cooldownKey, Date.now());
+
+    try {
+      await this.client.db.suggestion.create({
+        data: {
+          id: suggestion.id,
+          guildId: suggestion.guildId,
+          channelId: config.channelId ?? '',
+          authorId: suggestion.authorId,
+          content: title ? `${title}\n${description}` : description,
+          category: suggestion.category,
+          status: 'PENDING',
+          upvotes: 0,
+          downvotes: 0,
+          meta: { votes: { up: [], down: [], neutral: [] }, priority } as any,
+        }
+      });
+    } catch (error) {
+      console.error('Error saving suggestion to DB:', error);
+      return null;
+    }
 
     // Enviar al canal de sugerencias
     if (config.channelId) {
@@ -226,74 +297,7 @@ export class SuggestionService {
     
     if (!channel) return;
 
-    const author = await this.client.users.fetch(suggestion.authorId);
-    
-    const embed = new EmbedBuilder()
-      .setColor(this.getStatusColor(suggestion.status))
-      .setTitle(`💡 ${suggestion.title}`)
-      .setDescription(suggestion.description)
-      .addFields(
-        { 
-          name: i18n.t('suggestions.embed.category', guild.id), 
-          value: i18n.t(`suggestions.categories.${suggestion.category}`, guild.id), 
-          inline: true 
-        },
-        { 
-          name: i18n.t('suggestions.embed.priority', guild.id), 
-          value: i18n.t(`suggestions.priorities.${suggestion.priority}`, guild.id), 
-          inline: true 
-        },
-        { 
-          name: i18n.t('suggestions.embed.status', guild.id), 
-          value: i18n.t(`suggestions.statuses.${suggestion.status}`, guild.id), 
-          inline: true 
-        }
-      )
-      .setAuthor({ 
-        name: author.tag, 
-        iconURL: author.displayAvatarURL() 
-      })
-      .setFooter({ 
-        text: i18n.t('suggestions.embed.footer', guild.id, { id: suggestion.id }) 
-      })
-      .setTimestamp();
-
-    const voteRow = new ActionRowBuilder<ButtonBuilder>()
-      .addComponents(
-        new ButtonBuilder()
-          .setCustomId(`suggestion_vote_up_${suggestion.id}`)
-          .setLabel(`👍 ${suggestion.votes.upvotes.length}`)
-          .setStyle(ButtonStyle.Success),
-        new ButtonBuilder()
-          .setCustomId(`suggestion_vote_down_${suggestion.id}`)
-          .setLabel(`👎 ${suggestion.votes.downvotes.length}`)
-          .setStyle(ButtonStyle.Danger),
-        new ButtonBuilder()
-          .setCustomId(`suggestion_vote_neutral_${suggestion.id}`)
-          .setLabel(`🤷 ${suggestion.votes.neutral.length}`)
-          .setStyle(ButtonStyle.Secondary)
-      );
-
-    const staffRow = new ActionRowBuilder<ButtonBuilder>()
-      .addComponents(
-        new ButtonBuilder()
-          .setCustomId(`suggestion_approve_${suggestion.id}`)
-          .setLabel(i18n.t('suggestions.buttons.approve', guild.id))
-          .setStyle(ButtonStyle.Success)
-          .setEmoji('✅'),
-        new ButtonBuilder()
-          .setCustomId(`suggestion_reject_${suggestion.id}`)
-          .setLabel(i18n.t('suggestions.buttons.reject', guild.id))
-          .setStyle(ButtonStyle.Danger)
-          .setEmoji('❌'),
-        new ButtonBuilder()
-          .setCustomId(`suggestion_consider_${suggestion.id}`)
-          .setLabel(i18n.t('suggestions.buttons.consider', guild.id))
-          .setStyle(ButtonStyle.Secondary)
-          .setEmoji('🤔')
-      );
-
-    const components = [voteRow, staffRow];
+    const { embed, components } = await this.buildMessage(guild, suggestion);
 
     const message = await channel.send({
       embeds: [embed],
@@ -301,104 +305,138 @@ export class SuggestionService {
     });
 
     suggestion.messageId = message.id;
+    suggestion.channelId = channel.id;
+
+    // Update messageId and channelId in DB
+    try {
+      await this.client.db.suggestion.update({
+        where: { id: suggestion.id },
+        data: { messageId: message.id, channelId: channel.id }
+      });
+    } catch (error) {
+      console.error('Error updating suggestion messageId in DB:', error);
+    }
 
     // Crear thread si está habilitado
     if (config.autoCreateThreads) {
-      const thread = await message.startThread({
-        name: `💬 ${suggestion.title.substring(0, 90)}`,
-        autoArchiveDuration: 1440 // 24 horas
-      });
-
-      suggestion.threadId = thread.id;
+      try {
+        const thread = await message.startThread({
+          name: `💬 ${suggestion.title.substring(0, 90)}`,
+          autoArchiveDuration: 1440 // 24 horas
+        });
+        suggestion.threadId = thread.id;
+      } catch {
+        // Thread creation is optional — suggestion is already posted
+      }
     }
 
-    this.suggestions.set(suggestion.id, suggestion);
+  }
+
+  /** Embed + botones de una sugerencia (publicación y actualizaciones). */
+  private async buildMessage(guild: Guild, suggestion: Suggestion) {
+    const author = await this.client.users.fetch(suggestion.authorId).catch(() => null);
+    const t = (key: string, vars?: Record<string, string>) => i18n.t(key, guild.id, vars);
+
+    const embed = new EmbedBuilder()
+      .setColor(this.getStatusColor(suggestion.status))
+      .setTitle(`💡 ${suggestion.title}`.slice(0, 256))
+      .setFooter({ text: t('suggestions.embed.footer', { id: suggestion.id }) })
+      .setTimestamp(suggestion.createdAt);
+    if (suggestion.description && suggestion.description !== suggestion.title) {
+      embed.setDescription(suggestion.description.slice(0, 4096));
+    }
+    embed.addFields(
+      { name: t('suggestions.embed.category'), value: t(`suggestions.categories.${suggestion.category}`), inline: true },
+      { name: t('suggestions.embed.priority'), value: t(`suggestions.priorities.${suggestion.priority}`), inline: true },
+      { name: t('suggestions.embed.status'), value: t(`suggestions.statuses.${suggestion.status}`), inline: true },
+    );
+    if (author) embed.setAuthor({ name: author.tag, iconURL: author.displayAvatarURL() });
+    if (suggestion.staffNotes) {
+      embed.addFields({ name: t('suggestions.embed.staff_notes'), value: suggestion.staffNotes.slice(0, 1024) });
+    }
+
+    const voteRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder().setCustomId(`suggestion_vote_up_${suggestion.id}`).setLabel(`👍 ${suggestion.votes.upvotes.length}`).setStyle(ButtonStyle.Success),
+      new ButtonBuilder().setCustomId(`suggestion_vote_down_${suggestion.id}`).setLabel(`👎 ${suggestion.votes.downvotes.length}`).setStyle(ButtonStyle.Danger),
+      new ButtonBuilder().setCustomId(`suggestion_vote_neutral_${suggestion.id}`).setLabel(`🤷 ${suggestion.votes.neutral.length}`).setStyle(ButtonStyle.Secondary),
+    );
+    const staffRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder().setCustomId(`suggestion_approve_${suggestion.id}`).setLabel(t('suggestions.buttons.approve')).setStyle(ButtonStyle.Success).setEmoji('✅'),
+      new ButtonBuilder().setCustomId(`suggestion_reject_${suggestion.id}`).setLabel(t('suggestions.buttons.reject')).setStyle(ButtonStyle.Danger).setEmoji('❌'),
+      new ButtonBuilder().setCustomId(`suggestion_consider_${suggestion.id}`).setLabel(t('suggestions.buttons.consider')).setStyle(ButtonStyle.Secondary).setEmoji('🤔'),
+    );
+
+    return { embed, components: [voteRow, staffRow] };
   }
 
   async handleVote(interaction: ButtonInteraction): Promise<void> {
     const [, , voteType, suggestionId] = interaction.customId.split('_');
-    const suggestion = this.suggestions.get(suggestionId);
-    
-    if (!suggestion) {
-      await interaction.reply({
-        content: i18n.t('suggestions.errors.not_found', interaction.guildId!),
-        ephemeral: true
-      });
+    const guildId = interaction.guildId!;
+    const config = await this.getConfig(guildId);
 
-      return;
-    }
-
-    const config = await this.getConfig(interaction.guildId!);
-    
-    // Verificar permisos de voto
     if (!this.canVote(interaction.member!, config)) {
-      await interaction.reply({
-        content: i18n.t('suggestions.errors.no_permission_vote', interaction.guildId!),
-        ephemeral: true
-      });
-
+      await interaction.reply({ content: i18n.t('suggestions.errors.no_permission_vote', guildId), ephemeral: true });
       return;
     }
 
-    // Remover voto anterior si existe
-    this.removeUserVote(suggestion, interaction.user.id);
+    const updated = await this.withLock(suggestionId, async () => {
+      const suggestion = await this.loadSuggestion(suggestionId, guildId);
+      if (!suggestion) return null;
 
-    // Agregar nuevo voto
-    switch (voteType) {
-      case 'up':
-        suggestion.votes.upvotes.push(interaction.user.id);
-        break;
-      case 'down':
-        suggestion.votes.downvotes.push(interaction.user.id);
-        break;
-      case 'neutral':
-        suggestion.votes.neutral.push(interaction.user.id);
-        break;
+      // Pulsar el mismo voto otra vez lo retira; uno distinto lo cambia
+      const lists = { up: suggestion.votes.upvotes, down: suggestion.votes.downvotes, neutral: suggestion.votes.neutral };
+      const target = lists[voteType as keyof typeof lists];
+      if (!target) return null;
+      const alreadyThere = target.includes(interaction.user.id);
+      this.removeUserVote(suggestion, interaction.user.id);
+      if (!alreadyThere) {
+        const fresh = { up: suggestion.votes.upvotes, down: suggestion.votes.downvotes, neutral: suggestion.votes.neutral };
+        fresh[voteType as keyof typeof fresh].push(interaction.user.id);
+      }
+
+      await this.persist(suggestion);
+      await this.updateSuggestionMessage(interaction.guild!, suggestion);
+      return { removed: alreadyThere };
+    });
+
+    if (!updated) {
+      await interaction.reply({ content: i18n.t('suggestions.errors.not_found', guildId), ephemeral: true });
+      return;
     }
-
-    suggestion.updatedAt = new Date();
-    await this.updateSuggestionMessage(interaction.guild!, suggestion);
-
     await interaction.reply({
-      content: i18n.t('suggestions.vote_recorded', interaction.guildId!),
+      content: i18n.t(updated.removed ? 'suggestions.vote_removed' : 'suggestions.vote_recorded', guildId),
       ephemeral: true
     });
   }
 
   async handleStaffAction(interaction: ButtonInteraction): Promise<void> {
     const [, action, suggestionId] = interaction.customId.split('_');
-    const suggestion = this.suggestions.get(suggestionId);
-    
-    if (!suggestion) {
-      await interaction.reply({
-        content: i18n.t('suggestions.errors.not_found', interaction.guildId!),
-        ephemeral: true
-      });
+    const guildId = interaction.guildId!;
+    const suggestion = await this.loadSuggestion(suggestionId, guildId);
 
+    if (!suggestion) {
+      await interaction.reply({ content: i18n.t('suggestions.errors.not_found', guildId), ephemeral: true });
       return;
     }
 
-    const config = await this.getConfig(interaction.guildId!);
-    
-    if (!this.isStaffMember(interaction.guild!, interaction.user.id, config)) {
-      await interaction.reply({
-        content: i18n.t('suggestions.errors.no_permission_staff', interaction.guildId!),
-        ephemeral: true
-      });
+    const config = await this.getConfig(guildId);
 
+    if (!this.isStaffMember(interaction.guild!, interaction.user.id, config)) {
+      await interaction.reply({ content: i18n.t('suggestions.errors.no_permission_staff', guildId), ephemeral: true });
       return;
     }
 
     // Mostrar modal para razón
     const modal = new ModalBuilder()
       .setCustomId(`suggestion_${action}_modal_${suggestionId}`)
-      .setTitle(i18n.t(`suggestions.modals.${action}.title`, interaction.guildId!));
+      .setTitle(i18n.t(`suggestions.modals.${action}.title`, guildId));
 
     const reasonInput = new TextInputBuilder()
       .setCustomId('reason')
-      .setLabel(i18n.t('suggestions.modals.reason_label', interaction.guildId!))
-      .setPlaceholder(i18n.t('suggestions.modals.reason_placeholder', interaction.guildId!))
+      .setLabel(i18n.t('suggestions.modals.reason_label', guildId))
+      .setPlaceholder(i18n.t('suggestions.modals.reason_placeholder', guildId))
       .setStyle(TextInputStyle.Paragraph)
+      .setMaxLength(1000)
       .setRequired(true);
 
     modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(reasonInput));
@@ -408,165 +446,82 @@ export class SuggestionService {
 
   async handleStaffModal(interaction: ModalSubmitInteraction): Promise<void> {
     const [, action, , suggestionId] = interaction.customId.split('_');
-    const suggestion = this.suggestions.get(suggestionId);
+    const guildId = interaction.guildId!;
     const reason = interaction.fields.getTextInputValue('reason');
-    
-    if (!suggestion) {
-      await interaction.reply({
-        content: i18n.t('suggestions.errors.not_found', interaction.guildId!),
-        ephemeral: true
-      });
+    const config = await this.getConfig(guildId);
 
+    if (!this.isStaffMember(interaction.guild!, interaction.user.id, config)) {
+      await interaction.reply({ content: i18n.t('suggestions.errors.no_permission_staff', guildId), ephemeral: true });
       return;
     }
 
-    // Actualizar estado
-    switch (action) {
-      case 'approve':
-        suggestion.status = 'approved';
-        break;
-      case 'reject':
-        suggestion.status = 'rejected';
-        break;
-      case 'consider':
-        suggestion.status = 'considering';
-        break;
+    const suggestion = await this.withLock(suggestionId, async () => {
+      const s = await this.loadSuggestion(suggestionId, guildId);
+      if (!s) return null;
+      const status = ({ approve: 'approved', reject: 'rejected', consider: 'considering' } as const)[action as 'approve' | 'reject' | 'consider'];
+      if (!status) return null;
+      s.status = status;
+      s.staffNotes = reason;
+      s.assignedTo = interaction.user.id;
+      await this.persist(s, { response: reason, responderId: interaction.user.id });
+      await this.updateSuggestionMessage(interaction.guild!, s);
+      return s;
+    });
+
+    if (!suggestion) {
+      await interaction.reply({ content: i18n.t('suggestions.errors.not_found', guildId), ephemeral: true });
+      return;
     }
 
-    suggestion.staffNotes = reason;
-    suggestion.assignedTo = interaction.user.id;
-    suggestion.updatedAt = new Date();
-
-    await this.updateSuggestionMessage(interaction.guild!, suggestion);
-
-    // Notificar al autor
-    const config = await this.getConfig(interaction.guildId!);
-
     if (config.notifyAuthor) {
-      await this.notifyAuthor(suggestion, action, reason);
+      await this.notifyAuthor(suggestion, reason);
     }
 
     await interaction.reply({
-      content: i18n.t('suggestions.staff_action_success', interaction.guildId!, { action }),
+      content: i18n.t('suggestions.staff_action_success', guildId, { action: i18n.t(`suggestions.statuses.${suggestion.status}`, guildId) }),
       ephemeral: true
     });
   }
 
   private async updateSuggestionMessage(guild: Guild, suggestion: Suggestion): Promise<void> {
+    // Canal donde se publicó (aunque después se haya cambiado el canal de sugerencias)
     const config = await this.getConfig(guild.id);
-    const channel = guild.channels.cache.get(config.channelId!) as TextChannel;
-    
+    const channelId = suggestion.channelId || config.channelId;
+    const channel = channelId ? guild.channels.cache.get(channelId) as TextChannel : undefined;
+
     if (!channel || !suggestion.messageId) return;
 
     try {
       const message = await channel.messages.fetch(suggestion.messageId);
-      const author = await this.client.users.fetch(suggestion.authorId);
-      
-      const embed = new EmbedBuilder()
-        .setColor(this.getStatusColor(suggestion.status))
-        .setTitle(`💡 ${suggestion.title}`)
-        .setDescription(suggestion.description)
-        .addFields(
-          { 
-            name: i18n.t('suggestions.embed.category', guild.id), 
-            value: i18n.t(`suggestions.categories.${suggestion.category}`, guild.id), 
-            inline: true 
-          },
-          { 
-            name: i18n.t('suggestions.embed.priority', guild.id), 
-            value: i18n.t(`suggestions.priorities.${suggestion.priority}`, guild.id), 
-            inline: true 
-          },
-          { 
-            name: i18n.t('suggestions.embed.status', guild.id), 
-            value: i18n.t(`suggestions.statuses.${suggestion.status}`, guild.id), 
-            inline: true 
-          }
-        )
-        .setAuthor({ 
-          name: author.tag, 
-          iconURL: author.displayAvatarURL() 
-        })
-        .setFooter({ 
-          text: i18n.t('suggestions.embed.footer', guild.id, { id: suggestion.id }) 
-        })
-        .setTimestamp(suggestion.createdAt);
-
-      if (suggestion.staffNotes) {
-        embed.addFields({
-          name: i18n.t('suggestions.embed.staff_notes', guild.id),
-          value: suggestion.staffNotes
-        });
-      }
-
-      const voteRow = new ActionRowBuilder<ButtonBuilder>()
-        .addComponents(
-          new ButtonBuilder()
-            .setCustomId(`suggestion_vote_up_${suggestion.id}`)
-            .setLabel(`👍 ${suggestion.votes.upvotes.length}`)
-            .setStyle(ButtonStyle.Success),
-          new ButtonBuilder()
-            .setCustomId(`suggestion_vote_down_${suggestion.id}`)
-            .setLabel(`👎 ${suggestion.votes.downvotes.length}`)
-            .setStyle(ButtonStyle.Danger),
-          new ButtonBuilder()
-            .setCustomId(`suggestion_vote_neutral_${suggestion.id}`)
-            .setLabel(`🤷 ${suggestion.votes.neutral.length}`)
-            .setStyle(ButtonStyle.Secondary)
-        );
-
-      const staffRow = new ActionRowBuilder<ButtonBuilder>()
-        .addComponents(
-          new ButtonBuilder()
-            .setCustomId(`suggestion_approve_${suggestion.id}`)
-            .setLabel(i18n.t('suggestions.buttons.approve', guild.id))
-            .setStyle(ButtonStyle.Success)
-            .setEmoji('✅'),
-          new ButtonBuilder()
-            .setCustomId(`suggestion_reject_${suggestion.id}`)
-            .setLabel(i18n.t('suggestions.buttons.reject', guild.id))
-            .setStyle(ButtonStyle.Danger)
-            .setEmoji('❌'),
-          new ButtonBuilder()
-            .setCustomId(`suggestion_consider_${suggestion.id}`)
-            .setLabel(i18n.t('suggestions.buttons.consider', guild.id))
-            .setStyle(ButtonStyle.Secondary)
-            .setEmoji('🤔')
-        );
-
-      await message.edit({
-        embeds: [embed],
-        components: [voteRow, staffRow]
-      });
+      const { embed, components } = await this.buildMessage(guild, suggestion);
+      await message.edit({ embeds: [embed], components });
     } catch (error) {
       console.error('Error updating suggestion message:', error);
     }
   }
 
-  private async notifyAuthor(suggestion: Suggestion, action: string, reason: string): Promise<void> {
+  private async notifyAuthor(suggestion: Suggestion, reason: string): Promise<void> {
     try {
       const author = await this.client.users.fetch(suggestion.authorId);
       const guild = this.client.guilds.cache.get(suggestion.guildId);
-      
+
       if (!guild) return;
+      const t = (key: string, vars?: Record<string, string>) => i18n.t(key, guild.id, vars);
 
       const embed = new EmbedBuilder()
         .setColor(this.getStatusColor(suggestion.status))
-        .setTitle(i18n.t('suggestions.notification.title', 'global'))
-        .setDescription(i18n.t('suggestions.notification.description', 'global', {
+        .setTitle(t('suggestions.notification.title'))
+        .setDescription(t('suggestions.notification.description', {
           title: suggestion.title,
           server: guild.name,
-          status: i18n.t(`suggestions.statuses.${suggestion.status}`, 'global')
+          status: t(`suggestions.statuses.${suggestion.status}`)
         }))
-        .addFields({
-          name: i18n.t('suggestions.notification.reason', 'global'),
-          value: reason
-        })
         .setTimestamp();
+      if (reason) embed.addFields({ name: t('suggestions.notification.reason'), value: reason.slice(0, 1024) });
 
       await author.send({ embeds: [embed] });
     } catch (error) {
-      console.error('Error notifying suggestion author:', error);
+      // DMs cerrados
     }
   }
 
@@ -609,16 +564,21 @@ export class SuggestionService {
     return Math.random().toString(36).substring(2, 15);
   }
 
-  getSuggestion(id: string): Suggestion | undefined {
-    return this.suggestions.get(id);
+  async getSuggestion(id: string, guildId?: string): Promise<Suggestion | null> {
+    return this.loadSuggestion(id, guildId);
   }
 
-  getSuggestionsByGuild(guildId: string): Suggestion[] {
-    return Array.from(this.suggestions.values()).filter(s => s.guildId === guildId);
+  async getSuggestionsByGuild(guildId: string, limit = 100): Promise<Suggestion[]> {
+    const rows = await this.client.db.suggestion.findMany({
+      where: { guildId },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
+    return rows.map((r) => this.rowToSuggestion(r));
   }
 
-  getSuggestionsByStatus(guildId: string, status: Suggestion['status']): Suggestion[] {
-    return this.getSuggestionsByGuild(guildId).filter(s => s.status === status);
+  async getSuggestionsByStatus(guildId: string, status: Suggestion['status']): Promise<Suggestion[]> {
+    return (await this.getSuggestionsByGuild(guildId, 500)).filter(s => s.status === status);
   }
 
   private mapDbStatus(dbStatus: string): Suggestion['status'] {
@@ -631,40 +591,30 @@ export class SuggestionService {
     return map[dbStatus] ?? 'new';
   }
 
-  async syncSuggestionMessage(suggestionId: string): Promise<void> {
-    const dbSuggestion = await this.client.db.suggestion.findUnique({
-      where: { id: suggestionId }
-    });
-    if (!dbSuggestion) return;
+  /**
+   * Cambio de estado desde el dashboard: actualiza el mensaje (conservando los
+   * votos) y avisa al autor si cambió el estado.
+   */
+  async syncSuggestionMessage(suggestionId: string, opts: { notify?: boolean } = {}): Promise<void> {
+    const row = await this.client.db.suggestion.findUnique({ where: { id: suggestionId } });
+    if (!row) return;
 
-    // Rebuild internal Suggestion object from DB row
-    const suggestion: Suggestion = {
-      id: dbSuggestion.id,
-      guildId: dbSuggestion.guildId,
-      authorId: dbSuggestion.authorId,
-      title: dbSuggestion.content,
-      description: dbSuggestion.content,
-      category: (dbSuggestion.category as any) || 'other',
-      priority: 'medium',
-      status: this.mapDbStatus(dbSuggestion.status),
-      votes: { upvotes: [], downvotes: [], neutral: [] },
-      staffNotes: dbSuggestion.response ?? undefined,
-      createdAt: dbSuggestion.createdAt,
-      updatedAt: dbSuggestion.updatedAt,
-      messageId: dbSuggestion.messageId ?? undefined,
-    };
+    // El estado del dashboard sustituye a "en consideración"
+    const meta = (row.meta && typeof row.meta === 'object' ? row.meta : {}) as Record<string, unknown>;
+    if (meta.displayStatus) {
+      await this.client.db.suggestion.update({
+        where: { id: suggestionId },
+        data: { meta: { ...meta, displayStatus: undefined } as any },
+      });
+      delete meta.displayStatus;
+    }
+    const suggestion = this.rowToSuggestion({ ...row, meta });
 
-    // Sync upvotes/downvotes counts
-    const votesArr: string[] = [];
-    for (let i = 0; i < dbSuggestion.upvotes; i++) votesArr.push(`__up_${i}`);
-    suggestion.votes.upvotes = votesArr;
-    const downArr: string[] = [];
-    for (let i = 0; i < dbSuggestion.downvotes; i++) downArr.push(`__down_${i}`);
-    suggestion.votes.downvotes = downArr;
-
-    const guild = this.client.guilds.cache.get(dbSuggestion.guildId);
+    const guild = this.client.guilds.cache.get(row.guildId);
     if (guild) {
       await this.updateSuggestionMessage(guild, suggestion);
+      const config = await this.getConfig(guild.id);
+      if (opts.notify && config.notifyAuthor) await this.notifyAuthor(suggestion, row.response ?? '');
     }
   }
 }

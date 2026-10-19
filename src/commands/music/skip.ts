@@ -29,7 +29,7 @@ export default class SkipCommand extends Command {
       .addBooleanOption((option) =>
         option
           .setName('force')
-          .setDescription('Force skip without voting (DJ only)')
+          .setDescription('Skip immediately without a vote (DJ only)')
           .setRequired(false)
       );
   }
@@ -85,6 +85,21 @@ export default class SkipCommand extends Command {
       });
 
       return;
+    }
+
+    // Sin "force": se aplica la votación configurada en el panel (Música)
+    if (!force) {
+      const vote = await this.client.music.registerSkipVote(member);
+      if (vote.status !== 'skip') {
+        await interaction.editReply({
+          content: i18n.t(vote.status === 'voted' ? 'music.vote_skip.progress' : 'music.vote_skip.already', interaction.guildId!, {
+            votes: String(vote.votes),
+            required: String(vote.required),
+          }),
+        });
+
+        return;
+      }
     }
 
     const currentTrack = queue.currentTrack;

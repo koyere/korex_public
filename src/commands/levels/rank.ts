@@ -11,6 +11,7 @@ export default class RankCommand extends Command {
       category: 'levels',
       cooldown: 3,
       guildOnly: true,
+      addon: 'levels',
     });
   }
 
@@ -30,6 +31,12 @@ export default class RankCommand extends Command {
       const targetUser = interaction.options.getUser('user') || interaction.user;
       const guildId = interaction.guild!.id;
       const lang = i18n.getGuildLanguage(guildId);
+
+      // Los bots no ganan XP: no crear filas vacías en el ranking
+      if (targetUser.bot) {
+        await interaction.reply({ content: i18n.t('levels.rank.bot_no_rank', lang), ephemeral: true });
+        return;
+      }
 
       const levelUser = await this.client.levels.getUser(guildId, targetUser.id);
       const nextLevelXp = this.client.levels.getXpForLevel(levelUser.level + 1);

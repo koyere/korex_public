@@ -22,8 +22,10 @@ import {
 } from 'discord.js';
 import https from 'https';
 import http from 'http';
-import { Player, GuildQueue, Track, BaseExtractor, useQueue, QueryType, Util } from 'discord-player';
+import { Player, GuildQueue, Track, BaseExtractor, QueryType, Util } from 'discord-player';
 import { SoundCloudExtractor, AttachmentExtractor } from '@discord-player/extractor';
+import { isPublicHttpUrl } from '../utils/safeUrl';
+import { i18n } from '../utils/i18n';
 
 const DIRECT_AUDIO_RE = /\.(mp3|wav|ogg|flac|m4a|aac|opus)(\?.*)?$/i;
 
@@ -105,6 +107,8 @@ export interface MusicConfig {
   defaultVolume: number;
   announceNowPlaying: boolean;
   restrictedChannels: string[];
+  voteSkipEnabled: boolean;
+  voteSkipThreshold: number; // % de oyentes necesarios
 }
 
 export interface MusicTrackView {
@@ -159,6 +163,8 @@ export class MusicService {
   private logger: ReturnType<typeof createLogger>;
   private player: Player | null = null;
   private initialized = false;
+  // Inicio de la sesión de reproducción por servidor (cola creada → cola eliminada)
+  private sessionStart = new Map<string, number>();
 
   constructor(client: KorexClient) {
     this.client = client;
@@ -221,48 +227,33 @@ export class MusicService {
     titleOverride?: string,
   ): Promise<MusicPlayResult> {
     if (!this.player) throw new Error('MUSIC_NODE_UNAVAILABLE');
-    if (!member.voice.channel) throw new Error('Debes estar en un canal de voz para usar este comando.');
+    if (!member.voice.channel) throw new Error('MUSIC_NOT_IN_VOICE');
 
-    const existingQueue = useQueue(member.guild.id);
+    const existingQueue = this.queueOf(member.guild.id);
     if (existingQueue && existingQueue.channel?.id !== member.voice.channel.id) {
       throw new Error('MUSIC_DIFFERENT_VOICE_CHANNEL');
     }
 
     const guildId = member.guild.id;
     const isUrl = query.startsWith('http://') || query.startsWith('https://');
-    const isYouTubeUrl = isUrl && /youtube\.com|youtu\.be/.test(query);
 
-    // ── Determine source based on plan ──────────────────────────────────────
-    const { canUseYoutube, quotaUsed, quotaLimit, isPremium } =
-      await this.checkYoutubeQuota(guildId);
-
-    let resolvedQuery = query;
-
-    if (isYouTubeUrl || (!isUrl && !query.startsWith('sc:'))) {
-      // User wants YouTube (explicit URL or plain text search)
-      if (!isPremium) {
-        // FREE: redirect to SoundCloud
-        resolvedQuery = isUrl ? query : `scsearch:${query}`;
-        this.logger.info(`[${guildId}] FREE tier — routing to SoundCloud: ${query}`);
-      } else if (!canUseYoutube) {
-        // PREMIUM but quota exhausted — fallback to SoundCloud
-        resolvedQuery = isUrl ? query : `scsearch:${query}`;
-        this.logger.warn(`[${guildId}] YouTube quota exhausted (${quotaUsed}/${quotaLimit}) — fallback to SoundCloud`);
-        channel.send(`⚠️ Cuota de YouTube agotada este mes (${quotaUsed}/${quotaLimit}). Reproduciendo desde SoundCloud.`).catch(() => {});
-      } else {
-        // PREMIUM with quota available — use YouTube
-        resolvedQuery = isUrl ? query : `ytsearch:${query}`;
-        this.logger.info(`[${guildId}] PREMIUM YouTube (${quotaUsed + 1}/${quotaLimit}): ${query}`);
-      }
+    // SSRF: una URL directa no puede apuntar a la red interna de la VPS
+    if (isUrl && !(await isPublicHttpUrl(query))) {
+      throw new Error('MUSIC_URL_NOT_ALLOWED');
     }
+    // Solo SoundCloud, adjuntos y audio directo: YouTube/Spotify no están soportados
+    if (isUrl && /(youtube\.com|youtu\.be|spotify\.com|music\.apple\.com|deezer\.com)/i.test(query)) {
+      throw new Error('MUSIC_UNSUPPORTED_SOURCE');
+    }
+
+    const musicConfig = await this.getMusicConfig(guildId);
+    const resolvedQuery = isUrl ? query : `scsearch:${query.replace(/^sc:/, '')}`;
 
     // Direct audio URLs (e.g. S3 .mp3) bypass SoundCloud search entirely
     const isDirectAudio = isUrl && /\.(mp3|wav|ogg|flac|m4a|aac|opus)(\?.*)?$/i.test(resolvedQuery);
-    const engine = resolvedQuery.startsWith('ytsearch:')
-      ? QueryType.YOUTUBE_SEARCH
-      : isDirectAudio
-        ? QueryType.ARBITRARY
-        : QueryType.SOUNDCLOUD_SEARCH;
+    const engine = isDirectAudio
+      ? QueryType.ARBITRARY
+      : isUrl ? QueryType.AUTO : QueryType.SOUNDCLOUD_SEARCH;
 
     // Search explicitly with forced source — no implicit fallback to YouTube
     const searchResult = await this.player.search(resolvedQuery, {
@@ -277,13 +268,17 @@ export class MusicService {
     });
 
     const trackToPlay = playableTracks[0] ?? searchResult.tracks[0];
-    if (!trackToPlay) throw new Error('No se encontraron resultados para tu búsqueda.');
+    if (!trackToPlay) throw new Error('MUSIC_NO_RESULTS');
 
     if (titleOverride) (trackToPlay as any).title = titleOverride;
 
-    // Enforce music-pro limits if active
-    if (limits?.maxQueueSize && limits.maxQueueSize > 0) {
-      const existingQ = useQueue(guildId);
+    // Límites: los de Music Pro (si el addon está activo) o los del dashboard
+    limits = {
+      maxQueueSize: limits?.maxQueueSize || musicConfig.maxQueueSize,
+      maxTrackDuration: limits?.maxTrackDuration || musicConfig.maxSongDuration,
+    };
+    if (limits.maxQueueSize && limits.maxQueueSize > 0) {
+      const existingQ = this.queueOf(guildId);
       const currentSize = (existingQ?.tracks.size ?? 0) + (existingQ?.currentTrack ? 1 : 0);
       if (currentSize >= limits.maxQueueSize) {
         throw new Error(`QUEUE_FULL:${limits.maxQueueSize}`);
@@ -297,10 +292,13 @@ export class MusicService {
       }
     }
 
+    // Si no había nada sonando, /play ya anuncia esta canción: evitar el doble aviso
+    if (!this.queueOf(guildId)?.currentTrack) (trackToPlay as any).__skipAnnounce = true;
+
     const result = await this.player.play(member.voice.channel as any, trackToPlay, {
       nodeOptions: {
         metadata: { channel },
-        volume: parseInt(process.env.MUSIC_DEFAULT_VOLUME || '50'),
+        volume: Math.min(100, Math.max(0, musicConfig.defaultVolume)),
         leaveOnEmpty: process.env.MUSIC_LEAVE_ON_EMPTY !== 'false',
         leaveOnEmptyCooldown: parseInt(process.env.MUSIC_LEAVE_ON_EMPTY_DELAY || '300000'),
         leaveOnEnd: process.env.MUSIC_LEAVE_ON_END !== 'false',
@@ -308,16 +306,9 @@ export class MusicService {
       },
     });
 
-    if (!result?.track) throw new Error('No se encontraron resultados para tu búsqueda.');
+    if (!result?.track) throw new Error('MUSIC_NO_RESULTS');
 
-    // Increment YouTube quota if we used it
-    const usedYoutube = isPremium && canUseYoutube &&
-      (isYouTubeUrl || (!isUrl && resolvedQuery.startsWith('ytsearch:')));
-    if (usedYoutube) {
-      await this.incrementYoutubeQuota(guildId).catch(() => {});
-    }
-
-    const queue = useQueue(guildId);
+    const queue = this.queueOf(guildId);
     const queueSize = (queue?.tracks.size ?? 0) + (queue?.currentTrack ? 1 : 0);
     const started = result.queue.node.isPlaying();
 
@@ -338,37 +329,42 @@ export class MusicService {
   }
 
   public async skip(member: GuildMember, channel: TextChannel): Promise<boolean> {
-    const queue = useQueue(member.guild.id);
+    const queue = this.queueOf(member.guild.id);
     if (!queue?.currentTrack) {
-      await channel.send('❌ No hay música reproduciéndose.');
+      // El comando responde con el mensaje traducido
       return false;
     }
-    const skipped = queue.currentTrack;
     queue.node.skip();
-    await channel.send(`⏭️ **${skipped.title}** saltada.`);
     return true;
   }
 
   public async stop(member: GuildMember, channel: TextChannel): Promise<boolean> {
-    const queue = useQueue(member.guild.id);
+    const queue = this.queueOf(member.guild.id);
     if (!queue) {
-      await channel.send('❌ No hay música reproduciéndose.');
+      // El comando responde con el mensaje traducido
       return false;
     }
     queue.delete();
-    await channel.send('⏹️ Música detenida y desconectado del canal de voz.');
     return true;
   }
 
   public async disconnect(guildId: string): Promise<boolean> {
-    const queue = useQueue(guildId);
+    const queue = this.queueOf(guildId);
     if (!queue) return false;
     queue.delete();
     return true;
   }
 
+  /** Mezcla la cola pendiente. Devuelve false si no hay canciones en cola. */
+  public shuffle(guildId: string): boolean {
+    const queue = this.queueOf(guildId);
+    if (!queue || queue.tracks.size < 2) return false;
+    queue.tracks.shuffle();
+    return true;
+  }
+
   public async togglePause(guildId: string): Promise<boolean> {
-    const queue = useQueue(guildId);
+    const queue = this.queueOf(guildId);
     if (!queue) return false;
     if (queue.node.isPaused()) {
       queue.node.resume();
@@ -379,16 +375,44 @@ export class MusicService {
   }
 
   public async setVolume(guildId: string, volume: number): Promise<boolean> {
-    const queue = useQueue(guildId);
+    const queue = this.queueOf(guildId);
     if (!queue) return false;
     queue.node.setVolume(volume);
     return true;
   }
 
+  // ── Estado para el dashboard ───────────────────────────────────────────────
+
+  /**
+   * Datos en vivo del reproductor de un servidor. Sin Lavalink, el audio lo procesa
+   * el propio bot (discord-player): hay 1 nodo de audio si el sistema está listo.
+   */
+  public getLiveStats(guildId: string): { activePlayers: number; activeSeconds: number; nodes: number } {
+    const queue = this.queueOf(guildId);
+    const active = !!queue?.currentTrack;
+    const start = this.sessionStart.get(guildId);
+
+    return {
+      activePlayers: active ? 1 : 0,
+      activeSeconds: active && start ? Math.floor((Date.now() - start) / 1000) : 0,
+      nodes: this.isReady() ? 1 : 0,
+    };
+  }
+
+  /**
+   * Cola del servidor sin hooks de discord-player: `useQueue()` lanza
+   * IllegalHookInvocationError fuera de `player.context.provide()` o si el
+   * reproductor no está inicializado (p. ej. desde la API del panel).
+   */
+  private queueOf(guildId: string): GuildQueue | null {
+    if (!this.player || !guildId) return null;
+    return (this.player.nodes.get(guildId) as GuildQueue | undefined) ?? null;
+  }
+
   // ── Queue views ────────────────────────────────────────────────────────────
 
   public getQueue(guildId: string): MusicQueueView | null {
-    const queue = useQueue(guildId);
+    const queue = this.queueOf(guildId);
     if (!queue) return null;
     return {
       tracks: queue.tracks.toArray().map(t => this.toTrackView(t)),
@@ -401,7 +425,7 @@ export class MusicService {
   }
 
   public getQueueDisplay(guildId: string, page = 1): MusicQueueDisplay | null {
-    const queue = useQueue(guildId);
+    const queue = this.queueOf(guildId);
     if (!queue) return null;
 
     const allTracks = queue.tracks.toArray();
@@ -427,30 +451,120 @@ export class MusicService {
   }
 
   public getCurrentPosition(guildId: string): number {
-    const queue = useQueue(guildId);
+    const queue = this.queueOf(guildId);
     return queue?.node.getTimestamp()?.current.value ?? 0;
   }
 
   // ── Misc ───────────────────────────────────────────────────────────────────
 
-  public async getMusicConfig(_guildId: string): Promise<MusicConfig> {
-    return {
-      enabled: true,
-      djRoleId: null,
-      djOnly: false,
-      maxQueueSize: 100,
-      maxSongDuration: 3600,
-      defaultVolume: 50,
-      announceNowPlaying: true,
-      restrictedChannels: [],
+  private configCache = new Map<string, { config: MusicConfig; expires: number }>();
+
+  /** Configuración de Música del dashboard (tabla music_configs) o valores por defecto. */
+  public async getMusicConfig(guildId: string): Promise<MusicConfig> {
+    const cached = this.configCache.get(guildId);
+    if (cached && cached.expires > Date.now()) return cached.config;
+
+    const row = await this.client.db.musicConfig.findUnique({ where: { guildId } }).catch(() => null);
+    const config: MusicConfig = {
+      enabled: row?.enabled ?? true,
+      djRoleId: row?.djRoleId ?? null,
+      djOnly: row?.djOnly ?? false,
+      maxQueueSize: row?.maxQueueSize ?? 100,
+      maxSongDuration: row?.maxSongDuration ?? 3600,
+      defaultVolume: row?.defaultVolume ?? 50,
+      announceNowPlaying: row?.announceNowPlaying ?? true,
+      restrictedChannels: row?.restrictedChannels ?? [],
+      voteSkipEnabled: row?.voteSkipEnabled ?? true,
+      voteSkipThreshold: row?.voteSkipThreshold ?? 50,
     };
+    this.configCache.set(guildId, { config, expires: Date.now() + 60_000 });
+    return config;
   }
 
-  public async updateGuildConfig(_guildId: string, _config: Partial<MusicConfig>): Promise<void> {}
+  public async updateGuildConfig(guildId: string, config: Partial<MusicConfig>): Promise<MusicConfig> {
+    await this.client.db.musicConfig.upsert({
+      where: { guildId },
+      update: config,
+      create: { guildId, ...config },
+    });
+    this.configCache.delete(guildId);
+    return this.getMusicConfig(guildId);
+  }
 
   public async hasDJPermissions(member: GuildMember): Promise<boolean> {
-    return member.permissions.has('ManageChannels') || member.permissions.has('Administrator');
+    if (member.permissions.has('ManageChannels') || member.permissions.has('Administrator')) return true;
+    const config = await this.getMusicConfig(member.guild.id);
+    if (config.djRoleId && member.roles.cache.has(config.djRoleId)) return true;
+    return this.hasMusicProDJRole(member);
   }
+
+  /**
+   * Roles DJ de Music Pro: cuentan además del rol DJ del módulo Música cuando el
+   * servidor tiene Music Pro activo (licencia + interruptor maestro).
+   */
+  private async hasMusicProDJRole(member: GuildMember): Promise<boolean> {
+    const proSvc = (this.client as any)?._musicProService;
+    if (!proSvc) return false;
+    try {
+      if (!(await proSvc.isProEnabled(member.guild.id))) return false;
+      const cfg = await proSvc.getOrCreateConfig(member.guild.id);
+      return Array.isArray(cfg.djRoles) && cfg.djRoles.some((roleId: string) => member.roles.cache.has(roleId));
+    } catch {
+      return false;
+    }
+  }
+
+  // Votos para saltar la canción actual: guildId → { canción, votantes }
+  private skipVotes = new Map<string, { trackId: string; voters: Set<string> }>();
+
+  /**
+   * Voto para saltar. Salta directamente si la votación está desactivada, si
+   * quien vota es DJ, pidió la canción o está solo con el bot; si no, cuenta el
+   * voto y salta al alcanzar el porcentaje configurado de oyentes.
+   */
+  public async registerSkipVote(member: GuildMember): Promise<{ status: 'skip' | 'voted' | 'already_voted'; votes: number; required: number }> {
+    const queue = this.queueOf(member.guild.id);
+    const track = queue?.currentTrack;
+    const config = await this.getMusicConfig(member.guild.id);
+    const listeners = queue?.channel?.members.filter((m) => !m.user.bot).size ?? 1;
+
+    if (!track || !config.voteSkipEnabled || listeners <= 1
+        || track.requestedBy?.id === member.id || await this.hasDJPermissions(member)) {
+      this.skipVotes.delete(member.guild.id);
+      return { status: 'skip', votes: 0, required: 0 };
+    }
+
+    const threshold = Math.min(100, Math.max(1, config.voteSkipThreshold));
+    const required = Math.max(1, Math.ceil(listeners * threshold / 100));
+    let entry = this.skipVotes.get(member.guild.id);
+    if (!entry || entry.trackId !== track.id) {
+      entry = { trackId: track.id, voters: new Set() };
+      this.skipVotes.set(member.guild.id, entry);
+    }
+    if (entry.voters.has(member.id)) {
+      return { status: 'already_voted', votes: entry.voters.size, required };
+    }
+    entry.voters.add(member.id);
+
+    if (entry.voters.size >= required) {
+      this.skipVotes.delete(member.guild.id);
+      return { status: 'skip', votes: entry.voters.size, required };
+    }
+    return { status: 'voted', votes: entry.voters.size, required };
+  }
+
+  /**
+   * Comprueba si un miembro puede usar los comandos de música en ese canal.
+   * Devuelve el motivo del rechazo (clave i18n music.access.*) o null.
+   */
+  public async checkAccess(member: GuildMember, textChannelId: string): Promise<'disabled' | 'channel' | 'dj_only' | null> {
+    const config = await this.getMusicConfig(member.guild.id);
+    if (!config.enabled) return 'disabled';
+    if (config.restrictedChannels.length > 0 && !config.restrictedChannels.includes(textChannelId)) return 'channel';
+    if (config.djOnly && !(await this.hasDJPermissions(member))) return 'dj_only';
+    return null;
+  }
+
 
   public getStats(): MusicStats {
     if (!this.player) return { totalTracks: 0, totalPlaytime: 0, activeUsers: 0, topTracks: [], topUsers: [] };
@@ -538,18 +652,34 @@ export class MusicService {
   private setupEvents(): void {
     if (!this.player) return;
 
-    this.player.events.on('playerStart', (queue, track) => {
+    this.player.events.on('queueCreate', (queue) => {
+      this.sessionStart.set(queue.guild.id, Date.now());
+    });
+    this.player.events.on('queueDelete', (queue) => {
+      this.sessionStart.delete(queue.guild.id);
+    });
+
+    this.player.events.on('playerStart', async (queue, track) => {
       this.logger.info(`🎵 Reproduciendo: ${track.title} en ${queue.guild.id}`);
       const meta = (queue as GuildQueue<{ channel: TextChannel }>).metadata;
       if (!meta?.channel) return;
+      // La primera canción ya la anuncia la respuesta de /play
+      if ((track as any).__skipAnnounce) {
+        delete (track as any).__skipAnnounce;
+        return;
+      }
+      const guildId = queue.guild.id;
+      const config = await this.getMusicConfig(guildId).catch(() => null);
+      if (config && !config.announceNowPlaying) return;
+      const t = (key: string) => i18n.t(key, guildId);
       const embed = new EmbedBuilder()
         .setColor(Colors.Blue)
-        .setTitle('🎵 Reproduciendo ahora')
-        .setDescription(`**${track.title}**\nPor: ${track.author}`)
-        .setThumbnail(track.thumbnail ?? null)
+        .setTitle(`🎵 ${t('music.now_playing')}`)
+        .setDescription(`**${track.title}**\n${track.author}`.slice(0, 4096))
+        .setThumbnail(track.thumbnail || null)
         .addFields(
-          { name: 'Duración', value: this.formatDuration(track.durationMS), inline: true },
-          { name: 'Solicitado por', value: track.requestedBy?.displayName ?? 'Desconocido', inline: true },
+          { name: t('music.duration'), value: this.formatDuration(track.durationMS), inline: true },
+          { name: t('music.requester'), value: track.requestedBy?.displayName ?? t('music.unknown'), inline: true },
         )
         .setTimestamp();
       meta.channel.send({ embeds: [embed] }).catch(() => {});
@@ -563,14 +693,14 @@ export class MusicService {
         this.logger.info(`🎵 Skipping failed track, ${queue.tracks.size} remaining`);
         queue.node.skip();
       } else {
-        meta?.channel?.send(`❌ Error reproduciendo: ${error.message}`).catch(() => {});
+        meta?.channel?.send(`❌ ${i18n.t('music.playback_error', queue.guild.id)}`).catch(() => {});
       }
     });
 
     this.player.events.on('emptyQueue', (queue) => {
       this.logger.info(`🎵 Cola terminada en ${queue.guild.id}`);
       const meta = (queue as GuildQueue<{ channel: TextChannel }>).metadata;
-      meta?.channel?.send('🎵 Cola de reproducción terminada.').catch(() => {});
+      meta?.channel?.send(`🎵 ${i18n.t('music.queue_finished', queue.guild.id)}`).catch(() => {});
     });
 
     this.player.events.on('error', (queue, error) => {

@@ -2,12 +2,13 @@ import { ChatInputCommandInteraction, SlashCommandBuilder, EmbedBuilder } from '
 import { Command } from '../../client/structures/Command';
 import { KorexClient } from '../../client/KorexClient';
 import { formatDuration, formatNumber } from '../../utils/helpers';
+import { i18n } from '../../utils/i18n';
 
 export default class BotInfoCommand extends Command {
   constructor(client: KorexClient) {
     super(client, {
       name: 'botinfo',
-      description: 'Muestra información detallada sobre el bot',
+      description: i18n.t('commands.botinfo.description', 'en'),
       category: 'utility',
       aliases: ['info', 'stats'],
       cooldown: 10,
@@ -15,173 +16,135 @@ export default class BotInfoCommand extends Command {
   }
 
   data() {
-    return new SlashCommandBuilder().setName(this.name).setDescription(this.description);
+    return new SlashCommandBuilder()
+      .setName(this.name)
+      .setDescription(i18n.t('commands.botinfo.description', 'en'))
+      .setDescriptionLocalizations({
+        'es-ES': i18n.t('commands.botinfo.description', 'es'),
+        'es-419': i18n.t('commands.botinfo.description', 'es'),
+      });
   }
 
   async executeSlash(interaction: ChatInputCommandInteraction): Promise<void> {
+    const lang = i18n.getGuildLanguage(interaction.guildId!);
     await interaction.deferReply();
 
     try {
-      // Obtener estadísticas del bot
       const botInfo = this.client.getBotInfo();
       const healthCheck = await this.client.healthCheck();
+      const version = botInfo.version || process.env.npm_package_version || '1.0.0';
 
-      // Crear embed principal
       const embed = new EmbedBuilder()
         .setColor(this.client.config.colors.primary)
-        .setTitle('🤖 Información del Bot')
+        .setTitle(i18n.t('commands.botinfo.title', lang))
         .setThumbnail(this.client.user?.displayAvatarURL() || null)
         .setTimestamp();
 
-      // Información básica
       embed.addFields([
         {
-          name: '📋 Información General',
+          name: i18n.t('commands.botinfo.general', lang),
           value:
-            `**Nombre:** ${botInfo.name}\n` +
-            `**Versión:** ${botInfo.version}\n` +
-            `**Uptime:** ${formatDuration(botInfo.uptime)}\n` +
-            `**Creado:** <t:${Math.floor((this.client.user?.createdTimestamp || 0) / 1000)}:R>`,
+            `**${i18n.t('commands.botinfo.version', lang)}:** ${botInfo.version}\n` +
+            `**${i18n.t('commands.botinfo.uptime', lang)}:** ${formatDuration(botInfo.uptime)}\n` +
+            `**${i18n.t('commands.botinfo.created', lang)}:** <t:${Math.floor((this.client.user?.createdTimestamp || 0) / 1000)}:R>`,
           inline: true,
         },
         {
-          name: '📊 Estadísticas',
+          name: i18n.t('commands.botinfo.stats', lang),
           value:
-            `**Servidores:** ${formatNumber(botInfo.guilds)}\n` +
-            `**Usuarios:** ${formatNumber(botInfo.users)}\n` +
-            `**Canales:** ${formatNumber(botInfo.channels)}\n` +
-            `**Comandos:** ${formatNumber(botInfo.commands)}`,
+            `**${i18n.t('commands.botinfo.servers', lang)}:** ${formatNumber(botInfo.guilds)}\n` +
+            `**${i18n.t('commands.botinfo.users', lang)}:** ${formatNumber(botInfo.users)}\n` +
+            `**${i18n.t('commands.botinfo.channels', lang)}:** ${formatNumber(botInfo.channels)}\n` +
+            `**${i18n.t('commands.botinfo.commands', lang)}:** ${formatNumber(botInfo.commands)}`,
           inline: true,
         },
         {
-          name: '🏓 Latencia',
+          name: i18n.t('commands.botinfo.latency', lang),
           value:
-            `**WebSocket:** ${botInfo.ping}ms\n` +
-            `**Estado:** ${this.getLatencyStatus(botInfo.ping)}`,
+            `**${i18n.t('commands.botinfo.latency_ws', lang)}:** ${botInfo.ping}ms\n` +
+            `**${i18n.t('commands.botinfo.latency_status', lang)}:** ${this.getLatencyStatus(botInfo.ping, lang)}`,
           inline: true,
         },
       ]);
 
-      // Información del sistema
       const memoryUsage = process.memoryUsage();
 
       embed.addFields([
         {
-          name: '💾 Memoria',
+          name: i18n.t('commands.botinfo.memory', lang),
           value:
-            `**Usada:** ${this.formatBytes(memoryUsage.heapUsed)}\n` +
+            `**${i18n.t('commands.botinfo.memory', lang)}:** ${this.formatBytes(memoryUsage.heapUsed)}\n` +
             `**Total:** ${this.formatBytes(memoryUsage.heapTotal)}\n` +
             `**RSS:** ${this.formatBytes(memoryUsage.rss)}`,
           inline: true,
         },
         {
-          name: '⚙️ Sistema',
+          name: i18n.t('commands.botinfo.system', lang),
           value:
-            `**Node.js:** ${process.version}\n` +
-            `**Plataforma:** ${process.platform}\n` +
-            `**Arquitectura:** ${process.arch}`,
+            `**${i18n.t('commands.botinfo.node_version', lang)}:** ${process.version}\n` +
+            `**${i18n.t('commands.botinfo.platform', lang)}:** ${process.platform}\n` +
+            `**Arch:** ${process.arch}`,
           inline: true,
         },
         {
-          name: '🧩 Addons',
+          name: i18n.t('commands.botinfo.addons', lang),
           value:
-            `**Cargados:** ${botInfo.addons}\n` +
-            `**Disponibles:** ${this.client.addons.addons.size}`,
+            `**${i18n.t('commands.botinfo.addons_loaded', lang)}:** ${botInfo.addons}\n` +
+            `**${i18n.t('commands.botinfo.addons_available', lang)}:** ${this.client.addons.addons.size}`,
           inline: true,
         },
       ]);
 
-      // Estado de servicios
-      const servicesStatus = this.getServicesStatus(healthCheck);
-
       embed.addFields([
         {
-          name: '🔧 Estado de Servicios',
-          value: servicesStatus,
+          name: i18n.t('commands.botinfo.services', lang),
+          value: this.getServicesStatus(healthCheck, lang),
+          inline: false,
+        },
+        {
+          name: i18n.t('commands.botinfo.links', lang),
+          value:
+            `[${i18n.t('commands.botinfo.links', lang)}](${process.env.DASHBOARD_URL || 'https://panel.korex.dev'}) • ` +
+            `[Docs](https://docs.korex.dev) • ` +
+            `[Support](https://discord.gg/korex)`,
           inline: false,
         },
       ]);
 
-      // Enlaces útiles
-      embed.addFields([
-        {
-          name: '🔗 Enlaces',
-          value:
-            `[Panel Web](${process.env.DASHBOARD_URL || 'https://panel.korex.dev'}) • ` +
-            `[Documentación](https://docs.korex.dev) • ` +
-            `[Soporte](https://discord.gg/korex) • ` +
-            `[GitHub](https://github.com/korex-dev)`,
-          inline: false,
-        },
-      ]);
-
-      embed.setFooter({
-        text: `Korex v${botInfo.version} - The Core of Your Community`,
-      });
+      embed.setFooter({ text: i18n.t('commands.botinfo.footer', lang, { version }) });
 
       await interaction.editReply({ embeds: [embed] });
     } catch (error) {
-      this.client.logger.error('Error en comando botinfo:', error);
-
-      await interaction.editReply({
-        content: '❌ Ocurrió un error al obtener la información del bot.',
-      });
+      this.client.logger.error('Error in botinfo command:', error);
+      await interaction.editReply({ content: i18n.t('commands.botinfo.error', lang) });
     }
   }
 
-  /**
-   * Formatear bytes a texto legible
-   */
   private formatBytes(bytes: number): string {
     const sizes = ['B', 'KB', 'MB', 'GB'];
-
     if (bytes === 0) return '0 B';
-
     const i = Math.floor(Math.log(bytes) / Math.log(1024));
-
     return `${(bytes / Math.pow(1024, i)).toFixed(2)} ${sizes[i]}`;
   }
 
-  /**
-   * Obtener estado de latencia
-   */
-  private getLatencyStatus(ping: number): string {
-    if (ping < 100) return '🟢 Excelente';
-    if (ping < 200) return '🟡 Buena';
-    if (ping < 300) return '🟠 Regular';
-
-    return '🔴 Mala';
+  private getLatencyStatus(ping: number, lang: string): string {
+    if (ping < 100) return i18n.t('commands.botinfo.status_excellent', lang);
+    if (ping < 200) return i18n.t('commands.botinfo.status_good', lang);
+    if (ping < 300) return i18n.t('commands.botinfo.status_fair', lang);
+    return i18n.t('commands.botinfo.status_poor', lang);
   }
 
-  /**
-   * Obtener estado de servicios
-   */
-  private getServicesStatus(healthCheck: any): string {
+  private getServicesStatus(healthCheck: any, lang: string): string {
     const services = [
-      {
-        name: 'Discord',
-        status: healthCheck.checks.discord.status === 'ok',
-        latency: healthCheck.checks.discord.ping,
-      },
-      {
-        name: 'Base de Datos',
-        status: healthCheck.checks.database.status === 'ok',
-        latency: healthCheck.checks.database.latency,
-      },
-      {
-        name: 'Redis',
-        status: healthCheck.checks.redis.status === 'ok',
-        latency: healthCheck.checks.redis.latency,
-      },
+      { key: 'service_discord', status: healthCheck.checks.discord.status === 'ok', latency: healthCheck.checks.discord.ping },
+      { key: 'service_db',      status: healthCheck.checks.database.status === 'ok', latency: healthCheck.checks.database.latency },
+      { key: 'service_redis',   status: healthCheck.checks.redis.status === 'ok',    latency: healthCheck.checks.redis.latency },
     ];
 
-    return services
-      .map((service) => {
-        const statusEmoji = service.status ? '🟢' : '🔴';
-        const latencyText = service.latency ? ` (${service.latency}ms)` : '';
-
-        return `${statusEmoji} **${service.name}**${latencyText}`;
-      })
-      .join('\n');
+    return services.map(s => {
+      const emoji = s.status ? '🟢' : '🔴';
+      const lat = s.latency ? ` (${s.latency}ms)` : '';
+      return `${emoji} **${i18n.t(`commands.botinfo.${s.key}`, lang)}**${lat}`;
+    }).join('\n');
   }
 }

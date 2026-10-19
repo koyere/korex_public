@@ -37,25 +37,26 @@ export default class BalanceCommand extends Command {
       const lang = i18n.getGuildLanguage(guildId);
 
       const economyUser = await this.client.economy.getUser(guildId, targetUser.id);
+      const { currencySymbol: symbol } = await this.client.economy.getConfig(guildId);
 
       const embed = new EmbedBuilder()
-        .setTitle(i18n.t('commands.balance.title', lang, { user: targetUser.username, currency: '🪙' }))
+        .setTitle(i18n.t('commands.balance.title', lang, { user: targetUser.username, currency: symbol }))
         .setColor(Colors.Gold)
         .setThumbnail(targetUser.displayAvatarURL())
         .addFields(
           {
             name: i18n.t('commands.balance.wallet', lang),
-            value: `${economyUser.balance} 🪙`,
+            value: `${economyUser.balance} ${symbol}`,
             inline: true,
           },
           {
             name: i18n.t('commands.balance.bank', lang),
-            value: `${economyUser.bank} 🪙`,
+            value: `${economyUser.bank} ${symbol}`,
             inline: true,
           },
           {
             name: i18n.t('commands.balance.total', lang),
-            value: `${economyUser.balance + economyUser.bank} 🪙`,
+            value: `${economyUser.balance + economyUser.bank} ${symbol}`,
             inline: true,
           }
         );

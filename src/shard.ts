@@ -106,17 +106,6 @@ async function main(): Promise<void> {
           }
           break;
 
-        case 'BROADCAST':
-          if (typeof message.script === 'string') {
-            try {
-              const results = await shardManager.broadcast(message.script);
-
-              process.send?.({ type: 'BROADCAST_RESPONSE', data: results });
-            } catch (error) {
-              process.send?.({ type: 'BROADCAST_ERROR', error: error instanceof Error ? error.message : 'Unknown error' });
-            }
-          }
-          break;
       }
     });
 
