@@ -4,7 +4,7 @@ import DailyRotateFile from 'winston-daily-rotate-file';
 import path from 'path';
 import { logStream } from './LogStream';
 
-/** Transport que emite cada log al EventEmitter de streaming en tiempo real */
+/** Transport that emits every log to the real-time streaming EventEmitter */
 class LiveStreamTransport extends Transport {
   log(info: any, callback: () => void): void {
     setImmediate(() => {
@@ -46,7 +46,7 @@ const logFormat = winston.format.combine(
 const consoleFormat = winston.format.combine(winston.format.colorize({ all: true }), logFormat);
 
 export const createLogger = (name: string) => {
-  // Asegurar que el directorio de logs existe
+  // Make sure the logs directory exists
   const fs = require('fs');
   const logsDir = path.join(process.cwd(), 'logs');
 
@@ -63,10 +63,10 @@ export const createLogger = (name: string) => {
         format: consoleFormat,
       }),
 
-      // Streaming en tiempo real hacia el panel admin
+      // Real-time streaming to the admin panel
       new LiveStreamTransport(),
 
-      // Archivo de logs generales (rotación diaria)
+      // General log file (daily rotation)
       new DailyRotateFile({
         filename: path.join('logs', '%DATE%-combined.log'),
         datePattern: 'YYYY-MM-DD',
@@ -75,7 +75,7 @@ export const createLogger = (name: string) => {
         format: logFormat,
       }),
 
-      // Archivo de errores
+      // Error log file
       new DailyRotateFile({
         filename: path.join('logs', '%DATE%-error.log'),
         datePattern: 'YYYY-MM-DD',
@@ -87,7 +87,7 @@ export const createLogger = (name: string) => {
     ],
   });
 
-  // En desarrollo, también log debug
+  // In development, also log debug
   if (process.env.NODE_ENV === 'development') {
     logger.add(
       new DailyRotateFile({
@@ -104,5 +104,5 @@ export const createLogger = (name: string) => {
   return logger;
 };
 
-// Logger principal del bot
+// Main bot logger
 export const logger = createLogger('korex');

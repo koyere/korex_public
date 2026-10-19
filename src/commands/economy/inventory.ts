@@ -134,7 +134,7 @@ export default class InventoryCommand extends Command {
       embed.addFields({ name: `🎭 ${i18n.t('common.roles', lang)}`, value: list, inline: false });
     }
 
-    // Menú para acciones rápidas
+    // Menu for quick actions
     if (cosmetics.length > 0 || consumables.length > 0) {
       const options: { label: string; value: string; emoji: string }[] = [];
       
@@ -186,7 +186,7 @@ export default class InventoryCommand extends Command {
             await interaction.followUp({ content: result.message, ephemeral: true });
           }
 
-          // Refrescar inventario
+          // Refresh inventory
           await this.viewInventory(interaction, guildId, userId, lang);
         });
       } else {

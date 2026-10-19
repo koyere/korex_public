@@ -341,7 +341,7 @@ export class PollComponents extends Component {
       // Create the poll — convert durationHours to endsAt since createPoll uses endsAt
       const pollCreateData: any = {
         ...pollData,
-        // El asistente guarda los ajustes en la raíz; createPoll los lee de settings
+        // The wizard stores the settings at the root; createPoll reads them from settings
         settings: {
           anonymous: !!pollData.anonymous,
           allowChangeVote: pollData.allowChange ?? true,
@@ -661,12 +661,12 @@ export class PollSettingsModal extends Component {
   }
 }
 
-/** Voto por desplegable (encuestas de más de 5 opciones, tipos dropdown y ranking). */
+/** Dropdown vote (polls with more than 5 options, dropdown and ranking types). */
 export class PollDropdownComponent extends PollComponents {
   constructor(client: KorexClient) {
     super(client, { customId: 'poll_dropdown_*', type: 'selectMenu' });
   }
 }
 
-// El ComponentManager solo registra el export por defecto
+// The ComponentManager only registers the default export
 export default [PollComponents, PollDropdownComponent, PollRestrictionsModal, PollSettingsModal];

@@ -45,7 +45,7 @@ export default class PlayCommand extends Command {
       return;
     }
 
-    // Verificar si el usuario está en un canal de voz
+    // Check whether the user is in a voice channel
     if (!member.voice.channel) {
       await interaction.editReply(i18n.t('music.not_in_voice', interaction.guildId!));
 
@@ -54,7 +54,7 @@ export default class PlayCommand extends Command {
 
     const voiceChannel = member.voice.channel as VoiceChannel;
 
-    // Verificar permisos del bot
+    // Check bot permissions
     if (!voiceChannel.permissionsFor(interaction.guild!.members.me!)?.has(['Connect', 'Speak'])) {
       await interaction.editReply(i18n.t('music.no_voice_permissions', interaction.guildId!));
 
@@ -65,8 +65,8 @@ export default class PlayCommand extends Command {
       // Fetch music-pro limits if addon is active for this guild
       let limits: { maxQueueSize?: number; maxTrackDuration?: number } | undefined;
       const musicProSvc = (this.client as any)._musicProService;
-      // Solo servidores con Music Pro activo (getOrCreateConfig crea filas premium)
-      // (licencia vigente e interruptor maestro de Music Pro activado)
+      // Only servers with Music Pro active (getOrCreateConfig creates premium rows)
+      // (valid license and Music Pro master switch enabled)
       if (musicProSvc && await musicProSvc.isProEnabled(interaction.guildId!)) {
         try {
           const cfg = await musicProSvc.getOrCreateConfig(interaction.guildId!);

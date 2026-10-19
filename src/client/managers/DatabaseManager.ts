@@ -137,7 +137,7 @@ export class DatabaseManager {
 
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    // Histórico diario de guild_analytics: 365 días (lo consulta Analytics Pro para comparativas anuales)
+    // Daily guild_analytics history: 365 days (queried by Analytics Pro for yearly comparisons)
     const oneYearAgo = new Date();
 
     oneYearAgo.setDate(oneYearAgo.getDate() - 365);

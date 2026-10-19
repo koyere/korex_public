@@ -91,7 +91,7 @@ export class GuildKickoutService {
       // Purge all addon cache for this guild so isAddonActive returns false immediately
       await this.purgeGuildAddonCache(guildId);
 
-      // Quitar los addons de pago de enabledAddons (handleGuildRejoined los restaura)
+      // Remove paid addons from enabledAddons (handleGuildRejoined restores them)
       await this.disablePaidAddons(guildId);
 
       logger.info(`Guild ${guildId} marked as KICKOUT — grace period: ${KICKOUT_GRACE_DAYS} days`);
@@ -136,10 +136,10 @@ export class GuildKickoutService {
 
       const now = new Date();
 
-      // Restaurar cada registro: las suscripciones de PayPal siguieron cobrando durante
-      // la gracia (SALE.COMPLETED amplía expiresAt), pero lo que no se cobra (cortesías,
-      // reactivaciones manuales) recupera el tiempo que estuvo en pausa. Lo que venció
-      // durante la expulsión no se reactiva.
+      // Restore each record: PayPal subscriptions kept charging during
+      // the grace period (SALE.COMPLETED extends expiresAt), but anything not billed (comps,
+      // manual reactivations) gets back the time it was paused. Anything that expired
+      // during the kickout is not reactivated.
       const resumeExpiry = (rec: { expiresAt: Date; kickoutAt: Date | null; paypalSubscriptionId: string | null }) => {
         const billedByPayPal = !!rec.paypalSubscriptionId?.startsWith('I-');
         const pausedMs = rec.kickoutAt ? Math.max(0, now.getTime() - rec.kickoutAt.getTime()) : 0;
@@ -178,7 +178,7 @@ export class GuildKickoutService {
         data: { leftAt: null },
       });
 
-      // Limpiar cachés negativas antes de volver a habilitar
+      // Clear negative caches before re-enabling
       await this.purgeGuildAddonCache(guildId);
 
       const restoresBundle = restoredPremium.some(p => p.planId === 'bundle');
@@ -186,8 +186,8 @@ export class GuildKickoutService {
         await this.client.redis.getClient().setex(`bundle:guild:${guildId}`, 3600, 'true');
       }
 
-      // Re-habilitar (onEnable + sincronización de comandos) los addons con licencia
-      // restaurada y, si vuelve el bundle, los addons que cubre.
+      // Re-enable (onEnable + command sync) the addons whose license was
+      // restored and, if the bundle is back, the addons it covers.
       const restoredAddonNames = restoredLicenses.map(l => l.addonName);
       const allRestoredNames = [
         ...restoredAddonNames,
@@ -354,14 +354,14 @@ export class GuildKickoutService {
 
   // ─── Cache helpers ────────────────────────────────────────────────────────────
 
-  /** Quita de enabledAddons los addons de pago cargados (sin tocar los módulos core). */
+  /** Removes loaded paid addons from enabledAddons (without touching core modules). */
   private async disablePaidAddons(guildId: string): Promise<void> {
     const guild = await this.client.db.guild.findUnique({
       where: { id: guildId },
       select: { enabledAddons: true },
     });
     for (const addonName of guild?.enabledAddons ?? []) {
-      if (!this.client.addons.getAddon(addonName)) continue; // módulo core
+      if (!this.client.addons.getAddon(addonName)) continue; // core module
       await this.client.addons.disableAddon(guildId, addonName).catch(() => false);
     }
   }

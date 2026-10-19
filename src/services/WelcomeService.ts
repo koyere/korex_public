@@ -102,7 +102,7 @@ export class WelcomeService {
         }
       }
 
-      // Roles automáticos (pestaña Autoroles de Bienvenida): independientes del mensaje
+      // Automatic roles (Welcome Autoroles tab): independent of the message
       if (config.autoRoleEnabled && config.autoRoles.length > 0) {
         await this.assignAutoRoles(member, config.autoRoles);
       }
@@ -133,9 +133,9 @@ export class WelcomeService {
   }
 
   /**
-   * Construye el mensaje de bienvenida o despedida. Lo usan el evento real y el
-   * botón "Probar" del dashboard, para que la prueba sea fiel a lo que se envía.
-   * Devuelve null si no hay canal de texto configurado.
+   * Builds the welcome or goodbye message. Used by the real event and by the
+   * dashboard "Test" button, so the test matches exactly what gets sent.
+   * Returns null if no text channel is configured.
    */
   public async buildMessage(
     member: GuildMember,
@@ -164,7 +164,7 @@ export class WelcomeService {
         ? embedData.color
         : (kind === 'welcome' ? '#00ff00' : '#ff0000');
       const description = this.replacePlaceholders(embedData.description || rawMessage, member).slice(0, 4096);
-      // setTitle/setDescription lanzan con string vacío: solo se usan si hay texto
+      // setTitle/setDescription throw on empty strings: only used when there is text
       const embed = new EmbedBuilder().setColor(color as any).setTimestamp();
       if (description.trim()) embed.setDescription(description);
       if (embedData.title?.trim()) embed.setTitle(this.replacePlaceholders(embedData.title, member).slice(0, 256));

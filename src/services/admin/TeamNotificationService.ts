@@ -1,15 +1,15 @@
 /**
  * TeamNotificationService
  *
- * Notifica al equipo de Korex (operadores) cuando ocurren eventos importantes:
- * - Nuevo ticket de soporte abierto por un guild owner
- * - Ticket urgente sin respuesta
- * - Nuevo cliente (primera licencia activada)
- * - Cancelación de licencia
- * - Error crítico del bot
+ * Notifies the Korex team (operators) when important events happen:
+ * - New support ticket opened by a guild owner
+ * - Urgent ticket without a reply
+ * - New client (first license activated)
+ * - License cancellation
+ * - Critical bot error
  *
- * Canales de notificación:
- * 1. Discord webhook al canal privado del equipo
+ * Notification channels:
+ * 1. Discord webhook to the team's private channel
  * 2. (Extensible) Slack webhook
  */
 
@@ -65,7 +65,7 @@ export class TeamNotificationService {
     }
   }
 
-  /** Notifica al equipo cuando un guild abre un nuevo ticket de soporte */
+  /** Notifies the team when a guild opens a new support ticket */
   async notifyNewSupportTicket(n: SupportTicketNotification): Promise<void> {
     const priorityColors: Record<string, number> = {
       low:    0x2ecc71,
@@ -84,14 +84,14 @@ export class TeamNotificationService {
 
     await this.sendDiscordWebhook({
       embeds: [{
-        title:       `🎫 Nuevo ticket de soporte #${n.ticketId.slice(0, 8)}`,
+        title:       `🎫 New support ticket #${n.ticketId.slice(0, 8)}`,
         description: `**${n.subject}**`,
         color,
         fields: [
-          { name: '🏠 Servidor',  value: n.guildName,                  inline: true  },
+          { name: '🏠 Server',    value: n.guildName,                  inline: true  },
           { name: '👤 Owner',     value: n.ownerName,                  inline: true  },
-          { name: '📂 Categoría', value: n.category,                   inline: true  },
-          { name: `${priorityEmoji[n.priority]} Prioridad`, value: n.priority.toUpperCase(), inline: true },
+          { name: '📂 Category',  value: n.category,                   inline: true  },
+          { name: `${priorityEmoji[n.priority]} Priority`, value: n.priority.toUpperCase(), inline: true },
           ...(n.addonName ? [{ name: '🔌 Addon', value: n.addonName, inline: true }] : []),
         ],
         footer: { text: 'Korex Admin' },
@@ -102,7 +102,7 @@ export class TeamNotificationService {
         components: [{
           type: 2,
           style: 5, // LINK
-          label: 'Ver en Admin Panel',
+          label: 'View in Admin Panel',
           url:   `${this.adminPanelUrl}/support/${n.ticketId}`,
         }],
       }],
@@ -111,7 +111,7 @@ export class TeamNotificationService {
     logger.info(`Team notified: new support ticket ${n.ticketId} from guild ${n.guildId}`);
   }
 
-  /** Notifica eventos de licencia (nuevo cliente, cancelación, fallo de pago) */
+  /** Notifies license events (new client, cancellation, payment failure) */
   async notifyLicenseEvent(n: LicenseEventNotification): Promise<void> {
     const colorMap: Record<string, number> = {
       new_client:         0x00D9FF,
@@ -126,10 +126,10 @@ export class TeamNotificationService {
       courtesy_activated: '🎁',
     };
     const titleMap: Record<string, string> = {
-      new_client:         'Nuevo cliente premium',
-      cancellation:       'Cancelación de licencia',
-      payment_failed:     'Fallo de pago',
-      courtesy_activated: 'Cortesía activada',
+      new_client:         'New premium client',
+      cancellation:       'License cancellation',
+      payment_failed:     'Payment failed',
+      courtesy_activated: 'Courtesy activated',
     };
 
     await this.sendDiscordWebhook({
@@ -137,9 +137,9 @@ export class TeamNotificationService {
         title:       `${emojiMap[n.type]} ${titleMap[n.type]}`,
         color:       colorMap[n.type] || 0x3498db,
         fields: [
-          { name: '🏠 Servidor', value: n.guildName, inline: true  },
+          { name: '🏠 Server',   value: n.guildName, inline: true  },
           { name: '🔌 Addon',    value: n.addonName, inline: true  },
-          ...(n.details ? [{ name: 'ℹ️ Detalles', value: n.details, inline: false }] : []),
+          ...(n.details ? [{ name: 'ℹ️ Details', value: n.details, inline: false }] : []),
         ],
         footer:    { text: 'Korex Admin' },
         timestamp: new Date().toISOString(),
@@ -149,11 +149,11 @@ export class TeamNotificationService {
     logger.info(`Team notified: license event ${n.type} for guild ${n.guildId}`);
   }
 
-  /** Notifica un error crítico del bot */
+  /** Notifies a critical bot error */
   async notifyCriticalError(service: string, message: string, meta?: object): Promise<void> {
     await this.sendDiscordWebhook({
       embeds: [{
-        title:       `🚨 Error crítico — ${service}`,
+        title:       `🚨 Critical error — ${service}`,
         description: `\`\`\`${message}\`\`\``,
         color:       0xe74c3c,
         fields:      meta ? [{ name: 'Meta', value: `\`\`\`json\n${JSON.stringify(meta, null, 2).slice(0, 1000)}\`\`\`` }] : [],

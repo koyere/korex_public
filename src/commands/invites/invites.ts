@@ -528,7 +528,7 @@ export default class InvitesCommand extends Command {
         case 'add': {
           const required = interaction.options.getInteger('invites', true);
           const role = interaction.options.getRole('role', true);
-          // Quien configura no puede repartir un rol igual o superior al suyo
+          // The configuring user cannot hand out a role equal to or higher than their own
           const actor = await guild.members.fetch(interaction.user.id).catch(() => null);
           const result = await rewards.addTier(guild, required, role.id, actor);
 
@@ -619,7 +619,7 @@ export default class InvitesCommand extends Command {
             content += `\n${i18n.t('commands.invites.rewards.sync.truncated', guildId)}`;
           }
 
-          // El token de la interacción caduca a los 15 min: en servidores enormes puede fallar
+          // The interaction token expires after 15 min: on huge servers this may fail
           await interaction.editReply({ content }).catch(() => {});
 
           return;
@@ -664,7 +664,7 @@ export default class InvitesCommand extends Command {
       .setFooter({ text: t('footer') })
       .setTimestamp();
 
-    // Varios campos si hace falta (límite de 1024 caracteres por campo) sin cortar menciones
+    // Multiple fields if needed (1024-character limit per field) without splitting mentions
     const chunks: string[] = [];
     let current = '';
 

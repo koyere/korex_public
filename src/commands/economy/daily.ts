@@ -36,7 +36,7 @@ export default class DailyCommand extends Command {
         return;
       }
 
-      // Obtener datos del usuario para mostrar información adicional
+      // Get user data to show additional information
       const economyUser = await this.client.economy.getUser(guildId, userId);
 
       const embed = new EmbedBuilder()

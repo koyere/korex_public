@@ -648,7 +648,7 @@ export default class AutoRolesCommand extends Command {
         ephemeral: true,
       });
     } catch {
-      // Modal cerrado sin enviar
+      // Modal closed without submitting
     }
   }
 
@@ -792,7 +792,7 @@ export default class AutoRolesCommand extends Command {
         ephemeral: true,
       });
     } catch {
-      // Modal cerrado sin enviar
+      // Modal closed without submitting
     }
   }
 
@@ -842,7 +842,7 @@ export default class AutoRolesCommand extends Command {
         ephemeral: true,
       });
     } catch {
-      // Modal cerrado sin enviar
+      // Modal closed without submitting
     }
   }
 

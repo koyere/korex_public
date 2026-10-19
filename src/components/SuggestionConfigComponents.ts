@@ -21,12 +21,12 @@ import {
 } from '../utils/suggestionConfigPanel';
 
 /**
- * Botones del panel de /suggestions config:
- *  - suggestions_toggle   → activar/desactivar (reactiva en el último canal usado)
- *  - suggestions_settings → panel de ajustes (hilos, aviso al autor, cooldown)
- *  - suggestions_roles    → panel de roles de staff y votantes
- *  - suggestions_cfg_*    → acciones del panel de ajustes
- * Todo con permiso Gestionar servidor y sobre la configuración real (SuggestionService).
+ * Buttons of the /suggestions config panel:
+ *  - suggestions_toggle   → enable/disable (re-enables in the last used channel)
+ *  - suggestions_settings → settings panel (threads, author notification, cooldown)
+ *  - suggestions_roles    → staff and voter roles panel
+ *  - suggestions_cfg_*    → settings panel actions
+ * All require Manage Server permission and operate on the real config (SuggestionService).
  */
 export class SuggestionConfigButtons extends Component {
   constructor(client: KorexClient) {
@@ -61,7 +61,7 @@ export class SuggestionConfigButtons extends Component {
           return;
         }
 
-        // Reactivar en el último canal, si sigue existiendo y es de texto
+        // Re-enable in the last channel, if it still exists and is a text channel
         const channelId = config.lastChannelId;
         const channel = channelId ? interaction.guild.channels.cache.get(channelId) : null;
         if (!channel || channel.type !== ChannelType.GuildText) {
@@ -117,7 +117,7 @@ export class SuggestionConfigButtons extends Component {
   }
 }
 
-/** Modal del cooldown (segundos entre sugerencias, 0–86400, igual que la API) */
+/** Cooldown modal (seconds between suggestions, 0–86400, same as the API) */
 export class SuggestionCooldownModal extends Component {
   constructor(client: KorexClient) {
     super(client, {
@@ -151,7 +151,7 @@ export class SuggestionCooldownModal extends Component {
   }
 }
 
-/** Selectores de roles de staff y votantes */
+/** Staff and voter role selectors */
 export class SuggestionRoleSelect extends Component {
   constructor(client: KorexClient) {
     super(client, {
@@ -167,7 +167,7 @@ export class SuggestionRoleSelect extends Component {
 
     const select = interaction as RoleSelectMenuInteraction;
     const guildId = interaction.guild.id;
-    // Solo roles reales del servidor (sin @everyone ni roles gestionados por integraciones)
+    // Only real server roles (no @everyone or integration-managed roles)
     const roleIds = [...new Set(select.values)].filter(id => {
       const role = interaction.guild!.roles.cache.get(id);
       return !!role && role.id !== guildId && !role.managed;
@@ -183,5 +183,5 @@ export class SuggestionRoleSelect extends Component {
   }
 }
 
-// El ComponentManager solo registra el export por defecto
+// The ComponentManager only registers the default export
 export default [SuggestionConfigButtons, SuggestionCooldownModal, SuggestionRoleSelect];

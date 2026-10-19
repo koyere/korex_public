@@ -1,11 +1,11 @@
 /**
- * Escalado automático por avisos (Moderación). Desactivado por defecto; se guarda en
- * `moderation_configs.warnEscalationEnabled` / `warnEscalationSteps` y lo usan /setup,
- * el panel de Moderación y ModerationService.checkAutoActions.
+ * Automatic warning escalation (Moderation). Disabled by default; stored in
+ * `moderation_configs.warnEscalationEnabled` / `warnEscalationSteps` and used by /setup,
+ * the Moderation panel and ModerationService.checkAutoActions.
  *
- * Con el escalado activado se aplica el escalón más alto alcanzado (como el /setup
- * original: 3 → silencio, 5 → expulsión, 7 → baneo); si ningún escalón aplica, sigue
- * funcionando el umbral único (warnThreshold / warnAction).
+ * With escalation enabled, the highest step reached is applied (like the original
+ * /setup: 3 → timeout, 5 → kick, 7 → ban); if no step applies, the single
+ * threshold (warnThreshold / warnAction) still works.
  */
 
 export type WarnEscalationAction = 'timeout' | 'kick' | 'ban';
@@ -13,14 +13,14 @@ export type WarnEscalationAction = 'timeout' | 'kick' | 'ban';
 export interface WarnEscalationStep {
   warnings: number;
   action: WarnEscalationAction;
-  /** Minutos: duración del silencio o del baneo temporal (sin valor = baneo permanente). */
+  /** Minutes: duration of the timeout or temporary ban (no value = permanent ban). */
   duration?: number | null;
 }
 
 export const WARN_ESCALATION_MAX_STEPS = 5;
-/** Máximo de un timeout de Discord: 28 días. */
+/** Maximum Discord timeout: 28 days. */
 export const WARN_ESCALATION_MAX_TIMEOUT_MIN = 40_320;
-/** Baneo temporal: hasta 1 año. */
+/** Temporary ban: up to 1 year. */
 export const WARN_ESCALATION_MAX_BAN_MIN = 525_600;
 
 export const DEFAULT_WARN_ESCALATION: WarnEscalationStep[] = [
@@ -30,8 +30,8 @@ export const DEFAULT_WARN_ESCALATION: WarnEscalationStep[] = [
 ];
 
 /**
- * Valida y normaliza los escalones. Devuelve null si el formato no es válido
- * (la API responde 400); orden ascendente por número de avisos, sin repetidos.
+ * Validates and normalizes the steps. Returns null if the format is invalid
+ * (the API responds 400); ascending order by warning count, no duplicates.
  */
 export function normalizeWarnEscalation(raw: unknown): WarnEscalationStep[] | null {
   if (!Array.isArray(raw) || raw.length === 0 || raw.length > WARN_ESCALATION_MAX_STEPS) return null;
@@ -57,12 +57,12 @@ export function normalizeWarnEscalation(raw: unknown): WarnEscalationStep[] | nu
   return steps.sort((a, b) => a.warnings - b.warnings);
 }
 
-/** Escalones guardados (o los de por defecto si están vacíos o dañados). */
+/** Saved steps (or the defaults if empty or corrupted). */
 export function readWarnEscalation(raw: unknown): WarnEscalationStep[] {
   return normalizeWarnEscalation(raw) ?? DEFAULT_WARN_ESCALATION;
 }
 
-/** Escalón aplicable para un número de avisos (el más alto alcanzado) o null. */
+/** Applicable step for a warning count (the highest reached) or null. */
 export function pickWarnEscalationStep(steps: WarnEscalationStep[], warningCount: number): WarnEscalationStep | null {
   let best: WarnEscalationStep | null = null;
   for (const s of steps) if (warningCount >= s.warnings && (!best || s.warnings > best.warnings)) best = s;

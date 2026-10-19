@@ -64,9 +64,9 @@ export class LicenseExpiryJob {
   }
 
   /**
-   * Licencias individuales vencidas. Una licencia cancelada (cancelledAt) conserva
-   * el acceso hasta expiresAt y aquí pasa a CANCELLED; el resto a EXPIRED.
-   * El addon solo se deshabilita si no sigue cubierto por el bundle.
+   * Expired individual licenses. A cancelled license (cancelledAt) keeps
+   * access until expiresAt and becomes CANCELLED here; the rest become EXPIRED.
+   * The addon is only disabled if it is no longer covered by the bundle.
    */
   private async expireLicenses(): Promise<void> {
     const now = new Date();
@@ -91,7 +91,7 @@ export class LicenseExpiryJob {
 
     logger.info(`Found ${expired.length} expired license(s) to process`);
 
-    // 2. Bulk-mark them (status guard: no pisar una renovación concurrente)
+    // 2. Bulk-mark them (status guard: do not overwrite a concurrent renewal)
     const cancelledIds = expired.filter(l => l.cancelledAt).map(l => l.id);
     const expiredIds   = expired.filter(l => !l.cancelledAt).map(l => l.id);
     if (cancelledIds.length > 0) {
@@ -107,7 +107,7 @@ export class LicenseExpiryJob {
       });
     }
 
-    // 3. Per-guild: retirar el acceso (respeta el bundle) y avisar
+    // 3. Per-guild: revoke access (respecting the bundle) and notify
     const byGuild = new Map<string, string[]>();
     for (const lic of expired) {
       const existing = byGuild.get(lic.guildId) ?? [];
@@ -140,9 +140,9 @@ export class LicenseExpiryJob {
   }
 
   /**
-   * Bundles (guild_premiums planId='bundle') vencidos: sin renovación de PayPal ni
-   * cortesía vigente. Se marcan CANCELLED/EXPIRED y se retiran los addons del bundle
-   * que no tengan licencia propia.
+   * Expired bundles (guild_premiums planId='bundle'): no PayPal renewal and no
+   * active courtesy. They are marked CANCELLED/EXPIRED and the bundle addons
+   * without their own license are removed.
    */
   private async expireBundles(): Promise<void> {
     const now = new Date();
@@ -160,7 +160,7 @@ export class LicenseExpiryJob {
           where: { id: premium.id, status: 'ACTIVE', expiresAt: { lte: now } },
           data:  { status: premium.cancelledAt ? 'CANCELLED' : 'EXPIRED' },
         });
-        if (count === 0) continue; // renovado entre la consulta y la actualización
+        if (count === 0) continue; // renewed between the query and the update
 
         await this.client.addonSync.revokeBundleAccess(premium.guildId);
         await this.notifyBundleOwner(premium.guildId).catch(err =>

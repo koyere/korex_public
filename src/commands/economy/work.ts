@@ -37,7 +37,7 @@ export default class WorkCommand extends Command {
         return;
       }
 
-      // Obtener trabajo aleatorio y mensaje personalizado
+      // Get a random job and custom message
       const workData = this.getRandomWork(guildId);
       const config = await this.client.economy.getConfig(guildId);
       

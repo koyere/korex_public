@@ -1,19 +1,19 @@
 /**
  * AdminAuthService
  *
- * Autenticación segura para el panel de administración de Korex.
+ * Secure authentication for the Korex admin panel.
  *
- * Características de seguridad implementadas:
- * - Hashing Argon2id (resistente a GPU/ASIC attacks)
- * - Salting automático
- * - Sesiones en Redis (no JWT en localStorage)
- * - TOTP (RFC 6238) con otplib
+ * Implemented security features:
+ * - Hashing Argon2id (resistant to GPU/ASIC attacks)
+ * - Automatic salting
+ * - Sessions in Redis (no JWT in localStorage)
+ * - TOTP (RFC 6238) with otplib
  * - WebAuthn / Passkeys (FIDO2)
- * - Backup codes de un solo uso (hashed con Argon2id)
- * - Rate limiting progresivo por IP y por usuario
- * - Mensajes de error genéricos (no revela qué campo falló)
- * - Rotación de sesión tras login
- * - IP whitelist por operador
+ * - Single-use backup codes (hashed with Argon2id)
+ * - Progressive rate limiting per IP and per user
+ * - Generic error messages (does not reveal which field failed)
+ * - Session rotation after login
+ * - Per-operator IP whitelist
  */
 
 import * as argon2 from 'argon2';
@@ -52,37 +52,37 @@ import { createLogger } from '../../utils/Logger';
 
 const logger = createLogger('admin-auth');
 
-// ─── Constantes de seguridad ────────────────────────────────────────────────
+// ─── Security constants ───────────────────────────────────────────────────
 
 const ARGON2_OPTIONS: argon2.Options & { raw: false } = {
   type: argon2.argon2id,
   memoryCost: 65536,   // 64 MB
-  timeCost: 3,          // 3 iteraciones
+  timeCost: 3,          // 3 iterations
   parallelism: 4,
   raw: false,
 };
 
-const SESSION_TTL_SECONDS = 4 * 60 * 60;       // 4 horas (absoluto)
+const SESSION_TTL_SECONDS = 4 * 60 * 60;       // 4 hours (absolute)
 const SESSION_IDLE_TTL_SECONDS = 30 * 60;       // 30 min idle timeout
 const BACKUP_CODE_COUNT = 10;
 
-// Rate limiting: máx intentos antes de bloquear
+// Rate limiting: max attempts before blocking
 const IP_MAX_ATTEMPTS = 5;
-const IP_BLOCK_SECONDS = 15 * 60;               // 15 min bloqueo tras 5 intentos
+const IP_BLOCK_SECONDS = 15 * 60;               // 15 min block after 5 attempts
 const USER_MAX_ATTEMPTS = 3;
-const USER_BLOCK_BASE_SECONDS = 60;             // backoff progresivo: 1 min, 2 min, 4 min…
+const USER_BLOCK_BASE_SECONDS = 60;             // progressive backoff: 1 min, 2 min, 4 min…
 
-// Claves Redis
+// Redis keys
 const RL_IP_KEY   = (ip: string)    => `admin:rl:ip:${ip}`;
 const RL_USER_KEY = (email: string) => `admin:rl:user:${email}`;
 const SESSION_KEY = (token: string) => `admin:session:${token}`;
 const STEP_UP_KEY = (tokenHash: string) => `admin:stepup:${tokenHash}`;
-/** Validez de una verificación reforzada (step-up) para acciones sensibles */
+/** Validity of a step-up verification for sensitive actions */
 const STEP_UP_TTL_SECONDS = 10 * 60;
 const WEBAUTHN_CHALLENGE_KEY = (userId: string, action: 'reg' | 'auth') =>
   `admin:webauthn:${action}:${userId}`;
 
-// ─── Tipos ───────────────────────────────────────────────────────────────────
+// ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface AdminSessionData {
   adminUserId: string;
@@ -111,27 +111,27 @@ export interface TotpSetupResult {
   uri: string;
 }
 
-// ─── Utilidades internas ─────────────────────────────────────────────────────
+// ─── Internal utilities ──────────────────────────────────────────────────────
 
-/** Hash SHA-256 del session token — nunca guardamos el token en claro en Redis keys */
+/** SHA-256 hash of the session token — we never store the plaintext token in Redis keys */
 function hashSessionToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
 }
 
-/** Genera un session token criptográficamente seguro */
+/** Generates a cryptographically secure session token */
 function generateSessionToken(): string {
   return randomBytes(48).toString('base64url');
 }
 
-/** Genera N backup codes aleatorios */
+/** Generates N random backup codes */
 function generateBackupCodeStrings(count: number): string[] {
   return Array.from({ length: count }, () =>
     randomBytes(5).toString('hex').toUpperCase().replace(/(.{4})/g, '$1-').slice(0, 9)
-    // Formato: ABCD-1234-EF
+    // Format: ABCD-1234-EF
   );
 }
 
-// ─── Clase principal ─────────────────────────────────────────────────────────
+// ─── Main class ──────────────────────────────────────────────────────────────
 
 export class AdminAuthService {
   private db: PrismaClient;
@@ -143,13 +143,13 @@ export class AdminAuthService {
   constructor(db: PrismaClient, redis: Redis) {
     this.db = db;
     this.redis = redis;
-    // WebAuthn Relying Party — dominio del panel admin
+    // WebAuthn Relying Party — admin panel domain
     this.rpId   = process.env.ADMIN_RP_ID   || 'admin.korex.dev';
     this.rpName = process.env.ADMIN_RP_NAME || 'Korex Admin';
     this.origin = process.env.ADMIN_PANEL_URL || 'https://admin.korex.dev';
   }
 
-  // ─── Gestión de contraseñas ────────────────────────────────────────────────
+  // ─── Password management ───────────────────────────────────────────────────
 
   async hashPassword(password: string): Promise<string> {
     return argon2.hash(password, ARGON2_OPTIONS);
@@ -166,9 +166,9 @@ export class AdminAuthService {
   // ─── Rate Limiting ─────────────────────────────────────────────────────────
 
   /**
-   * Comprueba y registra un intento de login fallido.
-   * Retorna { blocked: true } si el IP o usuario está bloqueado.
-   * Backoff progresivo para usuarios: 1m, 2m, 4m, 8m...
+   * Checks and records a failed login attempt.
+   * Returns { blocked: true } if the IP or user is blocked.
+   * Progressive backoff for users: 1m, 2m, 4m, 8m...
    */
   async checkRateLimit(ip: string, email: string): Promise<{ blocked: boolean; retryAfter?: number }> {
     const ipKey   = RL_IP_KEY(ip);
@@ -199,14 +199,14 @@ export class AdminAuthService {
     const ipKey   = RL_IP_KEY(ip);
     const userKey = RL_USER_KEY(email.toLowerCase());
 
-    // IP counter — fijo 15 min desde el primer fallo
+    // IP counter — fixed 15 min since the first failure
     const ipCount = await this.redis.incr(ipKey);
     if (ipCount === 1) await this.redis.expire(ipKey, IP_BLOCK_SECONDS);
 
-    // User counter — backoff exponencial
+    // User counter — exponential backoff
     const userCount = await this.redis.incr(userKey);
     const backoff = USER_BLOCK_BASE_SECONDS * Math.pow(2, Math.max(0, userCount - 1));
-    await this.redis.expire(userKey, Math.min(backoff, 60 * 60)); // máx 1 hora
+    await this.redis.expire(userKey, Math.min(backoff, 60 * 60)); // max 1 hour
   }
 
   async clearRateLimit(ip: string, email: string): Promise<void> {
@@ -216,7 +216,7 @@ export class AdminAuthService {
     ]);
   }
 
-  // ─── Sesiones ─────────────────────────────────────────────────────────────
+  // ─── Sessions ─────────────────────────────────────────────────────────────
 
   async createSession(
     adminUser: { id: string; role: string; email: string; name: string },
@@ -239,14 +239,14 @@ export class AdminAuthService {
       allowedIps: (adminUser as any).allowedIps ?? [],
     };
 
-    // Guardar en Redis con TTL absoluto
+    // Store in Redis with absolute TTL
     await this.redis.setex(
       SESSION_KEY(tokenHash),
       SESSION_TTL_SECONDS,
       JSON.stringify(sessionData)
     );
 
-    // Guardar referencia en BD para invalidación y auditoría
+    // Store a reference in the DB for invalidation and auditing
     const expiresAt = new Date(now + SESSION_TTL_SECONDS * 1000);
     await this.db.adminSession.create({
       data: {
@@ -258,14 +258,14 @@ export class AdminAuthService {
       },
     });
 
-    // Actualizar lastLoginAt
+    // Update lastLoginAt
     await this.db.adminUser.update({
       where: { id: adminUser.id },
       data: { lastLoginAt: new Date() },
     });
 
     logger.info(`Admin session created: ${adminUser.email} from ${ip}`);
-    return token; // Sólo se entrega al cliente UNA vez — se guarda en cookie HttpOnly
+    return token; // Delivered to the client only ONCE — stored in an HttpOnly cookie
   }
 
   async validateSession(token: string, requestIp?: string): Promise<AdminSessionData | null> {
@@ -292,10 +292,10 @@ export class AdminAuthService {
       return null;
     }
 
-    // Refrescar idle timer
+    // Refresh idle timer
     data.lastActiveAt = now;
     await this.redis.setex(SESSION_KEY(tokenHash), SESSION_TTL_SECONDS, JSON.stringify(data));
-    // Actualizar BD sin bloquear la request
+    // Update the DB without blocking the request
     this.db.adminSession.update({
       where: { sessionToken: tokenHash },
       data: { lastActiveAt: new Date() },
@@ -325,12 +325,12 @@ export class AdminAuthService {
     logger.info(`All sessions destroyed for admin user: ${adminUserId}`);
   }
 
-  // ─── Flujo de login ────────────────────────────────────────────────────────
+  // ─── Login flow ────────────────────────────────────────────────────────────
 
   /**
-   * Fase 1 del login: email + contraseña.
-   * Si pasa, retorna si se requiere TOTP o WebAuthn.
-   * Siempre usa mensajes genéricos para no revelar si el usuario existe.
+   * Login phase 1: email + password.
+   * If it passes, returns whether TOTP or WebAuthn is required.
+   * Always uses generic messages so as not to reveal whether the user exists.
    */
   async loginWithPassword(
     email: string,
@@ -338,21 +338,21 @@ export class AdminAuthService {
     ip: string,
     userAgent: string
   ): Promise<LoginResult> {
-    // Comprobación de rate limit
+    // Rate limit check
     const rl = await this.checkRateLimit(ip, email);
     if (rl.blocked) {
       return {
         success: false,
-        error: 'credentials_invalid',  // Mensaje genérico
+        error: 'credentials_invalid',  // Generic message
       };
     }
 
-    // Buscar operador (siempre ejecutar hash aunque no exista para evitar timing attacks)
+    // Look up operator (always run the hash even if it does not exist to prevent timing attacks)
     const user = await this.db.adminUser.findUnique({
       where: { email: email.toLowerCase() },
     });
 
-    // Hash dummy para evitar timing attacks si el usuario no existe
+    // Dummy hash to prevent timing attacks if the user does not exist
     const passwordToVerify = user?.passwordHash || '$argon2id$v=19$m=65536,t=3,p=4$dummy$dummy';
     const valid = user ? await this.verifyPassword(user.passwordHash, password) : false;
 
@@ -362,20 +362,20 @@ export class AdminAuthService {
       return { success: false, error: 'credentials_invalid' };
     }
 
-    // Verificar IP whitelist
+    // Check IP whitelist
     if (user.allowedIps.length > 0 && !user.allowedIps.includes(ip)) {
       logger.warn(`Admin login blocked by IP whitelist: ${email} from ${ip}`);
       await this.recordFailedAttempt(ip, email);
       return { success: false, error: 'credentials_invalid' };
     }
 
-    // Limpiar rate limit en login exitoso
+    // Clear rate limit on successful login
     await this.clearRateLimit(ip, email);
 
-    // Determinar si necesita 2FA
+    // Determine whether 2FA is needed
     const webAuthnCreds = Array.isArray(user.webauthnCreds) ? user.webauthnCreds as any[] : [];
     if (webAuthnCreds.length > 0) {
-      // Guardar estado temporal en Redis para la fase 2
+      // Store temporary state in Redis for phase 2
       await this.redis.setex(
         `admin:pending_mfa:${user.id}`,
         300,
@@ -393,14 +393,14 @@ export class AdminAuthService {
       return { success: true, requireTotp: true };
     }
 
-    // Sin 2FA — crear sesión directamente (solo si explícitamente permitido)
-    // En producción se recomienda forzar MFA para todos los admins
+    // No 2FA — create the session directly (only if explicitly allowed)
+    // In production, enforcing MFA for all admins is recommended
     const token = await this.createSession(user, ip, userAgent);
     return { success: true, sessionToken: token };
   }
 
   /**
-   * Fase 2a del login: verificación de código TOTP.
+   * Login phase 2a: TOTP code verification.
    */
   async loginWithTotp(
     userId: string,
@@ -429,7 +429,7 @@ export class AdminAuthService {
   }
 
   /**
-   * Login con backup code de un solo uso.
+   * Login with a single-use backup code.
    */
   async loginWithBackupCode(
     userId: string,
@@ -440,7 +440,7 @@ export class AdminAuthService {
     const pendingRaw = await this.redis.get(`admin:pending_mfa:${userId}`);
     if (!pendingRaw) return { success: false, error: 'session_expired' };
 
-    // Misma comprobación que el TOTP: la fase 2 debe venir de la IP de la fase 1
+    // Same check as TOTP: phase 2 must come from the phase 1 IP
     const pending = JSON.parse(pendingRaw);
     if (pending.ip !== ip) return { success: false, error: 'credentials_invalid' };
 
@@ -462,7 +462,7 @@ export class AdminAuthService {
       return { success: false, error: 'backup_code_invalid' };
     }
 
-    // Eliminar el código usado (one-time)
+    // Remove the used code (one-time)
     const newCodes = user.backupCodes.filter((_, i) => i !== usedIndex);
     await this.db.adminUser.update({
       where: { id: userId },
@@ -483,7 +483,7 @@ export class AdminAuthService {
     const secret = authenticator.generateSecret();
     const otpauthUrl = authenticator.toURI({ issuer: this.rpName, label: user.email, secret });
 
-    // Guardar secret temporal (pendiente de verificación)
+    // Store temporary secret (pending verification)
     await this.redis.setex(`admin:totp_setup:${adminUserId}`, 600, secret);
 
     const qrDataUrl = await QRCode.toDataURL(otpauthUrl);
@@ -499,7 +499,7 @@ export class AdminAuthService {
     const verifyResult = await authenticator.verify(code, { secret });
     if (!verifyResult.valid) return { success: false };
 
-    // Generar y hashear backup codes
+    // Generate and hash backup codes
     const rawCodes = generateBackupCodeStrings(BACKUP_CODE_COUNT);
     const hashedCodes = await Promise.all(
       rawCodes.map(c => argon2.hash(c, ARGON2_OPTIONS))
@@ -513,7 +513,7 @@ export class AdminAuthService {
     await this.redis.del(`admin:totp_setup:${adminUserId}`);
     logger.info(`TOTP enabled for admin user: ${adminUserId}`);
 
-    return { success: true, backupCodes: rawCodes }; // Solo se muestran UNA vez
+    return { success: true, backupCodes: rawCodes }; // Shown only ONCE
   }
 
   async disableTotp(adminUserId: string): Promise<void> {
@@ -668,7 +668,7 @@ export class AdminAuthService {
       return { success: false, error: 'credentials_invalid' };
     }
 
-    // Actualizar el counter de la credencial
+    // Update the credential counter
     const updatedCreds = existingCreds.map((c: any) =>
       c.id === credId
         ? { ...c, counter: verification.authenticationInfo.newCounter }
@@ -688,7 +688,7 @@ export class AdminAuthService {
     return { success: true, sessionToken: token };
   }
 
-  // ─── Gestión de operadores ─────────────────────────────────────────────────
+  // ─── Operator management ───────────────────────────────────────────────────
 
   async createOperator(data: {
     email: string;
@@ -730,14 +730,14 @@ export class AdminAuthService {
       where: { id: adminUserId },
       data: { passwordHash: hash },
     });
-    // Invalida todas las sesiones activas
+    // Invalidate all active sessions
     await this.destroyAllSessionsForUser(adminUserId);
     logger.info(`Password changed for admin user: ${adminUserId}`);
   }
 
-  // ─── Verificación reforzada (step-up) ─────────────────────────────────────
+  // ─── Step-up verification ─────────────────────────────────────────────────
 
-  /** Comprueba un código TOTP del operador (false si no tiene TOTP activo). */
+  /** Checks an operator TOTP code (false if TOTP is not active). */
   async verifyTotpCode(adminUserId: string, code: string): Promise<boolean> {
     if (!code || typeof code !== 'string') return false;
     const user = await this.db.adminUser.findUnique({
@@ -750,9 +750,9 @@ export class AdminAuthService {
   }
 
   /**
-   * Verificación reforzada antes de una acción sensible: código TOTP si el operador
-   * tiene 2FA; si no, su contraseña actual. Si es correcta, la sesión queda
-   * verificada durante STEP_UP_TTL_SECONDS para no pedirla en cada acción.
+   * Step-up verification before a sensitive action: TOTP code if the operator
+   * has 2FA; otherwise, their current password. If correct, the session stays
+   * verified for STEP_UP_TTL_SECONDS so it is not requested on every action.
    */
   async verifyStepUp(adminUserId: string, sessionToken: string, credential: string): Promise<boolean> {
     if (!credential || typeof credential !== 'string' || credential.length > 256) return false;
@@ -774,8 +774,8 @@ export class AdminAuthService {
   }
 
   /**
-   * 2FA obligatorio: el operador tiene al menos un segundo factor activo
-   * (TOTP confirmado o una llave WebAuthn registrada). Fail-closed ante error.
+   * Mandatory 2FA: the operator has at least one active second factor
+   * (confirmed TOTP or a registered WebAuthn key). Fail-closed on error.
    */
   async hasMfaEnrolled(adminUserId: string): Promise<boolean> {
     try {
@@ -809,7 +809,7 @@ export class AdminAuthService {
   }
 }
 
-// Tipos de WebAuthn exportados para TypeScript
+// WebAuthn types exported for TypeScript
 export type PublicKeyCredentialCreationOptionsJSON = Awaited<
   ReturnType<typeof generateRegistrationOptions>
 >;

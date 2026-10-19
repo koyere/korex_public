@@ -161,7 +161,7 @@ export default class ShopCommand extends Command {
     const economyConfig = await this.client.economy.getConfig(guildId);
     const symbol = economyConfig.currencySymbol;
 
-    // Un rol de la tienda lo puede comprar cualquiera: debe ser seguro
+    // Anyone can buy a shop role: it must be safe
     let role: Role | undefined;
     if (item.type === 'role' && item.data?.roleId) {
       const check = checkSelfAssignableRole(interaction.guild!, item.data.roleId);
@@ -196,7 +196,7 @@ export default class ShopCommand extends Command {
       return;
     }
 
-    // Descontar monedas
+    // Deduct coins
     const result = await this.client.economy.removeMoney(guildId, userId, item.price, 'Shop purchase');
 
     if (!result.success) {
@@ -206,7 +206,7 @@ export default class ShopCommand extends Command {
       return;
     }
 
-    // Si es un rol, asignarlo; si falla, se devuelve el dinero y el stock
+    // If it's a role, assign it; if that fails, the money and stock are refunded
     if (role) {
       try {
         const member = await interaction.guild!.members.fetch(userId);
@@ -222,7 +222,7 @@ export default class ShopCommand extends Command {
       }
     }
 
-    // Agregar al inventario
+    // Add to inventory
     await this.client.shop.addToInventory(guildId, userId, item.id);
 
     const { name: itemName } = this.resolveItem(item, lang);

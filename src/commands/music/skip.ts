@@ -87,7 +87,7 @@ export default class SkipCommand extends Command {
       return;
     }
 
-    // Sin "force": se aplica la votación configurada en el panel (Música)
+    // Without "force": the vote configured in the panel (Music) applies
     if (!force) {
       const vote = await this.client.music.registerSkipVote(member);
       if (vote.status !== 'skip') {

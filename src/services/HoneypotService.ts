@@ -40,9 +40,9 @@ export class HoneypotService {
     this.configCache.delete(guildId);
   }
 
-  // ─── Canal trampa ─────────────────────────────────────────────────────────
+  // ─── Trap channel ─────────────────────────────────────────────────────────
 
-  /** Devuelve true si el mensaje cayó en la trampa (el resto del pipeline debe ignorarlo). */
+  /** Returns true if the message fell into the trap (the rest of the pipeline must ignore it). */
   async handleMessage(message: Message): Promise<boolean> {
     if (!message.guild || message.author.bot) return false;
 
@@ -54,10 +54,10 @@ export class HoneypotService {
       const member = message.member ?? await message.guild.members.fetch(message.author.id).catch(() => null);
       if (!member) return false;
 
-      // El staff (admins y moderadores) puede escribir en el canal sin consecuencias
+      // Staff (admins and moderators) can write in the channel without consequences
       if (this.isStaff(member)) return false;
 
-      // Borrar el mensaje para no revelar que es una trampa
+      // Delete the message so as not to reveal that it is a trap
       await message.delete().catch(() => null);
 
       await this.applyAction(
@@ -86,9 +86,9 @@ export class HoneypotService {
 
   // ─── guildMemberAdd ───────────────────────────────────────────────────────
 
-  /** Devuelve true si el miembro fue expulsado/baneado (no darle la bienvenida). */
+  /** Returns true if the member was kicked/banned (don't welcome them). */
   async handleMemberJoin(member: GuildMember): Promise<boolean> {
-    // Los bots los añade un administrador con permisos: no son un raid
+    // Bots are added by an administrator with permissions: they are not a raid
     if (member.user.bot) return false;
 
     try {
@@ -96,11 +96,11 @@ export class HoneypotService {
       if (!config?.enabled) return false;
       const guildId = member.guild.id;
 
-      // 1. Filtro de cuentas nuevas
+      // 1. New-account filter
       if (config.newAccountEnabled) {
         const ageDays = (Date.now() - member.user.createdTimestamp) / (1000 * 60 * 60 * 24);
         if (ageDays < config.newAccountDays) {
-          // Coordinación con el anti-raid de Moderación: una sola sanción por entrada
+          // Coordination with the Moderation anti-raid: a single sanction per join
           const action = config.newAccountAction !== 'log' && !(await this.claimJoin(member)) ? 'log' : config.newAccountAction;
           const applied = await this.applyAction(
             member,
@@ -113,7 +113,7 @@ export class HoneypotService {
         }
       }
 
-      // 2. Anti-raid (ventana deslizante en Redis)
+      // 2. Anti-raid (sliding window in Redis)
       if (config.raidEnabled) {
         const raid = await this.trackRaidJoin(guildId, member.id, config.raidThreshold, config.raidWindow);
         if (raid.isRaid) {
@@ -130,7 +130,7 @@ export class HoneypotService {
     return claimJoinAction(this.client.redis.getClient(), member, 'honeypot');
   }
 
-  // ─── Ventana deslizante anti-raid con Redis ───────────────────────────────
+  // ─── Anti-raid sliding window with Redis ──────────────────────────────────
 
   private async trackRaidJoin(
     guildId: string,
@@ -149,7 +149,7 @@ export class HoneypotService {
       await redis.expire(key, windowSecs * 2);
       const recentIds: string[] = await redis.zrange(key, 0, -1);
 
-      // Mientras el raid está activo, cada nuevo join también cuenta como raid
+      // While the raid is active, every new join also counts as raid
       const alreadyActive = (await redis.exists(activeKey)) === 1;
       if (recentIds.length >= threshold || alreadyActive) {
         const set = await redis.set(activeKey, '1', 'EX', Math.max(windowSecs * 2, 60), 'NX');
@@ -157,7 +157,7 @@ export class HoneypotService {
       }
       return { isRaid: false, recentIds, firstTrigger: false };
     } catch {
-      return { isRaid: false, recentIds: [], firstTrigger: false }; // si Redis falla, no bloquear
+      return { isRaid: false, recentIds: [], firstTrigger: false }; // if Redis fails, don't block
     }
   }
 
@@ -174,13 +174,13 @@ export class HoneypotService {
     }
 
     if (config.raidAction === 'kick' || config.raidAction === 'ban') {
-      // Al detectarse el raid se actúa sobre todos los que entraron en la ventana
+      // When the raid is detected, act on everyone who joined in the window
       const targets = firstTrigger ? recentIds : [member.id];
       let removedCurrent = false;
       for (const id of targets) {
         const target = id === member.id ? member : await guild.members.fetch(id).catch(() => null);
         if (!target || target.user.bot || this.isStaff(target)) continue;
-        // Si el anti-raid de Moderación ya actuó sobre esta entrada, no repetir
+        // If the Moderation anti-raid already acted on this join, don't repeat
         if (!(await this.claimJoin(target))) continue;
         const applied = await this.applyAction(target, config.raidAction, config.logChannelId, 'mass_join', reason);
         if (id === member.id && (applied === 'kicked' || applied === 'banned')) removedCurrent = true;
@@ -192,7 +192,7 @@ export class HoneypotService {
     return false;
   }
 
-  /** Sube la verificación al máximo y la restaura pasados 10 minutos. */
+  /** Raises verification to the maximum and restores it after 10 minutes. */
   private async startLockdown(guild: GuildMember['guild'], config: HoneypotConfig): Promise<void> {
     const previous = guild.verificationLevel;
     try {
@@ -206,9 +206,9 @@ export class HoneypotService {
     }, 10 * 60_000).unref();
   }
 
-  // ─── Acción y log ─────────────────────────────────────────────────────────
+  // ─── Action and log ───────────────────────────────────────────────────────
 
-  /** Aplica la acción y devuelve lo que realmente ocurrió (kicked/banned/timed_out/logged/failed). */
+  /** Applies the action and returns what actually happened (kicked/banned/timed_out/logged/failed). */
   async applyAction(
     member: GuildMember,
     action: string,
@@ -253,12 +253,12 @@ export class HoneypotService {
     logChannelId: string | null,
     member: GuildMember,
   ): Promise<void> {
-    // Guardar en DB
+    // Save to DB
     await this.client.db.honeypotLog.create({
       data: { guildId, userId, type, action, details },
     }).catch(() => null);
 
-    // Enviar a canal de logs si está configurado
+    // Send to the log channel if configured
     if (!logChannelId) return;
     const guild = member.guild;
     try {
@@ -279,11 +279,11 @@ export class HoneypotService {
 
       await channel.send({ embeds: [embed] });
     } catch {
-      // Silencioso — no interrumpir el flujo principal
+      // Silent — do not interrupt the main flow
     }
   }
 
-  // ─── Stats para el dashboard ───────────────────────────────────────────────
+  // ─── Dashboard stats ───────────────────────────────────────────────────────
 
   async getStats(guildId: string) {
     const [total, byType] = await Promise.all([

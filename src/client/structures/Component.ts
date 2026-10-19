@@ -52,46 +52,46 @@ export abstract class Component {
   }
 
   /**
-   * Ejecutar el componente
+   * Execute the component
    */
   abstract execute(interaction: ComponentInteraction): Promise<void>;
 
   /**
-   * Verificar si el usuario puede usar este componente
+   * Check whether the user can use this component
    */
   async canExecute(
     userId: string,
     guildId?: string,
     memberPermissions?: Readonly<bigint>
   ): Promise<{ canExecute: boolean; reason?: string }> {
-    // Verificar owner only
+    // Check owner only
     if (this.ownerOnly && !this.client.isOwner(userId)) {
-      return { canExecute: false, reason: 'Solo el propietario puede usar este componente' };
+      return { canExecute: false, reason: 'Only the owner can use this component' };
     }
 
-    // Verificar guild only
+    // Check guild only
     if (this.guildOnly && !guildId) {
-      return { canExecute: false, reason: 'Este componente solo puede usarse en servidores' };
+      return { canExecute: false, reason: 'This component can only be used in servers' };
     }
 
-    // Verificar addon habilitado
+    // Check that the addon is enabled
     if (this.addon && guildId) {
       const addonEnabled = await this.client.addons.isEnabled(guildId, this.addon);
 
       if (!addonEnabled) {
         return {
           canExecute: false,
-          reason: `El addon \`${this.addon}\` no está habilitado en este servidor`,
+          reason: `The addon \`${this.addon}\` is not enabled on this server`,
         };
       }
     }
 
-    // Verificar permisos del usuario (usando operaciones de bits con bigint)
+    // Check user permissions (using bigint bitwise operations)
     if (this.permissions.length > 0 && memberPermissions) {
       const missingPerms = this.permissions.filter((perm) => (memberPermissions & perm) !== perm);
 
       if (missingPerms.length > 0) {
-        return { canExecute: false, reason: 'No tienes los permisos necesarios' };
+        return { canExecute: false, reason: 'You do not have the required permissions' };
       }
     }
 
@@ -99,7 +99,7 @@ export abstract class Component {
   }
 
   /**
-   * Wrapper para ejecutar el componente con verificaciones
+   * Wrapper to execute the component with checks
    */
   async safeExecute(interaction: ComponentInteraction): Promise<void> {
     try {
@@ -110,7 +110,7 @@ export abstract class Component {
       );
 
       if (!canExecute.canExecute) {
-        const errorMessage = canExecute.reason || 'No puedes usar este componente';
+        const errorMessage = canExecute.reason || 'You cannot use this component';
 
         if (interaction.replied || interaction.deferred) {
           await interaction.followUp({ content: `❌ ${errorMessage}`, flags: MessageFlags.Ephemeral });
@@ -123,7 +123,7 @@ export abstract class Component {
 
       await this.execute(interaction);
     } catch (error) {
-      this.client.logger.error(`Error en componente ${this.customId}:`, error);
+      this.client.logger.error(`Error in component ${this.customId}:`, error);
 
       const errorMessage = i18n.t('common.errors.component_error', interaction.guildId || undefined);
 
@@ -134,10 +134,10 @@ export abstract class Component {
           await interaction.reply({ content: errorMessage, flags: MessageFlags.Ephemeral });
         }
       } catch (replyError) {
-        this.client.logger.error('Error enviando mensaje de error:', replyError);
+        this.client.logger.error('Error sending error message:', replyError);
       }
 
-      // Reportar error si hay handler
+      // Report the error if there is a handler
       if (this.client.errorHandler) {
         await this.client.errorHandler.handleComponentError(error as Error, {
           customId: this.customId,
@@ -150,10 +150,10 @@ export abstract class Component {
   }
 
   /**
-   * Verificar si el customId coincide con este componente
+   * Check whether the customId matches this component
    */
   matches(customId: string): boolean {
-    // Soporte para customIds dinámicos (ej: "button_user_123456")
+    // Support for dynamic customIds (e.g. "button_user_123456")
     if (this.customId.includes('*')) {
       const pattern = this.customId.replace(/\*/g, '.*');
       const regex = new RegExp(`^${pattern}$`);
@@ -165,7 +165,7 @@ export abstract class Component {
   }
 
   /**
-   * Obtener información del componente
+   * Get component information
    */
   getInfo(): {
     customId: string;

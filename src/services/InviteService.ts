@@ -35,7 +35,7 @@ export interface InviteStats {
   leftInvites: number;
   bonusInvites: number;
   invitedUsers: string[];
-  /** Invitados cuya entrada se contó como falsa (para no descontarlos de las válidas al salir) */
+  /** Invitees whose join was counted as fake (so they are not subtracted from valid ones when leaving) */
   fakeInvitedUsers: string[];
   createdAt: Date;
   updatedAt: Date;
@@ -56,7 +56,7 @@ export class InviteService {
   private client: KorexClient;
   private prisma: PrismaClient;
   private inviteCache: Map<string, Collection<string, Invite>> = new Map();
-  /** Recompensas por invitaciones (umbral → rol). */
+  /** Invite rewards (threshold → role). */
   public rewards: InviteRewardService;
 
   constructor(client: KorexClient) {
@@ -65,7 +65,7 @@ export class InviteService {
     this.rewards = new InviteRewardService(client);
   }
 
-  /** Cachea las invitaciones de todos los servidores (llamar cuando el cliente esté listo). */
+  /** Caches the invites of all servers (call when the client is ready). */
   async init(): Promise<void> {
     await this.initializeInviteTracking();
   }
@@ -110,7 +110,7 @@ export class InviteService {
     try {
       const guild = member.guild;
 
-      // Si el miembro ya tenía recompensas (salió y vuelve), se le restauran sin aviso
+      // If the member already had rewards (left and came back), they are restored silently
       this.rewards.syncMember(guild, member.id, { announce: false }).catch(() => {});
 
       const oldInvites = this.inviteCache.get(guild.id);
@@ -179,7 +179,7 @@ export class InviteService {
         // Update statistics - mark as left
         await this.updateInviteStatsOnLeave(inviteStats.userId, member);
 
-        // Recalcular recompensas del invitador (puede bajar de umbral)
+        // Recalculate the inviter's rewards (may drop below a threshold)
         await this.rewards.syncMember(member.guild, inviteStats.userId);
       }
 
@@ -199,7 +199,7 @@ export class InviteService {
   ): Promise<void> {
     try {
       if (action === 'join') {
-        // Check if it's a potential fake invite (antes del bloqueo: puede consultar Discord)
+        // Check if it's a potential fake invite (before the lock: may query Discord)
         const isFake = await this.detectFakeInvite(inviter, invitedMember);
 
         await this.mutateInviteStats(inviter.id, invitedMember.guild.id, (stats) => {
@@ -231,7 +231,7 @@ export class InviteService {
   private async updateInviteStatsOnLeave(inviterId: string, leftMember: GuildMember): Promise<void> {
     try {
       await this.mutateInviteStats(inviterId, leftMember.guild.id, (stats) => {
-        // Solo cuenta la salida si el usuario seguía en la lista (evita dobles descuentos)
+        // Only count the leave if the user was still on the list (prevents double subtraction)
         const userIndex = stats.invitedUsers.indexOf(leftMember.id);
 
         if (userIndex === -1) return false;
@@ -239,7 +239,7 @@ export class InviteService {
         stats.invitedUsers.splice(userIndex, 1);
         stats.leftInvites++;
 
-        // Una entrada contada como falsa no sumó a las válidas: no se descuenta de ellas
+        // A join counted as fake did not add to the valid ones: it is not subtracted from them
         const fakeIndex = stats.fakeInvitedUsers.indexOf(leftMember.id);
 
         if (fakeIndex !== -1) {
@@ -323,7 +323,7 @@ export class InviteService {
   }
 
   /**
-   * Check and apply invite rewards (roles por umbral de invitaciones válidas)
+   * Check and apply invite rewards (roles by valid invite threshold)
    */
   private async checkInviteRewards(inviter: User, guild: Guild): Promise<void> {
     try {
@@ -338,7 +338,7 @@ export class InviteService {
    */
   async getInviteLeaderboard(guildId: string, limit: number = 10, offset: number = 0): Promise<InviteStats[]> {
     try {
-      // Ordenado por invitaciones efectivas (válidas + bonus)
+      // Sorted by effective invites (valid + bonus)
       const rows = await this.prisma.$queryRaw<any[]>`
         SELECT * FROM invite_stats
         WHERE "guildId" = ${guildId} AND ("validInvites" + "bonusInvites") > 0
@@ -369,7 +369,7 @@ export class InviteService {
       const guild = this.client.guilds.cache.get(guildId);
 
       if (guild) {
-        // Por id: el usuario puede no estar en la caché de usuarios
+        // By id: the user may not be in the user cache
         await this.rewards.syncMember(guild, userId);
       }
 
@@ -404,7 +404,7 @@ export class InviteService {
       // Log the removal
       logger.info(`Removed ${validToRemove + bonusToRemove} invites from ${userId} in guild ${guildId}. Reason: ${reason || 'No reason'}`);
 
-      // Recalcular recompensas (puede bajar de umbral)
+      // Recalculate rewards (may drop below a threshold)
       const guild = this.client.guilds.cache.get(guildId);
 
       if (guild) {
@@ -449,7 +449,7 @@ export class InviteService {
     }
   }
 
-  // ─── Persistencia (tabla invite_stats) ────────────────────────────────────
+  // ─── Persistence (invite_stats table) ────────────────────────────────────
   private rowToStats(row: any): InviteStats {
     return {
       userId: row.userId,
@@ -505,10 +505,10 @@ export class InviteService {
   }
 
   /**
-   * Modifica las estadísticas de un invitador de forma atómica: bloquea la fila
-   * (SELECT ... FOR UPDATE) dentro de una transacción para que dos entradas o
-   * salidas simultáneas no se pisen. Si `fn` devuelve false no se guarda nada.
-   * Devuelve false si la fila no existía y `create` es false.
+   * Atomically modifies an inviter's statistics: locks the row
+   * (SELECT ... FOR UPDATE) inside a transaction so that two simultaneous joins or
+   * leaves do not overwrite each other. If `fn` returns false, nothing is saved.
+   * Returns false if the row did not exist and `create` is false.
    */
   private async mutateInviteStats(
     userId: string,

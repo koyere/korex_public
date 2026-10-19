@@ -29,7 +29,7 @@ export default class GuildMemberRemoveEvent extends Event<'guildMemberRemove'> {
       // Log member leave
       await this.client.logging.logMemberLeave(member);
 
-      // Auto-revocar acceso de colaborador si el miembro abandona el servidor
+      // Auto-revoke collaborator access if the member leaves the server
       await this.revokeOperatorOnLeave(member);
     } catch (error) {
       this.client.logger.error('Error handling guild member remove event:', error);
@@ -49,7 +49,7 @@ export default class GuildMemberRemoveEvent extends Event<'guildMemberRemove'> {
         data:  { revokedAt: new Date(), revokedBy: 'system:leave' },
       });
 
-      // Registrar en el audit log
+      // Record in the audit log
       await this.client.database.prisma.guildOperatorLog.create({
         data: {
           guildId:    member.guild.id,
@@ -65,7 +65,7 @@ export default class GuildMemberRemoveEvent extends Event<'guildMemberRemove'> {
         `[TeamAccess] Auto-revoked operator ${member.user.tag} (${member.id}) from guild ${member.guild.name} (${member.guild.id}) — left server`,
       );
     } catch (err) {
-      // best-effort — no interrumpir el flujo principal
+      // best-effort — do not interrupt the main flow
       this.client.logger.warn(`[TeamAccess] Failed to auto-revoke operator on leave: ${err}`);
     }
   }

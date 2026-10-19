@@ -13,7 +13,7 @@ export default class MessageDeleteEvent extends Event<'messageDelete'> {
   public async execute(...args: [Message | PartialMessage]): Promise<void> {
     const [message] = args;
 
-    // Cada paso es independiente: un fallo no debe impedir los siguientes
+    // Each step is independent: one failure must not block the following ones
     const step = (name: string, fn: () => Promise<unknown>) =>
       fn().catch((error) => this.client.logger.error(`Error in messageDelete (${name}):`, error));
 
@@ -26,7 +26,7 @@ export default class MessageDeleteEvent extends Event<'messageDelete'> {
       // Handle starboard cleanup
       if (message.guild) await step('starboard', () => this.client.starboard.handleMessageDelete(message));
 
-      // Panel de roles borrado a mano en Discord: quitar sus registros
+      // Role panel deleted manually in Discord: remove its records
       if (message.guildId && (!message.author || message.author.id === this.client.user?.id)) {
         await step('role-panels', async () => {
           await this.client.db.reactionRole.deleteMany({ where: { messageId: message.id } });

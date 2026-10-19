@@ -1,27 +1,27 @@
 import { ApplicationCommandOptionType } from 'discord.js';
 
 /**
- * Parser de argumentos para los comandos con prefijo.
+ * Argument parser for prefix commands.
  *
- * Es puro (sin acceso a Discord ni a la BD): convierte el texto de un mensaje
- * en las opciones que tendría el comando slash equivalente. La resolución de
- * usuarios/roles/canales (que sí necesita el servidor) se hace después en el
- * adaptador, a partir de los IDs que devuelve este módulo.
+ * It is pure (no Discord or DB access): it converts a message's text
+ * into the options the equivalent slash command would have. Resolving
+ * users/roles/channels (which does need the server) is done later in the
+ * adapter, from the IDs returned by this module.
  *
- * Sintaxis admitida:
- *   - Subcomandos y grupos por nombre:      !ticketconfig category list
- *   - Argumentos posicionales en el orden de las opciones del slash.
- *   - Argumentos con nombre (como en slash): reason:"spam masivo"  delete_days:7
- *   - Comillas ("…", “…”, «…») para valores con espacios; \" escapa una comilla.
- *   - Una opción de texto toma tantas palabras como haga falta para que el
- *     resto de argumentos encaje (!ban @u spam y flood 3 → reason="spam y flood").
- *   - Las opciones de texto opcionales que van justo después de otra de texto
- *     solo se pueden dar por nombre (si no, sería ambiguo dónde corta el texto).
- *   - Usuarios/miembros, roles y canales por mención o por ID.
- *   - Los adjuntos del mensaje rellenan, en orden, las opciones de tipo archivo.
+ * Supported syntax:
+ *   - Subcommands and groups by name:       !ticketconfig category list
+ *   - Positional arguments in the order of the slash options.
+ *   - Named arguments (as in slash):        reason:"mass spam"  delete_days:7
+ *   - Quotes ("…", “…”, «…») for values with spaces; \" escapes a quote.
+ *   - A text option takes as many words as needed for the
+ *     remaining arguments to fit (!ban @u spam and flood 3 → reason="spam and flood").
+ *   - Optional text options that come right after another text option
+ *     can only be given by name (otherwise it would be ambiguous where the text ends).
+ *   - Users/members, roles and channels by mention or by ID.
+ *   - Message attachments fill the attachment-type options, in order.
  */
 
-/** Definición de opción tal y como sale de `command.data().toJSON().options` */
+/** Option definition as returned by `command.data().toJSON().options` */
 export interface PrefixOptionDef {
   name: string;
   type: ApplicationCommandOptionType;
@@ -37,13 +37,13 @@ export interface PrefixOptionDef {
 }
 
 export interface PrefixToken {
-  /** Valor ya sin comillas */
+  /** Value with quotes already removed */
   value: string;
-  /** El token contenía comillas */
+  /** The token contained quotes */
   quoted: boolean;
-  /** Si el token tiene forma `nombre:valor` (con `nombre` fuera de comillas) */
+  /** If the token has the form `name:value` (with `name` outside quotes) */
   key?: string;
-  /** Valor tras `nombre:` (sin comillas) */
+  /** Value after `name:` (without quotes) */
   keyValue?: string;
 }
 
@@ -52,13 +52,13 @@ export type MentionableKind = 'user' | 'role' | 'unknown';
 export interface ParsedOption {
   name: string;
   type: ApplicationCommandOptionType;
-  /** string | number | boolean; para usuario/rol/canal/mencionable, el ID */
+  /** string | number | boolean; for user/role/channel/mentionable, the ID */
   value: string | number | boolean;
-  /** Solo para opciones de tipo mencionable */
+  /** Only for mentionable-type options */
   mentionKind?: MentionableKind;
-  /** Solo para adjuntos: índice dentro de los adjuntos del mensaje */
+  /** Only for attachments: index within the message attachments */
   attachmentIndex?: number;
-  /** Texto original escrito por el usuario (útil para autocompletado) */
+  /** Original text typed by the user (useful for autocomplete) */
   raw: string;
 }
 
@@ -74,26 +74,26 @@ export type ParseErrorCode =
 
 export interface ParseError {
   code: ParseErrorCode;
-  /** Opción afectada (si aplica) */
+  /** Affected option (if applicable) */
   option?: PrefixOptionDef;
-  /** Valor que no se pudo interpretar (si aplica) */
+  /** Value that could not be parsed (if applicable) */
   value?: string;
-  /** Subcomandos disponibles (para missing/unknown_subcommand) */
+  /** Available subcommands (for missing/unknown_subcommand) */
   available?: string[];
 }
 
 export interface ResolvedPath {
   group: string | null;
   subcommand: string | null;
-  /** Opciones del nivel final (las del subcomando, o las del comando) */
+  /** Options of the final level (the subcommand's, or the command's) */
   options: PrefixOptionDef[];
-  /** Tokens que quedan tras consumir grupo/subcomando */
+  /** Tokens left after consuming group/subcommand */
   rest: PrefixToken[];
 }
 
 export const MAX_PREFIX_TOKENS = 100;
 
-/** Prefijo válido: 1-5 caracteres, sin espacios, sin acentos graves ni caracteres de control/invisibles */
+/** Valid prefix: 1-5 characters, no spaces, no backticks and no control/invisible characters */
 export const PREFIX_PATTERN = /^[^\s`\p{Cc}\p{Cf}]{1,5}$/u;
 
 const SNOWFLAKE = /^\d{17,20}$/;
@@ -110,8 +110,8 @@ const TRUE_WORDS = new Set(['true', 'yes', 'y', 'si', 'sí', 's', 'on', '1', 'en
 const FALSE_WORDS = new Set(['false', 'no', 'n', 'off', '0', 'disable', 'disabled', 'desactivar', 'desactivado']);
 
 /**
- * Divide el texto en tokens respetando comillas.
- * Detecta la forma `nombre:valor` cuando `nombre` no está entre comillas.
+ * Splits the text into tokens, respecting quotes.
+ * Detects the `name:value` form when `name` is not quoted.
  */
 export function tokenize(input: string): PrefixToken[] {
   const tokens: PrefixToken[] = [];
@@ -119,7 +119,7 @@ export function tokenize(input: string): PrefixToken[] {
   let quoted = false;
   let inToken = false;
   let quoteClose: string | null = null;
-  /** Posición (en `current`) del primer ':' fuera de comillas, si lo precede un nombre válido */
+  /** Position (in `current`) of the first ':' outside quotes, if preceded by a valid name */
   let keySplit = -1;
   let keyValue = '';
 
@@ -148,7 +148,7 @@ export function tokenize(input: string): PrefixToken[] {
     const ch = input[i];
 
     if (quoteClose) {
-      // Dentro de comillas
+      // Inside quotes
       if (ch === '\\' && i + 1 < input.length && (input[i + 1] === quoteClose || ALL_CLOSE_QUOTES.has(input[i + 1]) || input[i + 1] === '\\')) {
         append(input[++i]);
         continue;
@@ -192,7 +192,7 @@ export function tokenize(input: string): PrefixToken[] {
   return tokens;
 }
 
-/** Nombres de subcomandos/grupos del nivel indicado */
+/** Subcommand/group names of the given level */
 function subNames(options: PrefixOptionDef[]): string[] {
   return options
     .filter(o => o.type === ApplicationCommandOptionType.Subcommand || o.type === ApplicationCommandOptionType.SubcommandGroup)
@@ -204,7 +204,7 @@ function hasSubcommands(options: PrefixOptionDef[] | undefined): boolean {
 }
 
 /**
- * Consume grupo y subcomando (si el comando los tiene).
+ * Consumes group and subcommand (if the command has them).
  */
 export function resolveCommandPath(
   rootOptions: PrefixOptionDef[] | undefined,
@@ -227,7 +227,7 @@ export function resolveCommandPath(
     return { ok: true, path: { group: null, subcommand: match.name, options: match.options ?? [], rest: tokens.slice(1) } };
   }
 
-  // Grupo: el siguiente token es el subcomando
+  // Group: the next token is the subcommand
   const groupOptions = match.options ?? [];
   const second = tokens[1];
   if (!second) return { ok: false, error: { code: 'missing_subcommand', available: subNames(groupOptions).map(s => `${match.name} ${s}`) } };
@@ -238,7 +238,7 @@ export function resolveCommandPath(
   return { ok: true, path: { group: match.name, subcommand: sub.name, options: sub.options ?? [], rest: tokens.slice(2) } };
 }
 
-/** Busca una elección por valor o por nombre (sin distinguir mayúsculas) */
+/** Finds a choice by value or by name (case-insensitive) */
 function matchChoice(def: PrefixOptionDef, raw: string): string | number | undefined {
   const lower = raw.toLowerCase();
   for (const choice of def.choices ?? []) {
@@ -251,8 +251,8 @@ function matchChoice(def: PrefixOptionDef, raw: string): string | number | undef
 }
 
 /**
- * Valida y convierte un valor para una opción concreta.
- * Devuelve `null` si el valor no es válido para esa opción.
+ * Validates and converts a value for a specific option.
+ * Returns `null` if the value is not valid for that option.
  */
 export function coerceValue(
   def: PrefixOptionDef,
@@ -328,8 +328,8 @@ function isText(def: PrefixOptionDef): boolean {
 }
 
 /**
- * Opciones que pueden recibir valor por posición. Una opción de texto opcional
- * que sigue a otra de texto solo puede darse por nombre (evita ambigüedad).
+ * Options that can receive a value by position. An optional text option
+ * that follows another text option can only be given by name (avoids ambiguity).
  */
 export function positionalDefs(defs: PrefixOptionDef[]): PrefixOptionDef[] {
   const out: PrefixOptionDef[] = [];
@@ -343,8 +343,8 @@ export function positionalDefs(defs: PrefixOptionDef[]): PrefixOptionDef[] {
 }
 
 /**
- * Asigna tokens a opciones. Cada opción de texto toma el mínimo de palabras
- * que permite que el resto encaje; las opcionales que no encajan se saltan.
+ * Assigns tokens to options. Each text option takes the minimum number of words
+ * that lets the rest fit; optional ones that do not fit are skipped.
  */
 function assignPositional(defs: PrefixOptionDef[], tokens: PrefixToken[]): ParsedOption[] | null {
   const memo = new Map<string, ParsedOption[] | null>();
@@ -387,7 +387,7 @@ function assignPositional(defs: PrefixOptionDef[], tokens: PrefixToken[]): Parse
   return solve(0, 0);
 }
 
-/** Explica por qué falló la asignación posicional (primer problema encontrado) */
+/** Explains why positional assignment failed (first problem found) */
 function diagnose(defs: PrefixOptionDef[], tokens: PrefixToken[]): ParseError {
   let t = 0;
   for (const def of defs) {
@@ -404,8 +404,8 @@ function diagnose(defs: PrefixOptionDef[], tokens: PrefixToken[]): ParseError {
 }
 
 /**
- * Convierte los tokens restantes en opciones del comando.
- * @param attachmentCount número de adjuntos del mensaje (rellenan opciones de archivo)
+ * Converts the remaining tokens into command options.
+ * @param attachmentCount number of message attachments (they fill attachment options)
  */
 export function parseOptions(
   defs: PrefixOptionDef[],
@@ -418,7 +418,7 @@ export function parseOptions(
   const named = new Map<string, ParsedOption>();
   const positional: PrefixToken[] = [];
 
-  // 1) Argumentos con nombre (nombre:valor)
+  // 1) Named arguments (name:value)
   for (const token of tokens) {
     const def = token.key ? byName.get(token.key.toLowerCase()) : undefined;
     if (!def || def.type === ApplicationCommandOptionType.Attachment
@@ -433,7 +433,7 @@ export function parseOptions(
     named.set(def.name, { name: def.name, type: def.type, raw, ...coerced });
   }
 
-  // 2) Adjuntos del mensaje, en orden
+  // 2) Message attachments, in order
   const attachments: ParsedOption[] = [];
   let nextAttachment = 0;
   for (const def of defs) {
@@ -446,17 +446,17 @@ export function parseOptions(
     }
   }
 
-  // 3) Posicionales sobre las opciones que no se dieron por nombre
+  // 3) Positionals for the options not given by name
   const remaining = positionalDefs(defs.filter(d => !named.has(d.name)));
   const assigned = assignPositional(remaining, positional);
   if (!assigned) return { ok: false as const, error: diagnose(remaining, positional) };
 
-  // Opciones obligatorias que solo admiten nombre y no se dieron
+  // Required name-only options that were not given
   const given = new Set([...named.keys(), ...assigned.map(o => o.name), ...attachments.map(o => o.name)]);
   const missing = defs.find(d => d.required && !given.has(d.name));
   if (missing) return { ok: false, error: { code: 'missing_option', option: missing } };
 
-  // Orden estable: el de la definición del comando
+  // Stable order: the command definition's order
   const all = [...named.values(), ...assigned, ...attachments];
   const order = new Map(defs.map((d, i) => [d.name, i]));
   all.sort((a, b) => (order.get(a.name) ?? 0) - (order.get(b.name) ?? 0));
@@ -464,8 +464,8 @@ export function parseOptions(
 }
 
 /**
- * Texto de uso de una ruta concreta: `<obligatoria> [opcional] [archivo:📎]`.
- * Las opcionales que solo admiten nombre se muestran como `[nombre:…]`.
+ * Usage text for a specific route: `<required> [optional] [file:📎]`.
+ * Name-only optional options are shown as `[name:…]`.
  */
 export function formatUsageArgs(defs: PrefixOptionDef[]): string {
   const positional = new Set(positionalDefs(defs).map(d => d.name));
@@ -484,7 +484,7 @@ export function formatUsageArgs(defs: PrefixOptionDef[]): string {
 }
 
 /**
- * Rutas (grupo/subcomando) de un comando con sus opciones, para la ayuda.
+ * Routes (group/subcommand) of a command with their options, for help.
  */
 export function listCommandPaths(rootOptions: PrefixOptionDef[] | undefined): { path: string; options: PrefixOptionDef[] }[] {
   const options = rootOptions ?? [];
@@ -503,10 +503,10 @@ export function listCommandPaths(rootOptions: PrefixOptionDef[] | undefined): { 
 }
 
 /**
- * Detecta el prefijo al principio del mensaje.
- * Devuelve el texto que sigue al prefijo (sin espacios iniciales) o `null`.
- * Acepta también la mención al bot (`<@id>` / `<@!id>`) como prefijo.
- * El prefijo no distingue mayúsculas (los móviles suelen capitalizar).
+ * Detects the prefix at the start of the message.
+ * Returns the text following the prefix (without leading spaces) or `null`.
+ * Also accepts the bot mention (`<@id>` / `<@!id>`) as a prefix.
+ * The prefix is case-insensitive (mobile keyboards often capitalize).
  */
 export function stripPrefix(content: string, prefix: string, botId: string): { body: string; viaMention: boolean } | null {
   const mention = new RegExp(`^<@!?${botId}>`);

@@ -20,37 +20,37 @@ export interface DatabaseHealth {
 }
 
 /**
- * Optimizador de Base de Datos para Producción
- * Maneja índices, queries optimizados y monitoreo de rendimiento
+ * Database Optimizer for Production
+ * Handles indexes, optimized queries and performance monitoring
  */
 export class DatabaseOptimizer {
   private prisma: PrismaClient;
   private logger = createLogger('db-optimizer');
   private queryTimes: number[] = [];
-  private slowQueryThreshold = 1000; // 1 segundo
+  private slowQueryThreshold = 1000; // 1 second
 
   constructor(prisma: PrismaClient) {
     this.prisma = prisma;
   }
 
   /**
-   * Ejecutar todas las optimizaciones
+   * Run all optimizations
    */
   async optimizeDatabase(): Promise<OptimizationResult[]> {
     this.logger.info('🔧 Starting database optimization...');
     const results: OptimizationResult[] = [];
 
     try {
-      // 1. Crear índices optimizados
+      // 1. Create optimized indexes
       results.push(...await this.createOptimizedIndexes());
 
-      // 2. Analizar y optimizar queries
+      // 2. Analyze and optimize queries
       results.push(...await this.analyzeQueries());
 
-      // 3. Configurar conexiones
+      // 3. Configure connections
       results.push(...await this.optimizeConnections());
 
-      // 4. Limpiar datos obsoletos
+      // 4. Clean obsolete data
       results.push(...await this.cleanupObsoleteData());
 
       this.logger.info('✅ Database optimization completed');
@@ -64,13 +64,13 @@ export class DatabaseOptimizer {
   }
 
   /**
-   * Crear índices optimizados para producción
+   * Create optimized indexes for production
    */
   private async createOptimizedIndexes(): Promise<OptimizationResult[]> {
     const results: OptimizationResult[] = [];
     
     const indexes = [
-      // Índices para Guild
+      // Indexes for Guild
       {
         name: 'guild_language_idx',
         sql: 'CREATE INDEX IF NOT EXISTS guild_language_idx ON "guilds" ("language");'
@@ -80,7 +80,7 @@ export class DatabaseOptimizer {
         sql: 'CREATE INDEX IF NOT EXISTS guild_created_at_idx ON "guilds" ("createdAt");'
       },
 
-      // Índices para GuildUser (críticos para rendimiento)
+      // Indexes for GuildUser (performance-critical)
       {
         name: 'guild_user_xp_idx',
         sql: 'CREATE INDEX IF NOT EXISTS guild_user_xp_idx ON "guild_users" ("guildId", "xp" DESC);'
@@ -98,7 +98,7 @@ export class DatabaseOptimizer {
         sql: 'CREATE INDEX IF NOT EXISTS guild_user_last_daily_idx ON "guild_users" ("lastDaily");'
       },
 
-      // Índices para ModerationCase
+      // Indexes for ModerationCase
       {
         name: 'moderation_case_target_idx',
         sql: 'CREATE INDEX IF NOT EXISTS moderation_case_target_idx ON "moderation_cases" ("guildId", "targetId", "createdAt" DESC);'
@@ -112,7 +112,7 @@ export class DatabaseOptimizer {
         sql: 'CREATE INDEX IF NOT EXISTS moderation_case_active_idx ON "moderation_cases" ("guildId", "active", "expiresAt");'
       },
 
-      // Índices para CommandUsage (analytics)
+      // Indexes for CommandUsage (analytics)
       {
         name: 'command_usage_guild_command_idx',
         sql: 'CREATE INDEX IF NOT EXISTS command_usage_guild_command_idx ON "command_usage" ("guildId", "command", "createdAt" DESC);'
@@ -122,7 +122,7 @@ export class DatabaseOptimizer {
         sql: 'CREATE INDEX IF NOT EXISTS command_usage_date_idx ON "command_usage" ("createdAt" DESC);'
       },
 
-      // Índices para AddonLicense (sistema de addons)
+      // Indexes for AddonLicense (addon system)
       {
         name: 'addon_license_status_expires_idx',
         sql: 'CREATE INDEX IF NOT EXISTS addon_license_status_expires_idx ON "addon_licenses" ("status", "expiresAt");'
@@ -132,19 +132,19 @@ export class DatabaseOptimizer {
         sql: 'CREATE INDEX IF NOT EXISTS addon_license_paypal_idx ON "addon_licenses" ("paypalSubscriptionId");'
       },
 
-      // Índices para LogEntry
+      // Indexes for LogEntry
       {
         name: 'log_entry_guild_type_idx',
         sql: 'CREATE INDEX IF NOT EXISTS log_entry_guild_type_idx ON "log_entries" ("guildId", "type", "createdAt" DESC);'
       },
 
-      // Índices para Giveaways
+      // Indexes for Giveaways
       {
         name: 'giveaway_guild_ended_idx',
         sql: 'CREATE INDEX IF NOT EXISTS giveaway_guild_ended_idx ON "giveaways" ("guildId", "ended", "endsAt");'
       },
 
-      // Índices compuestos para queries complejas
+      // Composite indexes for complex queries
       {
         name: 'guild_user_activity_idx',
         sql: 'CREATE INDEX IF NOT EXISTS guild_user_activity_idx ON "guild_users" ("guildId", "lastXpGain", "messages" DESC);'
@@ -187,15 +187,15 @@ export class DatabaseOptimizer {
   }
 
   /**
-   * Analizar y optimizar queries
-   * Nota: Requiere extensión pg_stat_statements habilitada en PostgreSQL
+   * Analyze and optimize queries
+   * Note: Requires the pg_stat_statements extension enabled in PostgreSQL
    */
   private async analyzeQueries(): Promise<OptimizationResult[]> {
     const results: OptimizationResult[] = [];
     const startTime = Date.now();
 
     try {
-      // Primero verificar si pg_stat_statements está disponible
+      // First check whether pg_stat_statements is available
       const extensionCheck = await this.prisma.$queryRaw`
         SELECT EXISTS (
           SELECT 1 FROM pg_extension WHERE extname = 'pg_stat_statements'
@@ -213,7 +213,7 @@ export class DatabaseOptimizer {
         return results;
       }
 
-      // Usar query compatible con PostgreSQL 13+ (total_exec_time en lugar de total_time)
+      // Use a query compatible with PostgreSQL 13+ (total_exec_time instead of total_time)
       const slowQueries = await this.prisma.$queryRaw`
         SELECT
           query,
@@ -236,7 +236,7 @@ export class DatabaseOptimizer {
         details: `Found ${slowQueries.length} slow queries`
       });
 
-      // Log queries lentas para revisión (solo si hay)
+      // Log slow queries for review (only if any)
       if (slowQueries.length > 0) {
         this.logger.warn(`Found ${slowQueries.length} slow queries:`);
         slowQueries.forEach((query: any, index: number) => {
@@ -245,13 +245,13 @@ export class DatabaseOptimizer {
       }
 
     } catch (error) {
-      // pg_stat_statements podría no estar habilitado o tener diferente schema
+      // pg_stat_statements might not be enabled or might have a different schema
       const duration = Date.now() - startTime;
 
       this.logger.debug('pg_stat_statements not available or incompatible version');
 
       results.push({
-        success: true, // No es un error crítico, es opcional
+        success: true, // Not a critical error, it is optional
         operation: 'Analyze slow queries',
         duration,
         details: 'Query analysis skipped (pg_stat_statements not configured)'
@@ -262,7 +262,7 @@ export class DatabaseOptimizer {
   }
 
   /**
-   * Optimizar configuración de conexiones
+   * Optimize connection configuration
    */
   private async optimizeConnections(): Promise<OptimizationResult[]> {
     const results: OptimizationResult[] = [];
@@ -270,7 +270,7 @@ export class DatabaseOptimizer {
     try {
       const startTime = Date.now();
 
-      // Verificar configuración de conexiones
+      // Check connection configuration
       const connectionInfo = await this.prisma.$queryRaw`
         SELECT 
           setting as max_connections,
@@ -301,7 +301,7 @@ export class DatabaseOptimizer {
   }
 
   /**
-   * Limpiar datos obsoletos
+   * Clean obsolete data
    */
   private async cleanupObsoleteData(): Promise<OptimizationResult[]> {
     const results: OptimizationResult[] = [];
@@ -345,7 +345,7 @@ export class DatabaseOptimizer {
         operation: async () => {
           const now = new Date();
           
-          // Usar queryRaw para evitar problemas con el modelo
+          // Use queryRaw to avoid issues with the model
           const result = await this.prisma.$executeRaw`
             UPDATE "addon_licenses" 
             SET "status" = 'EXPIRED' 
@@ -359,7 +359,7 @@ export class DatabaseOptimizer {
       {
         name: 'Clean old log entries',
         operation: async () => {
-          // 30 días: lo que indica la política de privacidad y el máximo de Analíticas/Logs
+          // 30 days: what the privacy policy states and the Analytics/Logs maximum
           const retentionLimit = new Date();
 
           retentionLimit.setDate(retentionLimit.getDate() - 30);
@@ -406,17 +406,17 @@ export class DatabaseOptimizer {
   }
 
   /**
-   * Verificar salud de la base de datos
+   * Check database health
    */
   async checkDatabaseHealth(): Promise<DatabaseHealth> {
     try {
       const startTime = Date.now();
       
-      // Test de conexión básico
+      // Basic connection test
       await this.prisma.$queryRaw`SELECT 1`;
       const connectionTime = Date.now() - startTime;
 
-      // Obtener estadísticas de la base de datos
+      // Get database statistics
       const stats = await this.prisma.$queryRaw`
         SELECT 
           (SELECT count(*) FROM pg_stat_activity WHERE state = 'active') as active_connections,
@@ -428,7 +428,7 @@ export class DatabaseOptimizer {
       const maxConnections = stats[0]?.max_connections || 100;
       const connectionRatio = connectionCount / maxConnections;
 
-      // Calcular estado de salud
+      // Compute health status
       let connectionStatus: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
 
       if (connectionTime > 1000 || connectionRatio > 0.8) {
@@ -438,7 +438,7 @@ export class DatabaseOptimizer {
         connectionStatus = 'unhealthy';
       }
 
-      // Generar recomendaciones
+      // Generate recommendations
       const recommendations: string[] = [];
 
       if (connectionRatio > 0.7) {
@@ -460,8 +460,8 @@ export class DatabaseOptimizer {
         averageQueryTime: connectionTime,
         slowQueries: this.queryTimes.filter(t => t > this.slowQueryThreshold).length,
         connectionCount,
-        cacheHitRatio: 0.95, // Placeholder - implementar si es necesario
-        indexUsage: 0.85, // Placeholder - implementar si es necesario
+        cacheHitRatio: 0.95, // Placeholder - implement if needed
+        indexUsage: 0.85, // Placeholder - implement if needed
         recommendations
       };
 
@@ -481,24 +481,24 @@ export class DatabaseOptimizer {
   }
 
   /**
-   * Registrar tiempo de query para monitoreo
+   * Record query time for monitoring
    */
   recordQueryTime(duration: number): void {
     this.queryTimes.push(duration);
     
-    // Mantener solo los últimos 1000 registros
+    // Keep only the last 1000 records
     if (this.queryTimes.length > 1000) {
       this.queryTimes = this.queryTimes.slice(-1000);
     }
 
-    // Log queries lentas
+    // Log slow queries
     if (duration > this.slowQueryThreshold) {
       this.logger.warn(`Slow query detected: ${duration}ms`);
     }
   }
 
   /**
-   * Obtener estadísticas de rendimiento
+   * Get performance statistics
    */
   getPerformanceStats(): {
     averageQueryTime: number;
@@ -521,7 +521,7 @@ export class DatabaseOptimizer {
   }
 
   /**
-   * Ejecutar VACUUM y ANALYZE para optimizar tablas
+   * Run VACUUM and ANALYZE to optimize tables
    */
   async vacuumAnalyze(): Promise<OptimizationResult[]> {
     const results: OptimizationResult[] = [];

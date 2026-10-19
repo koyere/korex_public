@@ -11,8 +11,8 @@ import { botConfig } from '../config/bot.config';
 import type { SuggestionConfig } from '../services/SuggestionService';
 
 /**
- * Paneles de /suggestions config: resumen + botones (activar/desactivar, ajustes, roles).
- * Los botones los atiende src/components/SuggestionConfigComponents.ts.
+ * /suggestions config panels: summary + buttons (enable/disable, settings, roles).
+ * The buttons are handled by src/components/SuggestionConfigComponents.ts.
  */
 
 const yesNo = (value: boolean, guildId: string) =>
@@ -82,7 +82,7 @@ export function buildSuggestionConfigButtons(guildId: string, config: Suggestion
     );
 }
 
-/** Panel de ajustes: hilos automáticos, aviso al autor y cooldown */
+/** Settings panel: automatic threads, author notification and cooldown */
 export function buildSuggestionSettingsPanel(guildId: string, config: SuggestionConfig) {
   const embed = new EmbedBuilder()
     .setColor(botConfig.colors.primary)
@@ -119,10 +119,10 @@ export function buildSuggestionSettingsPanel(guildId: string, config: Suggestion
   return { embeds: [embed], components: [row] };
 }
 
-/** Panel de roles: staff (gestionan sugerencias) y votantes (vacío = todos) */
+/** Roles panel: staff (manage suggestions) and voters (empty = everyone) */
 export function buildSuggestionRolesPanel(guild: Guild, config: SuggestionConfig) {
   const guildId = guild.id;
-  // Preselección solo con roles que siguen existiendo (Discord rechaza IDs inválidos)
+  // Preselect only roles that still exist (Discord rejects invalid IDs)
   const existing = (ids: string[]) => ids.filter(id => guild.roles.cache.has(id)).slice(0, 25);
   const embed = new EmbedBuilder()
     .setColor(botConfig.colors.primary)

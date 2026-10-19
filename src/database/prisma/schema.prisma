@@ -4,12 +4,12 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql" // Usar postgresql por defecto
+  provider = "postgresql" // Use postgresql by default
   url      = env("DATABASE_URL")
 }
 
 // ═══════════════════════════════════════════════════════════════
-// MODELOS CORE
+// CORE MODELS
 // ═══════════════════════════════════════════════════════════════
 
 model Guild {
@@ -17,28 +17,28 @@ model Guild {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Configuración general
+  // General settings
   prefix        String   @default("!")
-  prefixEnabled Boolean  @default(true) // Comandos con prefijo/mención activados
+  prefixEnabled Boolean  @default(true) // Prefix/mention commands enabled
   language      String   @default("es")
   timezone      String   @default("UTC")
   embedColor    String   @default("#00D9FF")
   
-  // Módulos habilitados
+  // Enabled modules
   enabledAddons String[] @default([])
 
-  // Identidad del bot por servidor
+  // Per-server bot identity
   botNickname   String?
 
-  // Suspensión de cuenta (por el equipo de Korex admin)
+  // Account suspension (by the Korex admin team)
   suspended     Boolean   @default(false)
   suspendedAt   DateTime?
   suspendReason String?
 
-  // Registro de salida del bot del servidor
+  // Record of the bot leaving the server
   leftAt        DateTime?
   
-  // Configuración de módulos
+  // Module settings
   moderationConfig  ModerationConfig?
   moderationRaidState ModerationRaidState?
   welcomeConfig     WelcomeConfig?
@@ -47,7 +47,7 @@ model Guild {
   loggingConfig     LoggingConfig?
   musicConfig       MusicConfig?
   
-  // Relaciones
+  // Relations
   users             GuildUser[]
   moderationCases   ModerationCase[]
   warnings          Warning[]
@@ -80,18 +80,18 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Datos globales del usuario
+  // Global user data
   globalXp       Int      @default(0)
   globalLevel    Int      @default(0)
   globalBalance  Int      @default(0)
   premiumUntil   DateTime?
   badges         String[] @default([])
   
-  // Configuración personal
+  // Personal settings
   language       String   @default("es")
   dmNotifications Boolean @default(true)
   
-  // Relaciones
+  // Relations
   guilds         GuildUser[]
   
   @@map("users")
@@ -104,7 +104,7 @@ model GuildUser {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Niveles y XP
+  // Levels and XP
   xp           Int      @default(0)
   level        Int      @default(0)
   totalXp      Int      @default(0)
@@ -112,7 +112,7 @@ model GuildUser {
   voiceMinutes Int      @default(0)
   lastXpGain   DateTime?
 
-  // Economía
+  // Economy
   balance      Int      @default(0)
   bank         Int      @default(0)
   dailyStreak  Int      @default(0)
@@ -120,7 +120,7 @@ model GuildUser {
   lastWeekly   DateTime?
   lastWork     DateTime?
 
-  // Moderación
+  // Moderation
   warnings     Warning[]
   notes        String[]  @default([])
   isMuted      Boolean   @default(false)
@@ -131,7 +131,7 @@ model GuildUser {
   afkMessage   String?
   afkSince     DateTime?
 
-  // Relaciones
+  // Relations
   guild        Guild     @relation(fields: [guildId], references: [id], onDelete: Cascade)
   user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -142,7 +142,7 @@ model GuildUser {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// CONFIGURACIONES
+// CONFIGURATIONS
 // ═══════════════════════════════════════════════════════════════
 
 model ModerationConfig {
@@ -150,24 +150,24 @@ model ModerationConfig {
   guildId String @unique
   guild   Guild  @relation(fields: [guildId], references: [id], onDelete: Cascade)
 
-  // Auto-moderación
+  // Auto-moderation
   autoModEnabled     Boolean  @default(false)
   antiSpam           Boolean  @default(false)
   antiSpamThreshold  Int      @default(5)
   antiSpamInterval   Int      @default(5)
   antiRaid           Boolean  @default(false)
-  antiRaidThreshold  Int      @default(10)        // entradas en la ventana
-  // Anti-raid de Moderación (columnas aditivas): ventana, filtro de edad,
-  // acción sobre quienes entran durante el raid, modo bloqueo y duración
-  antiRaidWindow         Int    @default(60)      // segundos (10 = "usuarios por minuto")
-  antiRaidAccountAgeDays Int    @default(0)       // 0 = cuenta cualquier cuenta; >0 solo cuentas más nuevas
+  antiRaidThreshold  Int      @default(10)        // joins within the window
+  // Moderation anti-raid (additive columns): window, age filter,
+  // action on members joining during the raid, lockdown mode and duration
+  antiRaidWindow         Int    @default(60)      // seconds (10 = "users per minute")
+  antiRaidAccountAgeDays Int    @default(0)       // 0 = counts any account; >0 only newer accounts
   antiRaidAction         String @default("alert") // alert | timeout | kick | ban
   antiRaidLockdown       String @default("none")  // none | verification | channels | both
-  antiRaidDuration       Int    @default(600)     // segundos hasta desactivar el modo raid
+  antiRaidDuration       Int    @default(600)     // seconds until raid mode is turned off
   antiNuke           Boolean  @default(false)
   antiGhostPing      Boolean  @default(false)
   
-  // Filtros
+  // Filters
   wordFilterEnabled  Boolean  @default(false)
   filteredWords      String[] @default([])
   linkFilterEnabled  Boolean  @default(false)
@@ -175,20 +175,20 @@ model ModerationConfig {
   capsFilterEnabled  Boolean  @default(false)
   capsThreshold      Int      @default(70)
   
-  // Acciones automáticas
+  // Automatic actions
   warnThreshold      Int      @default(3)
   warnAction         String   @default("timeout") // timeout, kick, ban
   warnActionDuration Int      @default(3600)
-  // Escalado por avisos de /setup (3 → silencio, 5 → expulsión, 7 → baneo), desactivado por defecto
+  // Warning escalation from /setup (3 → timeout, 5 → kick, 7 → ban), disabled by default
   warnEscalationEnabled Boolean @default(false)
   warnEscalationSteps   Json    @default("[{\"warnings\":3,\"action\":\"timeout\",\"duration\":60},{\"warnings\":5,\"action\":\"kick\"},{\"warnings\":7,\"action\":\"ban\",\"duration\":1440}]")
   applyToModerators  Boolean  @default(false)
   
-  // Canales ignorados
+  // Ignored channels
   ignoredChannels    String[] @default([])
   ignoredRoles       String[] @default([])
 
-  // Anti-spam de adjuntos (imágenes, archivos)
+  // Attachment anti-spam (images, files)
   antiAttachmentSpam        Boolean @default(false)
   antiAttachmentThreshold   Int     @default(3)
   antiAttachmentInterval    Int     @default(10)
@@ -198,9 +198,9 @@ model ModerationConfig {
   @@map("moderation_configs")
 }
 
-// Estado del modo raid de Moderación (uno por servidor). Guarda la instantánea
-// del estado previo (nivel de verificación y permisos de @everyone) para
-// restaurarlo exactamente aunque el bot se reinicie durante el raid.
+// Moderation raid mode state (one per server). Stores the snapshot
+// of the previous state (verification level and @everyone permissions) to
+// restore it exactly even if the bot restarts during the raid.
 model ModerationRaidState {
   guildId            String    @id
   guild              Guild     @relation(fields: [guildId], references: [id], onDelete: Cascade)
@@ -208,11 +208,11 @@ model ModerationRaidState {
   startedAt          DateTime  @default(now())
   endsAt             DateTime
   endedAt            DateTime?
-  endedBy            String?   // id de usuario, "auto" o "dashboard:<id>"
+  endedBy            String?   // user id, "auto" or "dashboard:<id>"
   joinCount          Int       @default(0)
   actionCount        Int       @default(0)
   action             String    @default("alert")
-  verificationBefore Int?      // null = no se cambió
+  verificationBefore Int?      // null = not changed
   verificationSet    Int?
   channelSnapshot    Json      @default("[]") // [{ id, existed, bits: { SendMessages: true|false|null, ... } }]
   updatedAt          DateTime  @updatedAt
@@ -226,7 +226,7 @@ model WelcomeConfig {
   guildId String @unique
   guild   Guild  @relation(fields: [guildId], references: [id], onDelete: Cascade)
 
-  // Bienvenida
+  // Welcome
   welcomeEnabled   Boolean @default(false)
   welcomeChannelId String?
   welcomeMessage   String  @default("¡Bienvenido {user} a {server}!")
@@ -237,7 +237,7 @@ model WelcomeConfig {
   welcomeDM            Boolean @default(false)
   welcomeDMMessage String?
 
-  // Despedida
+  // Goodbye
   goodbyeEnabled   Boolean @default(false)
   goodbyeChannelId String?
   goodbyeMessage   String  @default("¡Hasta luego {user}!")
@@ -245,11 +245,11 @@ model WelcomeConfig {
   goodbyeImage     Boolean @default(false)
   goodbyeImageUrl  String?
 
-  // Auto-rol
+  // Auto-role
   autoRoleEnabled  Boolean  @default(false)
   autoRoles        String[] @default([])
 
-  // Verificación
+  // Verification
   verificationEnabled    Boolean @default(false)
   verificationRole       String?
   verificationType       String  @default("button") // button | reaction | captcha
@@ -259,11 +259,11 @@ model WelcomeConfig {
   verificationEmbedTitle String  @default("Server Verification")
   verificationEmbedDesc  String  @default("Click the button below to verify yourself and gain access to the server.")
   verificationEmbedColor String  @default("#5865F2")
-  // Captcha (solo con verificationType = "captcha")
-  verificationCaptchaMaxAttempts Int    @default(3)      // fallos permitidos por código (1-10)
-  verificationCaptchaCooldown    Int    @default(10)     // minutos de bloqueo al agotar intentos (1-1440)
+  // Captcha (only with verificationType = "captcha")
+  verificationCaptchaMaxAttempts Int    @default(3)      // failures allowed per code (1-10)
+  verificationCaptchaCooldown    Int    @default(10)     // lockout minutes after running out of attempts (1-1440)
   verificationCaptchaFailAction  String @default("none") // none | kick
-  // Tiempo límite para verificarse tras unirse (0 = desactivado), en minutos
+  // Time limit to verify after joining (0 = disabled), in minutes
   verificationTimeoutMinutes     Int    @default(0)
 
   @@map("welcome_configs")
@@ -280,20 +280,20 @@ model LevelConfig {
   xpCooldown        Int      @default(60)
   xpMultiplier      Float    @default(1.0)
   
-  // Canales/Roles con multiplicador
+  // Channels/roles with multiplier
   bonusChannels     Json?    // { channelId: multiplier }
   bonusRoles        Json?    // { roleId: multiplier }
   
-  // Canales ignorados
+  // Ignored channels
   ignoredChannels   String[] @default([])
   ignoredRoles      String[] @default([])
   
-  // Notificaciones
+  // Notifications
   levelUpEnabled    Boolean  @default(true)
   levelUpChannelId  String?
   levelUpMessage    String   @default("🎉 ¡{user} subió al nivel {level}!")
   
-  // Roles por nivel
+  // Roles per level
   levelRoles        Json?    // { level: roleId }
   stackRoles        Boolean  @default(false)
 
@@ -309,20 +309,20 @@ model EconomyConfig {
   currencyName    String  @default("monedas")
   currencySymbol  String  @default("🪙")
   
-  // Recompensas
+  // Rewards
   dailyReward     Int     @default(100)
   weeklyReward    Int     @default(500)
   workMinReward   Int     @default(50)
   workMaxReward   Int     @default(200)
   workCooldown    Int     @default(3600)
   
-  // Límites
+  // Limits
   maxBalance      Int     @default(1000000)
   maxBank         Int     @default(5000000)
   robChance       Int     @default(40)
   robCooldown     Int     @default(7200)
   
-  // Tienda
+  // Shop
   shopEnabled     Boolean @default(true)
 
   @@map("economy_configs")
@@ -376,14 +376,14 @@ model LoggingConfig {
 
   enabled Boolean @default(false)
 
-  // Canales de logs
+  // Log channels
   messageLogChannel    String?
   memberLogChannel     String?
   moderationLogChannel String?
   voiceLogChannel      String?
   serverLogChannel     String?
   
-  // Eventos habilitados
+  // Enabled events
   logMessageDelete     Boolean @default(true)
   logMessageEdit       Boolean @default(true)
   logMessageBulkDelete Boolean @default(true)
@@ -400,7 +400,7 @@ model LoggingConfig {
   logChannelCreate     Boolean @default(true)
   logChannelDelete     Boolean @default(true)
   
-  // Filtros
+  // Filters
   ignoredChannels      String[] @default([])
   ignoredUsers         String[] @default([])
 
@@ -429,7 +429,7 @@ model MusicConfig {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// MODERACIÓN
+// MODERATION
 // ═══════════════════════════════════════════════════════════════
 
 model ModerationCase {
@@ -480,7 +480,7 @@ model Warning {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// FUNCIONALIDADES CORE
+// CORE FEATURES
 // ═══════════════════════════════════════════════════════════════
 
 model CustomCommand {
@@ -572,14 +572,14 @@ enum SuggestionStatus {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// SISTEMA DE ADDONS
+// ADDON SYSTEM
 // ═══════════════════════════════════════════════════════════════
 
 model AddonLicense {
   id                    String   @id @default(cuid())
   guildId               String
   addonName             String
-  userId                String   // Quien compró
+  userId                String   // Who purchased
   plan                  String   @default("individual") // individual | bundle
   status                AddonStatus @default(ACTIVE)
   paypalSubscriptionId  String?
@@ -595,16 +595,16 @@ model AddonLicense {
   paymentFailures       Int      @default(0)
   lastPaymentFailedAt   DateTime?
 
-  // Cortesías (activadas por el equipo de Korex)
+  // Courtesy grants (activated by the Korex team)
   courtesy              Boolean  @default(false)
   courtesyReason        String?
   courtesyBy            String?  // admin_users.id
 
-  // Limpieza de datos tras expiración (30 días de gracia)
-  dataWarnedAt          DateTime?  // cuándo se envió el aviso de 24h antes del borrado
-  dataDeletedAt         DateTime?  // cuándo se eliminaron los datos del addon
+  // Data cleanup after expiration (30-day grace period)
+  dataWarnedAt          DateTime?  // when the 24h pre-deletion notice was sent
+  dataDeletedAt         DateTime?  // when the addon data was deleted
 
-  // Relaciones
+  // Relations
   guild                 Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
 
   @@unique([guildId, addonName])
@@ -629,7 +629,7 @@ model AddonConfig {
   id        String   @id @default(cuid())
   guildId   String
   addonName String
-  config    Json     // Configuración específica del addon
+  config    Json     // Addon-specific configuration
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   
@@ -640,14 +640,14 @@ model AddonConfig {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PREMIUM POR SERVIDOR (planes Basic/Pro)
+// PER-SERVER PREMIUM (Basic/Pro plans)
 // ═══════════════════════════════════════════════════════════════
 
 model GuildPremium {
   id                   String    @id @default(cuid())
   guildId              String    @unique
   planId               String    // 'demo' | 'basic' | 'pro'
-  userId               String    // quien activó / compró
+  userId               String    // who activated / purchased
   paypalSubscriptionId String?
   status               String    @default("ACTIVE") // ACTIVE | CANCELLED | EXPIRED | SUSPENDED
   isDemo               Boolean   @default(false)
@@ -659,7 +659,7 @@ model GuildPremium {
   paymentFailures      Int       @default(0)
   lastPaymentFailedAt  DateTime?
 
-  // Contadores de uso (para controlar límites por plan)
+  // Usage counters (to enforce per-plan limits)
   usageAutoResponses   Int       @default(0)
   usageGiveaways       Int       @default(0)
   usagePolls           Int       @default(0)
@@ -681,7 +681,7 @@ model GuildPremium {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// SERVICIOS BASE (LEGACY)
+// BASE SERVICES (LEGACY)
 // ═══════════════════════════════════════════════════════════════
 
 model License {
@@ -725,7 +725,7 @@ model ModerationActionLog {
   userId      String
   moderatorId String
   reason      String
-  duration    Int?     // en minutos
+  duration    Int?     // in minutes
   expiresAt   DateTime?
   isActive    Boolean  @default(false)
   createdAt   DateTime @default(now())
@@ -835,7 +835,7 @@ model GuildAnalytics {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// NUEVOS SERVICIOS
+// NEW SERVICES
 // ═══════════════════════════════════════════════════════════════
 
 model LogEntry {
@@ -852,8 +852,8 @@ model LogEntry {
   @@map("log_entries")
 }
 
-// Roles de entrada con retraso pendientes de asignar (AutoRoleService). Persisten
-// la asignación programada para que un reinicio del bot no la pierda.
+// Pending delayed join roles to assign (AutoRoleService). They persist
+// the scheduled assignment so a bot restart does not lose it.
 model PendingJoinRole {
   id        String   @id @default(cuid())
   guildId   String
@@ -928,7 +928,7 @@ model AutoResponse {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   
-  // Relaciones
+  // Relations
   actions       AutoResponseAction[]
   
   @@index([guildId])
@@ -969,7 +969,7 @@ model AutoResponseAction {
   
   createdAt      DateTime @default(now())
   
-  // Relaciones
+  // Relations
   autoResponse   AutoResponse @relation(fields: [autoResponseId], references: [id], onDelete: Cascade)
   
   @@index([autoResponseId])
@@ -986,7 +986,7 @@ enum AutoResponseActionType {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// ADMIN PANEL — OPERADORES
+// ADMIN PANEL — OPERATORS
 // ═══════════════════════════════════════════════════════════════
 
 model AdminUser {
@@ -997,9 +997,9 @@ model AdminUser {
   role           String    @default("support") // super_admin | support | billing | developer | marketing
   totpSecret     String?
   totpEnabled    Boolean   @default(false)
-  webauthnCreds  Json      @default("[]")   // array de credenciales WebAuthn (id, publicKey, counter, deviceType, backedUp, transports)
-  backupCodes    String[]  @default([])     // códigos hashed con Argon2id
-  allowedIps     String[]  @default([])     // vacío = sin restricción
+  webauthnCreds  Json      @default("[]")   // array of WebAuthn credentials (id, publicKey, counter, deviceType, backedUp, transports)
+  backupCodes    String[]  @default([])     // codes hashed with Argon2id
+  allowedIps     String[]  @default([])     // empty = no restriction
   active         Boolean   @default(true)
   lastLoginAt    DateTime?
   createdAt      DateTime  @default(now())
@@ -1018,7 +1018,7 @@ model AdminUser {
 model AdminSession {
   id           String    @id @default(uuid())
   adminUserId  String
-  sessionToken String    @unique  // SHA-256 del session ID real (nunca guardar el ID en claro)
+  sessionToken String    @unique  // SHA-256 of the real session ID (never store the ID in plain text)
   ip           String?
   userAgent    String?
   expiresAt    DateTime
@@ -1034,12 +1034,12 @@ model AdminSession {
 
 model AdminAuditLog {
   id             String    @id @default(uuid())
-  operatorId     String?                       // admin_users.id o 'system' (null si se elimina el operador)
-  operatorEmail  String?                       // snapshot en el momento
+  operatorId     String?                       // admin_users.id or 'system' (null if the operator is deleted)
+  operatorEmail  String?                       // snapshot at that time
   action         String                        // 'license.courtesy' | 'client.suspend' | etc.
   targetType     String?                       // 'guild' | 'license' | 'coupon' | 'operator'
   targetId       String?
-  payload        Json      @default("{}")      // datos antes/después del cambio
+  payload        Json      @default("{}")      // data before/after the change
   ip             String?
   createdAt      DateTime  @default(now())
 
@@ -1052,7 +1052,7 @@ model AdminAuditLog {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// ADMIN PANEL — CATÁLOGO DE ADDONS
+// ADMIN PANEL — ADDON CATALOG
 // ═══════════════════════════════════════════════════════════════
 
 model AddonCatalog {
@@ -1071,7 +1071,7 @@ model AddonCatalog {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// ADMIN PANEL — HISTORIAL DE PAGOS
+// ADMIN PANEL — PAYMENT HISTORY
 // ═══════════════════════════════════════════════════════════════
 
 model PaymentTransaction {
@@ -1096,7 +1096,7 @@ model PaymentTransaction {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// ADMIN PANEL — CUPONES
+// ADMIN PANEL — COUPONS
 // ═══════════════════════════════════════════════════════════════
 
 model Coupon {
@@ -1104,8 +1104,8 @@ model Coupon {
   code          String    @unique
   discountType  String                       // percent | fixed
   discountValue Decimal   @db.Decimal(10, 2)
-  addonName     String?                      // null = aplica a todos
-  maxUses       Int?                         // null = ilimitado
+  addonName     String?                      // null = applies to all
+  maxUses       Int?                         // null = unlimited
   usedCount     Int       @default(0)
   expiresAt     DateTime?
   active        Boolean   @default(true)
@@ -1132,13 +1132,13 @@ model CouponUse {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// ADMIN PANEL — TICKETS DE SOPORTE INTERNO (guild owner → Korex)
+// ADMIN PANEL — INTERNAL SUPPORT TICKETS (guild owner → Korex)
 // ═══════════════════════════════════════════════════════════════
 
 model SupportTicket {
   id                  String    @id @default(uuid())
   guildId             String
-  userId              String                      // Discord user ID del solicitante
+  userId              String                      // Discord user ID of the requester
   subject             String
   category            String    @default("other") // technical | configuration | billing | feature | bug | other
   description         String    @db.Text
@@ -1146,12 +1146,12 @@ model SupportTicket {
   priority            String    @default("normal") // low | normal | high | urgent
   assignedTo          String?                     // admin_users.id
   addonName           String?
-  unreadGuild         Int       @default(0)        // mensajes nuevos del equipo sin leer
-  unreadAdmin         Int       @default(0)        // mensajes nuevos del guild sin leer
+  unreadGuild         Int       @default(0)        // unread new messages from the team
+  unreadAdmin         Int       @default(0)        // unread new messages from the guild
   firstResponseAt     DateTime?
   closedAt            DateTime?
-  firstResponseTime   Int?                        // segundos hasta primera respuesta
-  resolutionTime      Int?                        // segundos hasta cierre
+  firstResponseTime   Int?                        // seconds until first response
+  resolutionTime      Int?                        // seconds until closure
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 
@@ -1169,7 +1169,7 @@ model SupportTicket {
 model SupportTicketMessage {
   id         String    @id @default(uuid())
   ticketId   String
-  senderId   String                          // admin_users.id O Discord user ID
+  senderId   String                          // admin_users.id OR Discord user ID
   isStaff    Boolean   @default(false)
   content    String    @db.Text
   sentVia    String[]  @default([])          // ['dm', 'email']
@@ -1190,7 +1190,7 @@ model SupportTicketAttachment {
   mimetype    String
   sizeBytes   Int
   storageType String    @default("disk")     // disk | r2
-  storageKey  String                         // ruta en disco o key en R2
+  storageKey  String                         // disk path or R2 key
   createdAt   DateTime  @default(now())
 
   ticket      SupportTicket        @relation(fields: [ticketId], references: [id], onDelete: Cascade)
@@ -1213,7 +1213,7 @@ model SupportReplyTemplate {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// ADMIN PANEL — CONTACTOS Y NOTAS DE CLIENTES
+// ADMIN PANEL — CLIENT CONTACTS AND NOTES
 // ═══════════════════════════════════════════════════════════════
 
 model GuildContact {
@@ -1273,7 +1273,7 @@ model MarketingCampaign {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// ADMIN PANEL — LOG DE EMAILS
+// ADMIN PANEL — EMAIL LOG
 // ═══════════════════════════════════════════════════════════════
 
 model EmailLog {
@@ -1292,7 +1292,7 @@ model EmailLog {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// ADMIN PANEL — PREFERENCIAS DE NOTIFICACIÓN DEL GUILD
+// ADMIN PANEL — GUILD NOTIFICATION PREFERENCES
 // ═══════════════════════════════════════════════════════════════
 
 model GuildNotificationPref {
@@ -1333,23 +1333,23 @@ model HoneypotConfig {
   guildId         String   @unique
   enabled         Boolean  @default(true)
 
-  // Canal trampa
+  // Trap channel
   channelEnabled  Boolean  @default(false)
   channelId       String?
   channelAction   String   @default("kick")   // kick | ban | timeout | log
 
   // Anti-raid (sliding window)
   raidEnabled     Boolean  @default(true)
-  raidThreshold   Int      @default(10)        // joins en el período
-  raidWindow      Int      @default(10)        // segundos
+  raidThreshold   Int      @default(10)        // joins within the period
+  raidWindow      Int      @default(10)        // seconds
   raidAction      String   @default("log")    // lockdown | kick | ban | log
 
-  // Filtro de cuentas nuevas
+  // New account filter
   newAccountEnabled Boolean @default(false)
-  newAccountDays    Int     @default(7)        // días mínimos de antigüedad
+  newAccountDays    Int     @default(7)        // minimum account age in days
   newAccountAction  String  @default("kick")
 
-  // Canal de logs
+  // Log channel
   logChannelId    String?
 
   createdAt       DateTime @default(now())
@@ -1394,21 +1394,21 @@ model StarboardEntry {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// TEAM ACCESS — RBAC por Guild
+// TEAM ACCESS — per-guild RBAC
 // ═══════════════════════════════════════════════════════════════
 
 model GuildOperator {
   id          String    @id @default(cuid())
   guildId     String
-  userId      String    // Discord User ID del colaborador
-  invitedBy   String    // Discord User ID de quien invitó
+  userId      String    // Discord User ID of the collaborator
+  invitedBy   String    // Discord User ID of the inviter
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-  expiresAt   DateTime?             // null = sin expiración
-  revokedAt   DateTime?             // null = activo
-  revokedBy   String?               // quien revocó
+  expiresAt   DateTime?             // null = no expiration
+  revokedAt   DateTime?             // null = active
+  revokedBy   String?               // who revoked
 
-  // Permisos por sección — ver OperatorPermissions en types/teamAccess.ts
+  // Per-section permissions — see OperatorPermissions in types/teamAccess.ts
   permissions Json
 
   guild       Guild     @relation(fields: [guildId], references: [id], onDelete: Cascade)
@@ -1423,12 +1423,12 @@ model GuildOperator {
 model GuildOperatorLog {
   id          String   @id @default(cuid())
   guildId     String
-  operatorId  String   // Discord userId de quien realizó la acción
-  username    String   // snapshot del username en el momento
+  operatorId  String   // Discord userId of who performed the action
+  username    String   // snapshot of the username at that time
   action      String   // "config_saved" | "invite_generated" | "operator_added" | "operator_revoked" | etc.
   section     String   // "moderation" | "economy" | "team" | etc.
-  details     Json     // datos adicionales (antes/después, parámetros, etc.)
-  ipHash      String?  // hash SHA-256 de la IP (GDPR: no guardar IP en claro)
+  details     Json     // additional data (before/after, parameters, etc.)
+  ipHash      String?  // SHA-256 hash of the IP (GDPR: never store the IP in plain text)
   createdAt   DateTime @default(now())
 
   @@index([guildId])
@@ -1437,13 +1437,13 @@ model GuildOperatorLog {
   @@map("guild_operator_logs")
 }
 
-// Canales bloqueados con /lockdown: overwrite original de @everyone para restaurarlo
-// exactamente al desbloquear (también tras un reinicio del bot)
+// Channels locked with /lockdown: original @everyone overwrite to restore it
+// exactly on unlock (also after a bot restart)
 model ChannelLockdown {
   channelId     String   @id
   guildId       String
   type          String   // channel | server
-  everyoneAllow String?  // bitfield original (null = no había overwrite)
+  everyoneAllow String?  // original bitfield (null = there was no overwrite)
   everyoneDeny  String?
   moderatorId   String
   reason        String
@@ -1455,7 +1455,7 @@ model ChannelLockdown {
   @@map("channel_lockdowns")
 }
 
-// Mensajes fijados que se re-publican al final del canal (/sticky)
+// Pinned messages re-posted at the bottom of the channel (/sticky)
 model StickyMessage {
   channelId String   @id
   guildId   String
@@ -1472,7 +1472,7 @@ model StickyMessage {
   @@map("sticky_messages")
 }
 
-// Estadísticas de invitaciones por usuario (/invites)
+// Per-user invite statistics (/invites)
 model InviteStats {
   id           String   @id @default(cuid())
   guildId      String
@@ -1494,13 +1494,13 @@ model InviteStats {
   @@map("invite_stats")
 }
 
-// Recompensas por invitaciones: ajustes por servidor (/invites config)
+// Invite rewards: per-server settings (/invites config)
 model InviteRewardConfig {
   guildId           String   @id
   enabled           Boolean  @default(true)
-  stackRoles        Boolean  @default(true)  // true: conserva los roles anteriores; false: solo el más alto
-  removeOnDrop      Boolean  @default(true)  // retira el rol si las invitaciones válidas bajan del umbral
-  announceChannelId String?                  // aviso opcional al alcanzar una recompensa
+  stackRoles        Boolean  @default(true)  // true: keeps previous roles; false: only the highest
+  removeOnDrop      Boolean  @default(true)  // removes the role if valid invites drop below the threshold
+  announceChannelId String?                  // optional announcement when a reward is reached
   createdAt         DateTime @default(now())
   updatedAt         DateTime @default(now()) @updatedAt
 
@@ -1509,7 +1509,7 @@ model InviteRewardConfig {
   @@map("invite_reward_configs")
 }
 
-// Recompensas por invitaciones: umbral (invitaciones válidas) → rol
+// Invite rewards: threshold (valid invites) → role
 model InviteRewardTier {
   id              String   @id @default(cuid())
   guildId         String
@@ -1525,7 +1525,7 @@ model InviteRewardTier {
   @@map("invite_reward_tiers")
 }
 
-// Roles de recompensa entregados por el bot (solo estos se retiran después)
+// Reward roles granted by the bot (only these are removed later)
 model InviteRewardGrant {
   id        String   @id @default(cuid())
   guildId   String
@@ -1548,9 +1548,9 @@ model GuildOperatorInvite {
   createdAt   DateTime  @default(now())
   expiresAt   DateTime
   usedAt      DateTime?
-  usedBy      String?   // Discord User ID del que aceptó
-  targetUserId String?  // Si está definido, solo este Discord ID puede aceptar el invite
-  permissions Json      // permisos pre-asignados al invite
+  usedBy      String?   // Discord User ID of who accepted
+  targetUserId String?  // If set, only this Discord ID can accept the invite
+  permissions Json      // permissions pre-assigned to the invite
 
   guild       Guild     @relation(fields: [guildId], references: [id], onDelete: Cascade)
 

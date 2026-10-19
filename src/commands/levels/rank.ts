@@ -32,7 +32,7 @@ export default class RankCommand extends Command {
       const guildId = interaction.guild!.id;
       const lang = i18n.getGuildLanguage(guildId);
 
-      // Los bots no ganan XP: no crear filas vacías en el ranking
+      // Bots do not earn XP: do not create empty rows in the leaderboard
       if (targetUser.bot) {
         await interaction.reply({ content: i18n.t('levels.rank.bot_no_rank', lang), ephemeral: true });
         return;

@@ -2,7 +2,7 @@
 
 /**
  * Korex Sharding Manager Entry Point
- * Este archivo se ejecuta para iniciar el sistema de sharding
+ * This file is run to start the sharding system
  */
 
 import { KorexShardingManager } from './sharding/ShardingManager';
@@ -12,7 +12,7 @@ import chalk from 'chalk';
 
 const logger = createLogger('shard-manager');
 
-// Banner de inicio
+// Startup banner
 function showBanner(): void {
   console.log(
     chalk.cyan(
@@ -33,10 +33,10 @@ function showBanner(): void {
 
 async function main(): Promise<void> {
   try {
-    // Mostrar banner
+    // Show banner
     showBanner();
 
-    // Validar variables de entorno críticas
+    // Validate critical environment variables
     const requiredEnvVars = [
       'DISCORD_TOKEN',
       'DATABASE_URL',
@@ -52,10 +52,10 @@ async function main(): Promise<void> {
       process.exit(1);
     }
 
-    // Crear y configurar sharding manager
+    // Create and configure the sharding manager
     const shardManager = new KorexShardingManager();
 
-    // Event handlers para el sharding manager
+    // Event handlers for the sharding manager
     shardManager.on('ready', () => {
       logger.info('🎉 All shards are ready! Korex is now operational.');
     });
@@ -80,10 +80,10 @@ async function main(): Promise<void> {
       logger.info(`📊 Global Stats: ${stats.totalGuilds} guilds, ${stats.totalUsers} users, ${stats.readyShards}/${stats.totalShards} shards`);
     });
 
-    // Iniciar el sharding manager
+    // Start the sharding manager
     await shardManager.start();
 
-    // Configurar handlers para comandos del proceso
+    // Set up handlers for process commands
     process.on('message', async (message: any) => {
       if (typeof message !== 'object') return;
 
@@ -109,7 +109,7 @@ async function main(): Promise<void> {
       }
     });
 
-    // Estadísticas periódicas
+    // Periodic statistics
     setInterval(async () => {
       try {
         const stats = await shardManager.getGlobalStats();
@@ -123,7 +123,7 @@ async function main(): Promise<void> {
         logger.info(`   Memory: ${Math.round(stats.totalMemory / 1024 / 1024)}MB`);
         logger.info(`   Uptime: ${Math.round(stats.uptime / 1000 / 60)} minutes`);
 
-        // Mostrar estado de cada shard
+        // Show the status of each shard
         shardStats.forEach(shard => {
           const memoryMB = Math.round(shard.memory.heapUsed / 1024 / 1024);
           const status = shard.status === 'ready' ? '✅' : '⚠️';
@@ -134,7 +134,7 @@ async function main(): Promise<void> {
       } catch (error) {
         logger.error('Error collecting periodic stats:', error);
       }
-    }, 300000); // Cada 5 minutos
+    }, 300000); // Every 5 minutes
 
   } catch (error) {
     logger.error('❌ Fatal error in sharding manager:', error);
@@ -142,7 +142,7 @@ async function main(): Promise<void> {
   }
 }
 
-// Manejo de errores no capturados
+// Uncaught error handling
 process.on('unhandledRejection', (reason, promise) => {
   logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
@@ -152,7 +152,7 @@ process.on('uncaughtException', (error) => {
   process.exit(1);
 });
 
-// Iniciar
+// Start
 main().catch((error) => {
   logger.error('Failed to start sharding manager:', error);
   process.exit(1);

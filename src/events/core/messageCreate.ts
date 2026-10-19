@@ -17,23 +17,23 @@ export default class MessageCreateEvent extends Event {
       // Ignore bot messages and DMs
       if (message.author.bot || !message.guild) return;
 
-      // Honeypot — canal trampa: si actúa, el mensaje no sigue (ni XP, ni autorespuestas)
+      // Honeypot — trap channel: if it acts, the message stops here (no XP, no auto-responses)
       if (await this.client.honeypot.handleMessage(message)) return;
 
       // AutoMod check (returns true if message was handled/deleted)
       if (await this.client.autoMod.processMessage(message)) return;
 
-      // Comandos con prefijo (`!comando` o `@Korex comando`): ejecutan el comando
-      // slash equivalente por el mismo pipeline de seguridad que interactionCreate
+      // Prefix commands (`!command` or `@Korex command`): run the equivalent slash
+      // command through the same security pipeline as interactionCreate
       const isPrefixCommand = await this.client.prefixCommands.handle(message).catch((error) => {
-        this.client.logger.error('[Prefix] Error procesando mensaje:', error);
+        this.client.logger.error('[Prefix] Error processing message:', error);
         return false;
       });
 
-      // AutoResponse system (no responde a las órdenes del propio bot)
+      // AutoResponse system (does not respond to commands aimed at the bot itself)
       if (!isPrefixCommand) await this.client.autoResponseService.processMessage(message);
 
-      // Track message for analytics (solo contar, no guardar contenido)
+      // Track message for analytics (count only, do not store content)
       await this.client.analytics.trackActivity(message.guild.id, 'message', {
         userId: message.author.id,
         channelId: message.channel.id
@@ -43,7 +43,7 @@ export default class MessageCreateEvent extends Event {
       await this.client.userStats.handleMessage(message);
 
       // Handle level system (if message qualifies for XP)
-      // (las órdenes al bot no dan XP, para que no se pueda farmear con comandos)
+      // (bot commands do not grant XP, so it cannot be farmed with commands)
       if (this.client.levels && message.member && !isPrefixCommand) {
         await this.client.levels.addMessageXp(
           message.guild, 

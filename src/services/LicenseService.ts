@@ -42,7 +42,7 @@ export class LicenseService {
   }
 
   /**
-   * Valida una licencia para un addon específico en un servidor
+   * Validates a license for a specific addon in a server
    */
   public async validateLicense(
     addonId: string,
@@ -52,11 +52,11 @@ export class LicenseService {
     try {
       const cacheKey = `${addonId}:${guildId}`;
 
-      // Verificar caché primero
+      // Check cache first
       let license = this.licenseCache.get(cacheKey);
 
       if (!license) {
-        // Buscar en base de datos
+        // Look up in database
         const dbLicense = await this.db.prisma.license.findFirst({
           where: {
             addonId,
@@ -84,12 +84,12 @@ export class LicenseService {
           metadata: (dbLicense.metadata as Record<string, any>) || {},
         };
 
-        // Cachear por 5 minutos
+        // Cache for 5 minutes
         this.licenseCache.set(cacheKey, license);
         setTimeout(() => this.licenseCache.delete(cacheKey), 5 * 60 * 1000);
       }
 
-      // Verificar si la licencia ha expirado
+      // Check whether the license has expired
       if (license.expiresAt && license.expiresAt < new Date()) {
         await this.deactivateLicense(license.id);
 
@@ -100,7 +100,7 @@ export class LicenseService {
         };
       }
 
-      // Verificar feature específica si se requiere
+      // Check specific feature if required
       if (requiredFeature && !license.features.includes(requiredFeature)) {
         return {
           valid: false,
@@ -109,7 +109,7 @@ export class LicenseService {
         };
       }
 
-      // Calcular días restantes si tiene expiración
+      // Compute remaining days if it has an expiration
       let remainingDays: number | undefined;
 
       if (license.expiresAt) {
@@ -135,7 +135,7 @@ export class LicenseService {
   }
 
   /**
-   * Crea una nueva licencia
+   * Creates a new license
    */
   public async createLicense(
     addonId: string,
@@ -172,7 +172,7 @@ export class LicenseService {
         metadata: (dbLicense.metadata as Record<string, any>) || {},
       };
 
-      // Limpiar caché para forzar recarga
+      // Clear cache to force a reload
       const cacheKey = `${addonId}:${guildId}`;
 
       this.licenseCache.delete(cacheKey);
@@ -187,7 +187,7 @@ export class LicenseService {
   }
 
   /**
-   * Desactiva una licencia
+   * Deactivates a license
    */
   public async deactivateLicense(licenseId: string): Promise<void> {
     try {
@@ -196,7 +196,7 @@ export class LicenseService {
         data: { isActive: false },
       });
 
-      // Limpiar caché relacionado
+      // Clear related cache
       for (const [key, license] of this.licenseCache.entries()) {
         if (license.id === licenseId) {
           this.licenseCache.delete(key);
@@ -212,7 +212,7 @@ export class LicenseService {
   }
 
   /**
-   * Obtiene todas las licencias de un servidor
+   * Gets all licenses of a server
    */
   public async getGuildLicenses(guildId: string): Promise<LicenseInfo[]> {
     try {
@@ -244,7 +244,7 @@ export class LicenseService {
   }
 
   /**
-   * Verifica si un addon tiene licencia gratuita disponible
+   * Checks whether an addon has a free license available
    */
   public async hasFreeLicense(addonId: string, guildId: string): Promise<boolean> {
     const validation = await this.validateLicense(addonId, guildId);
@@ -253,7 +253,7 @@ export class LicenseService {
   }
 
   /**
-   * Verifica si un addon tiene licencia premium
+   * Checks whether an addon has a premium license
    */
   public async hasPremiumLicense(addonId: string, guildId: string): Promise<boolean> {
     const validation = await this.validateLicense(addonId, guildId);
@@ -262,7 +262,7 @@ export class LicenseService {
   }
 
   /**
-   * Genera un ID único para la licencia
+   * Generates a unique ID for the license
    */
   private generateLicenseId(): string {
     const timestamp = Date.now().toString(36);
@@ -272,7 +272,7 @@ export class LicenseService {
   }
 
   /**
-   * Limpia el caché de licencias
+   * Clears the license cache
    */
   public clearCache(): void {
     this.licenseCache.clear();
@@ -280,7 +280,7 @@ export class LicenseService {
   }
 
   /**
-   * Obtiene estadísticas de licencias
+   * Gets license statistics
    */
   public async getLicenseStats(): Promise<{
     total: number;

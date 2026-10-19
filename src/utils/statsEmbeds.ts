@@ -12,9 +12,9 @@ import { i18n } from './i18n';
 import { STATS_WINDOW_DAYS } from '../services/UserStatsService';
 
 /**
- * Embeds y botones compartidos por /stats y sus botones (StatsComponents).
- * Todos los datos salen de UserStatsService (log_entries, retención 30 días,
- * y guild_users para los totales históricos).
+ * Embeds and buttons shared by /stats and its buttons (StatsComponents).
+ * All data comes from UserStatsService (log_entries, 30-day retention,
+ * and guild_users for all-time totals).
  */
 
 export type StatsPeriod = '7d' | '30d' | '90d' | 'all';
@@ -27,7 +27,7 @@ export function statsPeriodLabel(period: StatsPeriod, guildId: string): string {
   return i18n.t(`stats.periods.${period}`, guildId);
 }
 
-/** Une líneas no nulas respetando el límite de 1024 caracteres de un field */
+/** Joins non-null lines respecting a field's 1024-character limit */
 function joinLines(lines: Array<string | null>): string {
   const text = lines.filter((l): l is string => !!l).join('\n') || '—';
 
@@ -46,7 +46,7 @@ function windowFooter(guildId: string, days: number = STATS_WINDOW_DAYS): string
   return i18n.t('stats.window_footer', guildId, { days: days.toString() });
 }
 
-/** Botones bajo /stats user */
+/** Buttons under /stats user */
 export function buildUserStatsButtons(guildId: string, userId: string): ActionRowBuilder<ButtonBuilder> {
   return new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
@@ -67,7 +67,7 @@ export function buildUserStatsButtons(guildId: string, userId: string): ActionRo
   );
 }
 
-/** Botones bajo /stats server */
+/** Buttons under /stats server */
 export function buildServerStatsButtons(guildId: string): ActionRowBuilder<ButtonBuilder> {
   return new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
@@ -88,11 +88,11 @@ export function buildServerStatsButtons(guildId: string): ActionRowBuilder<Butto
   );
 }
 
-/** Desglose de actividad de un usuario (/stats activity y botón Actividad) */
+/** A user's activity breakdown (/stats activity and the Activity button) */
 export async function buildActivityEmbed(client: KorexClient, member: GuildMember, period: StatsPeriod): Promise<EmbedBuilder> {
   const guildId = member.guild.id;
-  // log_entries solo guarda 30 días: 90d / all usan toda la ventana disponible
-  // y añaden los totales históricos de guild_users.
+  // log_entries only keeps 30 days: 90d / all use the whole available window
+  // and add the all-time totals from guild_users.
   const days = period === '7d' ? 7 : STATS_WINDOW_DAYS;
   const extended = period === '90d' || period === 'all';
   const userStats = await client.userStats.getUserStats(member.id, guildId, days);
@@ -112,7 +112,7 @@ export async function buildActivityEmbed(client: KorexClient, member: GuildMembe
     .setTimestamp();
 
   if (userStats && userStats.recentMessages > 0) {
-    // Top 5 horas (UTC) con más mensajes
+    // Top 5 hours (UTC) with the most messages
     const hourlyActivity = Object.entries(userStats.activityByHour)
       .sort(([, a], [, b]) => b - a)
       .slice(0, 5)
@@ -121,7 +121,7 @@ export async function buildActivityEmbed(client: KorexClient, member: GuildMembe
         count: count.toLocaleString()
       }));
 
-    // Patrón semanal (lunes → domingo)
+    // Weekly pattern (Monday → Sunday)
     const dailyActivity = [1, 2, 3, 4, 5, 6, 0]
       .filter(day => userStats.activityByDay[day])
       .map(day => `${i18n.t(`stats.activity.weekdays.${day}`, guildId)}: ${userStats.activityByDay[day].toLocaleString()}`);
@@ -169,7 +169,7 @@ export async function buildActivityEmbed(client: KorexClient, member: GuildMembe
   return embed;
 }
 
-/** Comparación con la media del servidor (/stats compare y botón Comparar) */
+/** Comparison with the server average (/stats compare and the Compare button) */
 export async function buildCompareEmbed(client: KorexClient, member: GuildMember): Promise<EmbedBuilder> {
   const guildId = member.guild.id;
   const comparison = await client.userStats.getUserActivityComparison(member.id, guildId);
@@ -240,7 +240,7 @@ export async function buildCompareEmbed(client: KorexClient, member: GuildMember
   return embed;
 }
 
-/** Canales más usados por un usuario (botón Canales de /stats user) */
+/** A user's most used channels (Channels button of /stats user) */
 export async function buildUserChannelsEmbed(client: KorexClient, member: GuildMember): Promise<EmbedBuilder> {
   const guildId = member.guild.id;
   const breakdown = await client.userStats.getChannelBreakdown(guildId, member.id, 10);
@@ -257,7 +257,7 @@ export async function buildUserChannelsEmbed(client: KorexClient, member: GuildM
   return embed;
 }
 
-/** Canales más activos del servidor (botón Canales de /stats server) */
+/** The server's most active channels (Channels button of /stats server) */
 export async function buildServerChannelsEmbed(client: KorexClient, guild: Guild): Promise<EmbedBuilder> {
   const breakdown = await client.userStats.getChannelBreakdown(guild.id, null, 10);
 
@@ -304,7 +304,7 @@ function addChannelBreakdownFields(
   }
 }
 
-/** Estadísticas detalladas del servidor (botón Detallado de /stats server) */
+/** Detailed server statistics (Detailed button of /stats server) */
 export async function buildServerDetailedEmbed(client: KorexClient, guild: Guild): Promise<EmbedBuilder> {
   const guildId = guild.id;
   const [pattern, overview] = await Promise.all([
@@ -356,7 +356,7 @@ export async function buildServerDetailedEmbed(client: KorexClient, guild: Guild
   return embed;
 }
 
-/** Crecimiento de miembros (botón Crecimiento de /stats server) */
+/** Member growth (Growth button of /stats server) */
 export async function buildServerGrowthEmbed(client: KorexClient, guild: Guild): Promise<EmbedBuilder> {
   const guildId = guild.id;
   const weeks = await client.userStats.getGuildGrowth(guildId);

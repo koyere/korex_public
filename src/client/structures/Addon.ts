@@ -11,7 +11,7 @@ export abstract class Addon {
   public services: Map<string, any>;
   public loaded: boolean;
   public enabled: boolean;
-  /** Listeners registrados por este addon en el cliente (para quitar solo los suyos). */
+  /** Listeners registered by this addon on the client (to remove only its own). */
   private registeredListeners: Array<{ event: string; listener: (...args: any[]) => void }> = [];
 
   constructor(client: KorexClient, config: AddonConfig) {
@@ -25,36 +25,36 @@ export abstract class Addon {
   }
 
   /**
-   * Llamado cuando el addon se carga por primera vez
+   * Called when the addon is loaded for the first time
    */
   abstract onLoad(): Promise<void>;
 
   /**
-   * Llamado cuando el addon se descarga
+   * Called when the addon is unloaded
    */
   abstract onUnload(): Promise<void>;
 
   /**
-   * Llamado cuando el addon se habilita en un servidor
+   * Called when the addon is enabled in a server
    */
   abstract onEnable(guildId: string): Promise<void>;
 
   /**
-   * Llamado cuando el addon se deshabilita en un servidor
+   * Called when the addon is disabled in a server
    */
   abstract onDisable(guildId: string): Promise<void>;
 
   /**
-   * Interruptor propio del addon por servidor, además de la licencia (p. ej. el
-   * `enabled` de Music Pro). Devuelve el motivo traducido si el comando no puede
-   * usarse en ese servidor, o null. Por defecto no bloquea nada.
+   * The addon's own per-server toggle, in addition to the license (e.g. the
+   * `enabled` flag of Music Pro). Returns the translated reason if the command cannot
+   * be used in that server, or null. By default it blocks nothing.
    */
   async commandBlockedReason(_guildId: string, _commandName: string): Promise<string | null> {
     return null;
   }
 
   /**
-   * Verificar dependencias del addon
+   * Check addon dependencies
    */
   async checkDependencies(): Promise<{ satisfied: boolean; missing: string[] }> {
     const missing: string[] = [];
@@ -76,7 +76,7 @@ export abstract class Addon {
   }
 
   /**
-   * Verificar licencia del addon
+   * Check addon license
    */
   async checkLicense(): Promise<boolean> {
     if (!this.client.licenses) {
@@ -85,14 +85,14 @@ export abstract class Addon {
 
     const validation = await this.client.licenses.validateLicense(
       this.config.name,
-      'global' // Para addons globales
+      'global' // For global addons
     );
 
     return validation.valid;
   }
 
   /**
-   * Cargar comandos del addon
+   * Load addon commands
    */
   protected async loadCommands(commandsPath: string): Promise<void> {
     const fs = require('fs');
@@ -115,21 +115,21 @@ export abstract class Addon {
         const { default: CommandClass } = await import(path.join(commandsPath, file));
         const command: Command = new CommandClass(this.client);
 
-        // Marcar como perteneciente a este addon
+        // Mark as belonging to this addon
         command.addon = this.config.name;
 
         this.commands.set(command.name, command);
         this.client.commands.commands.set(command.name, command);
 
-        // Registrar aliases
+        // Register aliases
         for (const alias of command.aliases) {
           this.client.commands.aliases.set(alias, command.name);
         }
 
-        this.client.logger.debug(`Comando del addon ${this.config.name} cargado: ${command.name}`);
+        this.client.logger.debug(`Addon ${this.config.name} command loaded: ${command.name}`);
       } catch (error) {
         this.client.logger.error(
-          `Error cargando comando ${file} del addon ${this.config.name}:`,
+          `Error loading command ${file} of addon ${this.config.name}:`,
           error
         );
       }
@@ -137,7 +137,7 @@ export abstract class Addon {
   }
 
   /**
-   * Cargar eventos del addon
+   * Load addon events
    */
   protected async loadEvents(eventsPath: string): Promise<void> {
     const fs = require('fs');
@@ -160,12 +160,12 @@ export abstract class Addon {
         const { default: EventClass } = await import(path.join(eventsPath, file));
         const event: Event = new EventClass(this.client);
 
-        // Marcar como perteneciente a este addon
+        // Mark as belonging to this addon
         event.addon = this.config.name;
 
         this.events.set(event.name, event);
 
-        // Registrar el evento en el cliente guardando la referencia del listener
+        // Register the event on the client, keeping the listener reference
         const listener = (...args: any[]) => event.safeExecute(...(args as any));
         if (event.once) {
           this.client.once(event.name, listener);
@@ -174,10 +174,10 @@ export abstract class Addon {
         }
         this.registeredListeners.push({ event: event.name, listener });
 
-        this.client.logger.debug(`Evento del addon ${this.config.name} cargado: ${event.name}`);
+        this.client.logger.debug(`Addon ${this.config.name} event loaded: ${event.name}`);
       } catch (error) {
         this.client.logger.error(
-          `Error cargando evento ${file} del addon ${this.config.name}:`,
+          `Error loading event ${file} of addon ${this.config.name}:`,
           error
         );
       }
@@ -185,14 +185,14 @@ export abstract class Addon {
   }
 
   /**
-   * Descargar comandos del addon
+   * Unload addon commands
    */
   public unloadCommands(): void {
     for (const [commandName] of this.commands) {
-      // Remover del cliente
+      // Remove from client
       this.client.commands.commands.delete(commandName);
 
-      // Remover aliases
+      // Remove aliases
       const command = this.commands.get(commandName);
 
       if (command) {
@@ -206,11 +206,11 @@ export abstract class Addon {
   }
 
   /**
-   * Descargar eventos del addon
+   * Unload addon events
    */
   public unloadEvents(): void {
-    // Quitar solo los listeners que registró este addon: removeAllListeners
-    // borraría también los del core y los de otros addons para el mismo evento.
+    // Remove only the listeners this addon registered: removeAllListeners
+    // would also remove the core's and other addons' listeners for the same event.
     for (const { event, listener } of this.registeredListeners) {
       this.client.off(event, listener);
     }
@@ -220,7 +220,7 @@ export abstract class Addon {
   }
 
   /**
-   * Obtener información del addon
+   * Get addon information
    */
   getInfo(): {
     config: AddonConfig;
@@ -241,7 +241,7 @@ export abstract class Addon {
   }
 
   /**
-   * Obtener estadísticas del addon
+   * Get addon statistics
    */
   getStats(): {
     name: string;

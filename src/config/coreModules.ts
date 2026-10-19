@@ -1,12 +1,12 @@
 /**
- * Módulos gratuitos que el owner puede activar/desactivar desde Ajustes.
- * Se guardan en `Guild.enabledAddons` junto a los addons de pago.
+ * Free modules the owner can enable/disable from Settings.
+ * They are stored in `Guild.enabledAddons` alongside paid addons.
  *
- * Semántica de `enabledAddons` (única fuente de verdad, usar siempre estos helpers):
- *  - Sin fila de guild o array vacío (servidores antiguos) → todos los módulos core activos.
- *  - Si el owner desactiva TODOS los módulos core se guarda el marcador
- *    CORE_MODULES_OFF, para no confundirlo con el caso "array vacío".
- *  - En cualquier otro caso el array es autoritativo.
+ * Semantics of `enabledAddons` (single source of truth, always use these helpers):
+ *  - No guild row or empty array (older servers) → all core modules active.
+ *  - If the owner disables ALL core modules, the marker
+ *    CORE_MODULES_OFF is stored, so it is not confused with the "empty array" case.
+ *  - In any other case the array is authoritative.
  */
 export const CORE_MODULES = ['moderation', 'welcome', 'levels', 'music', 'logging', 'economy'] as const;
 export type CoreModule = (typeof CORE_MODULES)[number];
@@ -17,33 +17,33 @@ export function isCoreModule(name: string): name is CoreModule {
   return (CORE_MODULES as readonly string[]).includes(name);
 }
 
-/** Lista efectiva de entradas (módulos core + addons) para un valor guardado. */
+/** Effective list of entries (core modules + addons) for a stored value. */
 export function effectiveEnabledAddons(stored: string[] | null | undefined): string[] {
   if (!stored || stored.length === 0) return [...CORE_MODULES];
   return stored.filter((a) => a !== CORE_MODULES_OFF);
 }
 
-/** ¿Está activo un módulo core en este guild? */
+/** Is a core module active in this guild? */
 export function isCoreModuleEnabled(stored: string[] | null | undefined, moduleName: string): boolean {
   return effectiveEnabledAddons(stored).includes(moduleName);
 }
 
 /**
- * Valor a guardar tras añadir una entrada (p. ej. al activar un addon de pago)
- * sin perder los módulos core de un guild antiguo con array vacío.
+ * Value to store after adding an entry (e.g. when enabling a paid addon)
+ * without losing the core modules of an older guild with an empty array.
  */
 export function withEntryAdded(stored: string[] | null | undefined, entry: string): string[] {
   const base = !stored || stored.length === 0 ? [...CORE_MODULES] : stored;
   return [...new Set([...base, entry])];
 }
 
-/** Valor a guardar tras quitar una entrada. */
+/** Value to store after removing an entry. */
 export function withEntryRemoved(stored: string[] | null | undefined, entry: string): string[] {
   const base = !stored || stored.length === 0 ? [...CORE_MODULES] : stored;
   return normalizeStored(base.filter((a) => a !== entry));
 }
 
-/** Evita guardar un array vacío (significaría "todo activo"). */
+/** Avoids storing an empty array (it would mean "everything active"). */
 export function normalizeStored(list: string[]): string[] {
   const clean = [...new Set(list.filter((a) => a !== CORE_MODULES_OFF))];
   const hasCore = clean.some(isCoreModule);

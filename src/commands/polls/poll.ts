@@ -189,8 +189,8 @@ export default class PollCommand extends Command {
 
 
   /**
-   * Una encuesta solo la puede cerrar o exportar quien la creó o alguien con
-   * Gestionar mensajes, y siempre del mismo servidor.
+   * A poll can only be closed or exported by its creator or someone with
+   * Manage Messages, and always from the same server.
    */
   private async canManagePoll(interaction: ChatInputCommandInteraction, pollId: string): Promise<boolean> {
     const poll = await this.client.db.poll.findFirst({

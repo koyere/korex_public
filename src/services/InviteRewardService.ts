@@ -11,12 +11,12 @@ import { logger } from '../utils/Logger';
 import { botConfig } from '../config/bot.config';
 import { checkSelfAssignableRole, SelfAssignableRoleProblem } from '../utils/roleSafety';
 
-/** Máximo de recompensas (umbral → rol) por servidor. */
+/** Maximum rewards (threshold → role) per server. */
 export const MAX_INVITE_REWARD_TIERS = 25;
-/** Umbral máximo configurable (coherente con /invites add, que admite hasta 1000). */
+/** Maximum configurable threshold (consistent with /invites add, which allows up to 1000). */
 export const MAX_INVITE_REWARD_THRESHOLD = 100000;
 
-/** Resincronización completa: lotes, pausa entre lotes y enfriamiento por servidor. */
+/** Full resync: batches, pause between batches and per-server cooldown. */
 const SYNC_BATCH_SIZE = 10;
 const SYNC_BATCH_DELAY_MS = 1000;
 const SYNC_COOLDOWN_SECS = 10 * 60;
@@ -64,20 +64,20 @@ const DEFAULT_SETTINGS: InviteRewardSettings = {
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
- * Recompensas por invitaciones: entrega roles al alcanzar N invitaciones válidas
- * (válidas + bonus, que ya descuentan salidas y cuentas falsas/recientes).
+ * Invite rewards: grants roles upon reaching N valid invites
+ * (valid + bonus, which already subtract leaves and fake/recent accounts).
  *
- * El estado deseado se recalcula siempre a partir de la BD (umbrales + estadísticas),
- * así que cada sincronización es idempotente y sobrevive a reinicios. Los roles que
- * entrega el bot se registran en invite_reward_grants: solo esos se retiran después,
- * nunca un rol que un administrador haya dado a mano.
+ * The desired state is always recalculated from the DB (thresholds + statistics),
+ * so every sync is idempotent and survives restarts. The roles
+ * granted by the bot are recorded in invite_reward_grants: only those are removed later,
+ * never a role an administrator assigned manually.
  */
 export class InviteRewardService {
   private client: KorexClient;
   private prisma: PrismaClient;
-  /** Serializa las sincronizaciones de un mismo miembro (guild:user) en este proceso. */
+  /** Serializes syncs of the same member (guild:user) within this process. */
   private memberLocks = new Map<string, Promise<unknown>>();
-  /** Resincronizaciones completas en curso (respaldo si Redis no está disponible). */
+  /** Full resyncs in progress (fallback if Redis is unavailable). */
   private runningGuildSyncs = new Set<string>();
   private localCooldowns = new Map<string, number>();
 
@@ -86,7 +86,7 @@ export class InviteRewardService {
     this.prisma = client.db;
   }
 
-  // ─── Configuración ────────────────────────────────────────────────────────
+  // ─── Configuration ────────────────────────────────────────────────────────
 
   async getSetup(guildId: string): Promise<InviteRewardSetup> {
     const [config, tiers] = await Promise.all([
@@ -132,7 +132,7 @@ export class InviteRewardService {
     };
   }
 
-  /** Valida que un canal sirva para los avisos (texto, del servidor, el bot puede escribir). */
+  /** Validates that a channel is suitable for announcements (text, in the server, the bot can write). */
   isValidAnnounceChannel(guild: Guild, channelId: string): boolean {
     const channel = guild.channels.cache.get(channelId);
     const me = guild.members.me;
@@ -144,7 +144,7 @@ export class InviteRewardService {
     ]);
   }
 
-  /** Roles que se pueden usar como recompensa (seguros y por debajo del bot y de quien configura). */
+  /** Roles that can be used as a reward (safe and below the bot and the configuring user). */
   getAssignableRoles(guild: Guild, actor: GuildMember | null): Array<{ id: string; name: string; color: string; position: number }> {
     return guild.roles.cache
       .filter((role) => checkSelfAssignableRole(guild, role.id, actor).ok)
@@ -152,7 +152,7 @@ export class InviteRewardService {
       .map((role) => ({ id: role.id, name: role.name, color: role.hexColor, position: role.position }));
   }
 
-  /** Canales de texto/anuncios donde el bot puede publicar los avisos. */
+  /** Text/announcement channels where the bot can post announcements. */
   getAnnounceChannels(guild: Guild): Array<{ id: string; name: string; type: number }> {
     return guild.channels.cache
       .filter((channel) => this.isValidAnnounceChannel(guild, channel.id))
@@ -161,8 +161,8 @@ export class InviteRewardService {
   }
 
   /**
-   * Añade una recompensa. Valida el rol (jerarquía del bot y de quien configura,
-   * permisos peligrosos, @everyone, gestionado) y el límite de recompensas.
+   * Adds a reward. Validates the role (hierarchy of the bot and the configuring user,
+   * dangerous permissions, @everyone, managed) and the reward limit.
    */
   async addTier(guild: Guild, requiredInvites: number, roleId: string, actor: GuildMember | null): Promise<AddTierResult> {
     if (!Number.isInteger(requiredInvites) || requiredInvites < 1 || requiredInvites > MAX_INVITE_REWARD_THRESHOLD) {
@@ -188,7 +188,7 @@ export class InviteRewardService {
         return { ok: true } as const;
       }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
     } catch (error) {
-      // Carrera con otra petición: las claves únicas (umbral / rol) deciden
+      // Race with another request: the unique keys (threshold / role) decide
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
         const target = String((error.meta as any)?.target ?? '');
         return { ok: false, reason: target.includes('roleId') ? 'duplicate_role' : 'duplicate_count' };
@@ -200,7 +200,7 @@ export class InviteRewardService {
     }
   }
 
-  /** Elimina una recompensa por umbral o por rol. Devuelve cuántas se borraron. */
+  /** Removes a reward by threshold or by role. Returns how many were deleted. */
   async removeTier(guildId: string, filter: { id?: string; requiredInvites?: number; roleId?: string }): Promise<number> {
     if (!filter.id && filter.requiredInvites === undefined && !filter.roleId) return 0;
     const where: Prisma.InviteRewardTierWhereInput = { guildId };
@@ -211,11 +211,11 @@ export class InviteRewardService {
     return res.count;
   }
 
-  // ─── Sincronización ───────────────────────────────────────────────────────
+  // ─── Synchronization ───────────────────────────────────────────────────────
 
   /**
-   * Recalcula y aplica las recompensas de un miembro. Seguro de llamar tantas
-   * veces como haga falta: solo añade lo que falta y quita lo que sobra.
+   * Recalculates and applies the rewards of a member. Safe to call as many
+   * times as needed: it only adds what is missing and removes what is extra.
    */
   async syncMember(guild: Guild, userId: string, options: { announce?: boolean } = {}): Promise<MemberSyncResult> {
     const key = `${guild.id}:${userId}`;
@@ -257,7 +257,7 @@ export class InviteRewardService {
       const grantedRoleIds = new Set(grants.map((g) => g.roleId));
       const tierByRole = new Map(tiers.map((t) => [t.roleId, t]));
 
-      // Sin retirada por bajada: el nivel efectivo nunca baja de la mayor recompensa ya entregada
+      // No removal on drop: the effective level never goes below the highest reward already granted
       let effective = count;
       if (!settings.removeOnDrop) {
         for (const roleId of grantedRoleIds) {
@@ -270,20 +270,20 @@ export class InviteRewardService {
       const desired = settings.stackRoles ? reached : reached.slice(-1);
       const desiredIds = new Set(desired.map((t) => t.roleId));
 
-      // 1) Añadir lo que falta
+      // 1) Add what is missing
       const newlyGranted: InviteRewardTierData[] = [];
       for (const tier of desired) {
         const check = checkSelfAssignableRole(guild, tier.roleId);
         if (!check.ok) {
-          logger.warn(`[InviteRewards] Rol ${tier.roleId} omitido en ${guild.id}: ${check.problem}`);
+          logger.warn(`[InviteRewards] Role ${tier.roleId} skipped in ${guild.id}: ${check.problem}`);
           continue;
         }
 
-        // Ya lo tiene: si no lo dio el bot es un rol manual y no se registra (nunca se retirará)
+        // Already has it: if the bot did not grant it, it is a manual role and is not recorded (it will never be removed)
         if (member.roles.cache.has(tier.roleId)) continue;
 
-        // Reclamo atómico del registro: solo quien lo crea anuncia la recompensa.
-        // Si ya existía (p. ej. el miembro salió y volvió) se reasigna sin aviso.
+        // Atomic claim of the record: only whoever creates it announces the reward.
+        // If it already existed (e.g. the member left and came back) it is reassigned silently.
         const claimed = await this.prisma.inviteRewardGrant.createMany({
           data: [{ guildId: guild.id, userId, roleId: tier.roleId }],
           skipDuplicates: true,
@@ -294,7 +294,7 @@ export class InviteRewardService {
           await member.roles.add(tier.roleId, i18n.t('invites.rewards.audit_add', guild.id, { invites: String(tier.requiredInvites) }));
           result.added.push(tier.roleId);
         } catch (error) {
-          logger.warn(`[InviteRewards] No se pudo asignar ${tier.roleId} a ${userId} en ${guild.id}: ${error}`);
+          logger.warn(`[InviteRewards] Could not assign ${tier.roleId} to ${userId} in ${guild.id}: ${error}`);
           if (isNew) {
             await this.prisma.inviteRewardGrant.deleteMany({ where: { guildId: guild.id, userId, roleId: tier.roleId } }).catch(() => {});
           }
@@ -303,22 +303,22 @@ export class InviteRewardService {
         if (isNew) newlyGranted.push(tier);
       }
 
-      // 2) Quitar lo que sobra (solo roles entregados por el bot)
+      // 2) Remove what is extra (only roles granted by the bot)
       for (const roleId of grantedRoleIds) {
         if (desiredIds.has(roleId)) continue;
 
         const configured = tierByRole.has(roleId);
-        // Recompensa eliminada de la configuración y sin retirada: el rol se queda, se olvida el registro
+        // Reward removed from the configuration and no removal: the role stays, the record is forgotten
         const shouldRemoveRole = configured || settings.removeOnDrop;
 
         if (shouldRemoveRole && member.roles.cache.has(roleId)) {
           const role = guild.roles.cache.get(roleId);
-          if (!role || role.comparePositionTo(me.roles.highest) >= 0) continue; // fuera del alcance del bot
+          if (!role || role.comparePositionTo(me.roles.highest) >= 0) continue; // out of the bot's reach
           try {
             await member.roles.remove(roleId, i18n.t('invites.rewards.audit_remove', guild.id));
             result.removed.push(roleId);
           } catch (error) {
-            logger.warn(`[InviteRewards] No se pudo retirar ${roleId} a ${userId} en ${guild.id}: ${error}`);
+            logger.warn(`[InviteRewards] Could not remove ${roleId} from ${userId} in ${guild.id}: ${error}`);
             continue;
           }
         }
@@ -329,13 +329,13 @@ export class InviteRewardService {
         await this.announce(guild, member, newlyGranted, count, settings.announceChannelId);
       }
     } catch (error) {
-      logger.error(`[InviteRewards] Error sincronizando ${userId} en ${guild.id}:`, error);
+      logger.error(`[InviteRewards] Error syncing ${userId} in ${guild.id}:`, error);
     }
 
     return result;
   }
 
-  /** Aviso en el canal configurado. Solo menciona (y notifica) al invitador. */
+  /** Announcement in the configured channel. Only mentions (and notifies) the inviter. */
   private async announce(
     guild: Guild,
     member: GuildMember,
@@ -366,13 +366,13 @@ export class InviteRewardService {
         allowedMentions: { parse: [], users: [member.id], roles: [], repliedUser: false },
       });
     } catch (error) {
-      logger.warn(`[InviteRewards] No se pudo enviar el aviso en ${guild.id}: ${error}`);
+      logger.warn(`[InviteRewards] Could not send the announcement in ${guild.id}: ${error}`);
     }
   }
 
   /**
-   * Resincroniza todo el servidor por lotes. Un único proceso por servidor y
-   * enfriamiento de SYNC_COOLDOWN_SECS (Redis, con respaldo en memoria).
+   * Resyncs the whole server in batches. A single process per server and
+   * a SYNC_COOLDOWN_SECS cooldown (Redis, with in-memory fallback).
    */
   async syncGuild(guild: Guild): Promise<GuildSyncResult> {
     const refused = await this.claimGuildSync(guild);
@@ -381,17 +381,17 @@ export class InviteRewardService {
   }
 
   /**
-   * Igual que syncGuild, pero no espera al resultado (panel web): aplica las mismas
-   * comprobaciones y el mismo enfriamiento y lanza la sincronización en segundo plano.
+   * Same as syncGuild, but does not wait for the result (web panel): applies the same
+   * checks and the same cooldown and runs the sync in the background.
    */
   async startGuildSync(guild: Guild): Promise<{ ok: true } | Extract<GuildSyncResult, { ok: false }>> {
     const refused = await this.claimGuildSync(guild);
     if (refused) return refused;
-    this.runGuildSync(guild).catch((error) => logger.error(`[InviteRewards] Error en la resincronización de ${guild.id}:`, error));
+    this.runGuildSync(guild).catch((error) => logger.error(`[InviteRewards] Error resyncing ${guild.id}:`, error));
     return { ok: true };
   }
 
-  /** Estado de la resincronización para el panel (en curso / segundos de enfriamiento). */
+  /** Resync status for the panel (in progress / cooldown seconds). */
   async getSyncStatus(guildId: string): Promise<{ running: boolean; retryAfter: number }> {
     let retryAfter = 0;
     try {
@@ -402,11 +402,11 @@ export class InviteRewardService {
         const until = this.localCooldowns.get(guildId) ?? 0;
         retryAfter = until > Date.now() ? Math.ceil((until - Date.now()) / 1000) : 0;
       }
-    } catch { /* sin estado de enfriamiento */ }
+    } catch { /* no cooldown state */ }
     return { running: this.runningGuildSyncs.has(guildId), retryAfter };
   }
 
-  /** Comprobaciones previas + enfriamiento. Devuelve el motivo del rechazo o null si se puede empezar. */
+  /** Pre-checks + cooldown. Returns the rejection reason, or null if it can start. */
   private async claimGuildSync(guild: Guild): Promise<Extract<GuildSyncResult, { ok: false }> | null> {
     if (!guild.members.me?.permissions.has(PermissionFlagsBits.ManageRoles)) {
       return { ok: false, reason: 'no_permission' };
@@ -416,7 +416,7 @@ export class InviteRewardService {
     const cooldown = await this.acquireSyncCooldown(guild.id);
     if (cooldown > 0) return { ok: false, reason: 'cooldown', retryAfter: cooldown };
 
-    // Se marca en curso antes de ceder el control: dos peticiones simultáneas no arrancan dos pasadas
+    // Marked as in progress before yielding control: two simultaneous requests do not start two passes
     this.runningGuildSyncs.add(guild.id);
     return null;
   }
@@ -466,7 +466,7 @@ export class InviteRewardService {
     }
   }
 
-  /** Devuelve 0 si se adquiere el enfriamiento, o los segundos restantes si no. */
+  /** Returns 0 if the cooldown is acquired, or the remaining seconds otherwise. */
   private async acquireSyncCooldown(guildId: string): Promise<number> {
     const key = `invites:rewards:sync:${guildId}`;
     try {
@@ -477,7 +477,7 @@ export class InviteRewardService {
         const ttl = await redis.ttl(key);
         return ttl > 0 ? ttl : SYNC_COOLDOWN_SECS;
       }
-    } catch { /* respaldo en memoria */ }
+    } catch { /* in-memory fallback */ }
 
     const now = Date.now();
     const until = this.localCooldowns.get(guildId) ?? 0;

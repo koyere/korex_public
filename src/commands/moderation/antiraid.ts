@@ -9,7 +9,7 @@ import { KorexClient } from '../../client/KorexClient';
 import { i18n } from '../../utils/i18n';
 import { botConfig } from '../../config/bot.config';
 
-/** /antiraid status | end — estado y fin manual del modo raid de Moderación. */
+/** /antiraid status | end — status and manual end of the Moderation raid mode. */
 export default class AntiRaidCommand extends Command {
   constructor(client: KorexClient) {
     super(client, {

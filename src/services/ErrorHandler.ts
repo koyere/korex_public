@@ -57,17 +57,17 @@ export class ErrorHandler {
   }
 
   /**
-   * Inicializa la conexión a la base de datos
+   * Initializes the database connection
    */
   public setDatabase(db: DatabaseManager): void {
     this.db = db;
   }
 
   /**
-   * Configura los manejadores globales de errores
+   * Sets up the global error handlers
    */
   private setupGlobalHandlers(): void {
-    // Errores no capturados
+    // Uncaught exceptions
     process.on('uncaughtException', (error: Error) => {
       this.handleSystemError(error, 'CRITICAL', {
         type: 'uncaughtException',
@@ -75,7 +75,7 @@ export class ErrorHandler {
       });
     });
 
-    // Promesas rechazadas no manejadas
+    // Unhandled promise rejections
     process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
       this.handleSystemError(reason instanceof Error ? reason : new Error(String(reason)), 'HIGH', {
         type: 'unhandledRejection',
@@ -84,7 +84,7 @@ export class ErrorHandler {
       });
     });
 
-    // Advertencias
+    // Warnings
     process.on('warning', (warning: any) => {
       this.logger.warn('Process warning:', {
         name: warning.name,
@@ -95,7 +95,7 @@ export class ErrorHandler {
   }
 
   /**
-   * Maneja errores de comandos slash
+   * Handles slash command errors
    */
   public async handleCommandError(
     error: Error,
@@ -116,18 +116,18 @@ export class ErrorHandler {
 
     const severity = this.determineSeverity(error);
 
-    // Registrar el error
+    // Log the error
     await this.logError(error, 'COMMAND_ERROR', context, severity);
 
-    // Responder al usuario
+    // Reply to the user
     await this.sendErrorResponse(interaction, error, severity);
 
-    // Incrementar contador de errores
+    // Increment error counter
     this.incrementErrorCount(`command:${interaction.commandName}`);
   }
 
   /**
-   * Maneja errores de interacciones (botones, menús, modales)
+   * Handles interaction errors (buttons, menus, modals)
    */
   public async handleInteractionError(
     error: Error,
@@ -154,7 +154,7 @@ export class ErrorHandler {
   }
 
   /**
-   * Maneja errores de componentes UI (botones, menús, modales)
+   * Handles UI component errors (buttons, menus, modals)
    */
   public async handleComponentError(
     error: Error,
@@ -185,7 +185,7 @@ export class ErrorHandler {
   }
 
   /**
-   * Maneja errores de addons
+   * Handles addon errors
    */
   public async handleAddonError(
     error: Error,
@@ -205,7 +205,7 @@ export class ErrorHandler {
 
     await this.logError(error, 'ADDON_ERROR', context, severity);
 
-    // Si es crítico, desactivar el addon temporalmente
+    // If critical, temporarily disable the addon
     if (severity === 'CRITICAL') {
       this.logger.warn(`Critical error in addon ${addonId}, consider disabling it`);
     }
@@ -214,7 +214,7 @@ export class ErrorHandler {
   }
 
   /**
-   * Maneja errores del sistema
+   * Handles system errors
    */
   public async handleSystemError(
     error: Error,
@@ -231,7 +231,7 @@ export class ErrorHandler {
 
     await this.logError(error, 'SYSTEM_ERROR', context, severity);
 
-    // Si es crítico, podríamos enviar notificaciones a administradores
+    // If critical, we could send notifications to administrators
     if (severity === 'CRITICAL') {
       this.logger.error('CRITICAL SYSTEM ERROR - Immediate attention required', {
         error: error.message,
@@ -244,7 +244,7 @@ export class ErrorHandler {
   }
 
   /**
-   * Registra un error en la base de datos y logs
+   * Records an error in the database and logs
    */
   private async logError(
     error: Error,
@@ -253,21 +253,21 @@ export class ErrorHandler {
     severity: ErrorReport['severity']
   ): Promise<void> {
     try {
-      // Log inmediato
+      // Immediate log
       this.logger.error(`${type}: ${error.message}`, {
         stack: error.stack,
         context,
         severity,
       });
 
-      // Verificar rate limiting
+      // Check rate limiting
       const rateLimitKey = `${type}:${context.guildId || 'global'}`;
 
       if (this.isRateLimited(rateLimitKey)) {
         return;
       }
 
-      // Guardar en base de datos solo si está disponible
+      // Save to the database only if it is available
       if (this.db) {
         await this.db.prisma.errorLog.create({
           data: {
@@ -281,13 +281,13 @@ export class ErrorHandler {
         });
       }
     } catch (dbError) {
-      // Si falla la BD, al menos logear
+      // If the DB fails, at least log it
       this.logger.error('Failed to save error to database:', dbError);
     }
   }
 
   /**
-   * Envía una respuesta de error al usuario
+   * Sends an error response to the user
    */
   private async sendErrorResponse(
     interaction: InteractionType,
@@ -295,7 +295,7 @@ export class ErrorHandler {
     severity: ErrorReport['severity']
   ): Promise<void> {
     try {
-      // No responder si ya se respondió
+      // Do not reply if a reply was already sent
       if (interaction.replied || interaction.deferred) {
         return;
       }
@@ -305,26 +305,26 @@ export class ErrorHandler {
         .setTitle('❌ Error')
         .setTimestamp();
 
-      // Mensaje según severidad
+      // Message based on severity
       switch (severity) {
         case 'LOW':
-          embed.setDescription('Ocurrió un error menor. Por favor, inténtalo de nuevo.');
+          embed.setDescription('A minor error occurred. Please try again.');
           break;
         case 'MEDIUM':
-          embed.setDescription('Ocurrió un error. Si persiste, contacta a un administrador.');
+          embed.setDescription('An error occurred. If it persists, contact an administrator.');
           break;
         case 'HIGH':
         case 'CRITICAL':
-          embed.setDescription('Ocurrió un error grave. Los administradores han sido notificados.');
+          embed.setDescription('A serious error occurred. The administrators have been notified.');
           embed.addFields({
-            name: 'Código de Error',
+            name: 'Error Code',
             value: `\`${Date.now().toString(36).toUpperCase()}\``,
             inline: true,
           });
           break;
       }
 
-      // En desarrollo, mostrar más detalles
+      // In development, show more details
       if (process.env.NODE_ENV === 'development') {
         embed.addFields({
           name: 'Error Details (Dev Mode)',
@@ -343,13 +343,13 @@ export class ErrorHandler {
   }
 
   /**
-   * Determina la severidad de un error
+   * Determines the severity of an error
    */
   private determineSeverity(error: Error): ErrorReport['severity'] {
     const message = error.message.toLowerCase();
     const stack = error.stack?.toLowerCase() || '';
 
-    // Errores críticos
+    // Critical errors
     if (
       message.includes('database') ||
       message.includes('connection') ||
@@ -360,7 +360,7 @@ export class ErrorHandler {
       return 'CRITICAL';
     }
 
-    // Errores altos
+    // High errors
     if (
       message.includes('permission') ||
       message.includes('unauthorized') ||
@@ -370,7 +370,7 @@ export class ErrorHandler {
       return 'HIGH';
     }
 
-    // Errores medios
+    // Medium errors
     if (
       message.includes('validation') ||
       message.includes('invalid') ||
@@ -379,12 +379,12 @@ export class ErrorHandler {
       return 'MEDIUM';
     }
 
-    // Por defecto, bajo
+    // Default: low
     return 'LOW';
   }
 
   /**
-   * Obtiene el color del embed según la severidad
+   * Gets the embed color based on severity
    */
   private getErrorColor(severity: ErrorReport['severity']): number {
     switch (severity) {
@@ -402,14 +402,14 @@ export class ErrorHandler {
   }
 
   /**
-   * Incrementa el contador de errores
+   * Increments the error counter
    */
   private incrementErrorCount(key: string): void {
     const current = this.errorCounts.get(key) || 0;
 
     this.errorCounts.set(key, current + 1);
 
-    // Limpiar contadores antiguos cada hora
+    // Clear old counters every hour
     setTimeout(
       () => {
         this.errorCounts.delete(key);
@@ -419,13 +419,13 @@ export class ErrorHandler {
   }
 
   /**
-   * Verifica si está en rate limit
+   * Checks whether it is rate limited
    */
   private isRateLimited(key: string): boolean {
     const now = Date.now();
     const lastError = this.rateLimitMap.get(key) || 0;
 
-    // Rate limit: máximo 1 error del mismo tipo por minuto
+    // Rate limit: at most 1 error of the same type per minute
     if (now - lastError < 60 * 1000) {
       return true;
     }
@@ -436,7 +436,7 @@ export class ErrorHandler {
   }
 
   /**
-   * Maneja errores de eventos
+   * Handles event errors
    */
   public async handleEventError(
     error: Error,
@@ -466,7 +466,7 @@ export class ErrorHandler {
   }
 
   /**
-   * Obtiene estadísticas de errores
+   * Gets error statistics
    */
   public async getErrorStats(): Promise<{
     total: number;
@@ -499,7 +499,7 @@ export class ErrorHandler {
         this.db.prisma.errorLog.count({
           where: {
             createdAt: {
-              gte: new Date(Date.now() - 24 * 60 * 60 * 1000), // Últimas 24h
+              gte: new Date(Date.now() - 24 * 60 * 60 * 1000), // Last 24h
             },
           },
         }),
@@ -541,7 +541,7 @@ export class ErrorHandler {
   }
 
   /**
-   * Marca errores como resueltos
+   * Marks errors as resolved
    */
   public async resolveErrors(errorIds: string[]): Promise<void> {
     try {

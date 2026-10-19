@@ -44,7 +44,7 @@ export interface GiveawayData {
   remindersSent: string[]; // Track which reminders have been sent
   allowAltAccounts: boolean;
   minAccountAge: number; // Days
-  participantEntries: Record<string, number>; // entradas por participante (bonus por rol)
+  participantEntries: Record<string, number>; // entries per participant (role bonus)
 }
 
 export interface GiveawayStats {
@@ -75,8 +75,8 @@ export class GiveawayService {
   private activeGiveaways: Map<string, LongTimeout> = new Map();
   private reminderTimeouts: Map<string, LongTimeout[]> = new Map();
 
-  // Serializa las escrituras por sorteo (unirse/salir/recordatorio/terminar):
-  // cada operación relee el sorteo y guarda el JSON completo, así no se pisan.
+  // Serializes writes per giveaway (join/leave/reminder/end):
+  // each operation re-reads the giveaway and saves the full JSON, so they don't overwrite each other.
   private locks = new Map<string, Promise<unknown>>();
 
   private withLock<T>(giveawayId: string, fn: () => Promise<T>): Promise<T> {
@@ -153,8 +153,8 @@ export class GiveawayService {
   }
 
   private async sendReminderLocked(giveawayId: string, reminderType: string): Promise<void> {
-    // Releer de BD: el objeto capturado al programar tiene los participantes de
-    // ese momento y al guardarlo borraba a todos los que se unieron después.
+    // Re-read from DB: the object captured when scheduling has the participants of
+    // that moment, and saving it wiped everyone who joined afterwards.
     const giveaway = await this.getGiveaway(giveawayId);
     if (!giveaway || giveaway.ended || giveaway.remindersSent.includes(reminderType)) return;
 
@@ -544,7 +544,7 @@ export class GiveawayService {
         return { success: false, reason: 'Not participating' };
       }
 
-      // Quitar las entradas que tenía al unirse
+      // Remove the entries they had when joining
       const entries = giveaway.participantEntries[user.id] ?? await this.calculateEntries(giveaway, member);
 
       // Remove participant
@@ -570,7 +570,7 @@ export class GiveawayService {
   /**
    * End a giveaway and pick winners
    */
-  /** Cancela los temporizadores (fin y recordatorios) de un sorteo. */
+  /** Cancels a giveaway's timers (end and reminders). */
   clearSchedules(giveawayId: string): void {
     this.activeGiveaways.get(giveawayId)?.clear();
     this.activeGiveaways.delete(giveawayId);
@@ -734,7 +734,7 @@ export class GiveawayService {
   /**
    * Pick random winners from participants
    */
-  /** Sorteo ponderado por entradas (bonus por rol) con aleatoriedad criptográfica. */
+  /** Draw weighted by entries (role bonus) using cryptographic randomness. */
   private pickWinners(giveaway: GiveawayData, exclude: string[] = [], count?: number): { id: string; entries: number }[] {
     const pool = giveaway.participants
       .filter((id) => !exclude.includes(id))
@@ -754,7 +754,7 @@ export class GiveawayService {
     return winners;
   }
 
-  /** Embed con el estado de un sorteo de este servidor (null si no existe). */
+  /** Embed with the status of a giveaway in this server (null if it doesn't exist). */
   async buildInfoEmbed(giveawayId: string, guildId: string): Promise<EmbedBuilder | null> {
     const giveaway = await this.getGiveaway(giveawayId);
     if (!giveaway || giveaway.guildId !== guildId) return null;
@@ -782,7 +782,7 @@ export class GiveawayService {
     return embed;
   }
 
-  /** Vuelve a sortear entre quienes no ganaron (sorteo ya terminado). */
+  /** Re-draws among those who didn't win (giveaway already ended). */
   async rerollGiveaway(giveawayId: string, count: number = 1): Promise<{ success: boolean; reason?: string; winners?: string[] }> {
     return this.withLock(giveawayId, async () => {
       const giveaway = await this.getGiveaway(giveawayId);
@@ -909,8 +909,8 @@ export class GiveawayService {
 
   private async getActiveGiveaways(): Promise<GiveawayData[]> {
     try {
-      // Incluye los vencidos mientras el bot estaba apagado:
-      // scheduleGiveawayEnd los finaliza de inmediato.
+      // Includes those that expired while the bot was offline:
+      // scheduleGiveawayEnd ends them immediately.
       const giveaways = await this.prisma.giveaway.findMany({
         where: { ended: false }
       });
@@ -1222,7 +1222,7 @@ export class GiveawayService {
 
   private async getUserInviteCount(userId: string, guildId: string): Promise<number> {
     try {
-      // Lectura directa de invite_stats (válidas + extra), sin calcular el ranking completo
+      // Direct read from invite_stats (valid + bonus), without computing the full leaderboard
       const row = await this.client.db.inviteStats.findUnique({
         where: { guildId_userId: { guildId, userId } },
         select: { validInvites: true, bonusInvites: true }

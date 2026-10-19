@@ -1,39 +1,39 @@
 /**
- * Tipos para el sistema de addons dinámico
+ * Types for the dynamic addon system
  */
 
 export interface AddonConfig {
-  // Información básica
+  // Basic information
   name: string;
   displayName: string;
   description: string;
   version: string;
   
-  // Monetización
+  // Monetization
   price: number;
   currency: string;
   category: AddonCategory;
   
-  // Características
+  // Features
   features: string[];
   permissions: string[];
   dependencies: string[];
   
-  // Configuración técnica
+  // Technical configuration
   enabled: boolean;
   beta: boolean;
   requiresSetup: boolean;
   
-  // Metadatos
+  // Metadata
   author: string;
   website?: string;
   supportUrl?: string;
   documentationUrl?: string;
   
-  // Configuración por defecto
+  // Default configuration
   defaultConfig: Record<string, any>;
   
-  // Límites y restricciones
+  // Limits and restrictions
   limits?: AddonLimits;
 }
 
@@ -52,7 +52,7 @@ export interface AddonLimits {
   maxServers?: number;
   maxUsers?: number;
   maxRequests?: number;
-  maxStorage?: number; // en MB
+  maxStorage?: number; // in MB
   features?: Record<string, number>;
 }
 
@@ -103,18 +103,18 @@ export interface AddonBundle {
   description: string;
   addons: string[];
   price: number;
-  discount: number; // porcentaje de descuento
+  discount: number; // discount percentage
   currency: string;
   popular: boolean;
 }
 
-// Bundles predefinidos
+// Predefined bundles
 export const ADDON_BUNDLES: AddonBundle[] = [
   {
     id: 'starter',
     name: 'starter',
     displayName: 'Starter Pack',
-    description: 'Perfecto para servidores pequeños que empiezan',
+    description: 'Perfect for small servers getting started',
     addons: ['tickets', 'forms', 'links'],
     price: 6.99,
     discount: 22, // 3 addons × $2.99 = $8.97, bundle = $6.99
@@ -125,7 +125,7 @@ export const ADDON_BUNDLES: AddonBundle[] = [
     id: 'complete',
     name: 'complete',
     displayName: 'Complete Bundle',
-    description: 'Todos los addons incluidos - Máximo valor',
+    description: 'All addons included - Maximum value',
     addons: [
       'tickets', 'store', 'staff', 'forms', 'links', 
       'paste', 'music-pro', 'analytics-pro', 'ai-assistant'

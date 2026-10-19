@@ -1,9 +1,9 @@
 /**
  * EmailService
  *
- * Servicio de correo transaccional usando Resend.
- * Todos los templates están disponibles en ES e EN.
- * Registra cada envío en email_log para trazabilidad.
+ * Transactional email service using Resend.
+ * All templates are available in ES and EN.
+ * Records every send in email_log for traceability.
  */
 
 import { Resend } from 'resend';
@@ -83,7 +83,7 @@ function divider(): string {
   return `<hr style="border:none;border-top:1px solid #2a2a3e;margin:24px 0;">`;
 }
 
-// ─── Definición de templates ─────────────────────────────────────────────────
+// ─── Template definitions ────────────────────────────────────────────────────
 
 const TEMPLATES: Record<string, EmailTemplate> = {
   welcome: {
@@ -248,7 +248,7 @@ const TEMPLATES: Record<string, EmailTemplate> = {
   },
 };
 
-// ─── Clase principal ──────────────────────────────────────────────────────────
+// ─── Main class ───────────────────────────────────────────────────────────────
 
 export class EmailService {
   private resend: Resend | null = null;
@@ -267,11 +267,11 @@ export class EmailService {
   }
 
   /**
-   * Envía un email transaccional.
-   * @param to        Dirección de destino
-   * @param templateId ID del template (ej: 'license_activated')
-   * @param variables  Variables para el template
-   * @param opts       Opciones opcionales (guildId, campaignId, lang)
+   * Sends a transactional email.
+   * @param to        Destination address
+   * @param templateId Template ID (e.g. 'license_activated')
+   * @param variables  Template variables
+   * @param opts       Optional options (guildId, campaignId, lang)
    */
   async send(
     to: string,
@@ -311,7 +311,7 @@ export class EmailService {
       logger.error(`Email send failed: ${err.message}`, { to, templateId });
     }
 
-    // Siempre registrar en email_log
+    // Always record in email_log
     await this.db.emailLog.create({
       data: {
         guildId:    opts.guildId,
@@ -325,12 +325,12 @@ export class EmailService {
     }).catch(e => logger.error('Error writing email_log', { error: e }));
   }
 
-  /** Lista los templates disponibles */
+  /** Lists the available templates */
   getTemplateIds(): string[] {
     return Object.keys(TEMPLATES);
   }
 
-  /** Obtiene la lista de logs de emails de un guild */
+  /** Gets a guild's email log list */
   async getLogsForGuild(guildId: string, limit = 50) {
     return this.db.emailLog.findMany({
       where: { guildId },

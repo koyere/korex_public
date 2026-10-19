@@ -48,7 +48,7 @@ export class LevelService {
   private logger = logger;
   private db: DatabaseManager | null = null;
 
-  // AutoRoleService se inicializa en KorexClient antes de que haya mensajes
+  // AutoRoleService is initialized in KorexClient before any messages arrive
   private get autoRoleService(): AutoRoleService | null {
     try { return AutoRoleService.getInstance(); } catch { return null; }
   }
@@ -66,23 +66,23 @@ export class LevelService {
   }
 
   /**
-   * Inicializa la conexión a la base de datos
+   * Initializes the database connection
    */
   public setDatabase(db: DatabaseManager): void {
     this.db = db;
   }
 
   /**
-   * Obtiene los datos de nivel de un usuario
+   * Gets a user's level data
    */
   public async getUser(guildId: string, userId: string): Promise<LevelUser> {
     const cacheKey = `${guildId}:${userId}`;
 
-    // Verificar caché primero
+    // Check cache first
     let user = this.userCache.get(cacheKey);
 
     if (!user && this.db) {
-      // Buscar en base de datos
+      // Look up in the database
       const dbUser = await this.db.prisma.guildUser.findUnique({
         where: {
           guildId_userId: {
@@ -104,11 +104,11 @@ export class LevelService {
           lastXpGain: dbUser.lastXpGain || null,
         };
       } else {
-        // Crear usuario nuevo
+        // Create new user
         user = await this.createUser(guildId, userId);
       }
 
-      // Cachear por 5 minutos
+      // Cache for 5 minutes
       this.userCache.set(cacheKey, user);
       setTimeout(() => this.userCache.delete(cacheKey), 5 * 60 * 1000);
     }
@@ -128,7 +128,7 @@ export class LevelService {
   }
 
   /**
-   * Crea un nuevo usuario en el sistema de niveles
+   * Creates a new user in the leveling system
    */
   private async createUser(guildId: string, userId: string): Promise<LevelUser> {
     if (!this.db) {
@@ -175,7 +175,7 @@ export class LevelService {
   }
 
   /**
-   * Actualiza los datos de un usuario
+   * Updates a user's data
    */
   private async updateUser(user: LevelUser): Promise<void> {
     if (!this.db) {
@@ -199,7 +199,7 @@ export class LevelService {
       },
     });
 
-    // Actualizar caché
+    // Update cache
     const cacheKey = `${user.guildId}:${user.userId}`;
 
     this.userCache.set(cacheKey, user);
@@ -219,7 +219,7 @@ export class LevelService {
   }
 
   /**
-   * Obtiene la configuración de niveles de un servidor
+   * Gets a server's leveling configuration
    */
   public async getConfig(guildId: string): Promise<LevelConfig> {
     if (!this.db) {
@@ -269,7 +269,7 @@ export class LevelService {
       enabled: true,
       xpPerMessage: 15,
       xpPerVoiceMinute: 5,
-      xpCooldown: 60, // 1 minuto en segundos
+      xpCooldown: 60, // 1 minute in seconds
       xpMultiplier: 1.0,
       bonusChannels: {},
       bonusRoles: {},
@@ -284,7 +284,7 @@ export class LevelService {
   }
 
   /**
-   * Añade XP por mensaje
+   * Adds XP for a message
    */
   public async addMessageXp(
     guild: Guild,
@@ -303,7 +303,7 @@ export class LevelService {
       };
     }
 
-    // Verificar si el canal está ignorado
+    // Check whether the channel is ignored
     if (config.ignoredChannels.includes(channelId)) {
       return {
         leveledUp: false,
@@ -313,7 +313,7 @@ export class LevelService {
       };
     }
 
-    // Verificar si el usuario tiene roles ignorados
+    // Check whether the user has ignored roles
     const hasIgnoredRole = member.roles.cache.some((role) => config.ignoredRoles.includes(role.id));
 
     if (hasIgnoredRole) {
@@ -325,7 +325,7 @@ export class LevelService {
       };
     }
 
-    // Verificar cooldown
+    // Check cooldown
     const cooldownKey = `${guild.id}:${member.id}`;
     const now = Date.now();
     const lastXp = this.cooldowns.get(cooldownKey) || 0;
@@ -344,37 +344,37 @@ export class LevelService {
     const user = await this.getUser(guild.id, member.id);
     const oldLevel = user.level;
 
-    // Calcular XP base
+    // Calculate base XP
     let xpGain = config.xpPerMessage;
 
-    // Aplicar multiplicador global
+    // Apply global multiplier
     xpGain *= config.xpMultiplier;
 
-    // Aplicar bonus por canal
+    // Apply channel bonus
     if (config.bonusChannels && config.bonusChannels[channelId]) {
       xpGain *= config.bonusChannels[channelId];
     }
 
-    // Aplicar bonus por roles
+    // Apply role bonus
     if (config.bonusRoles) {
       for (const role of member.roles.cache.values()) {
         if (config.bonusRoles[role.id]) {
           xpGain *= config.bonusRoles[role.id];
-          break; // Solo aplicar el primer bonus encontrado
+          break; // Only apply the first bonus found
         }
       }
     }
 
-    // Redondear XP
+    // Round XP
     xpGain = Math.round(xpGain);
 
-    // Añadir XP
+    // Add XP
     user.xp += xpGain;
     user.totalXp += xpGain;
     user.messages += 1;
     user.lastXpGain = new Date();
 
-    // Verificar si subió de nivel
+    // Check whether the user leveled up
     const newLevel = this.calculateLevel(user.totalXp);
     const leveledUp = newLevel > oldLevel;
 
@@ -392,7 +392,7 @@ export class LevelService {
       xpGained: xpGain,
     };
 
-    // Manejar subida de nivel
+    // Handle level-up
     if (leveledUp) {
       result.roleRewards = await this.handleLevelUp(guild, member, newLevel, config);
 
@@ -404,12 +404,12 @@ export class LevelService {
     return result;
   }
 
-  // Sesiones de voz en curso: guildId:userId → inicio (ms)
+  // Ongoing voice sessions: guildId:userId → start (ms)
   private voiceSessions = new Map<string, number>();
 
   /**
-   * Seguimiento de tiempo en voz para la XP por minuto (voiceStateUpdate).
-   * No cuenta el canal AFK ni a los bots; al salir/cambiar se acreditan los minutos.
+   * Voice time tracking for per-minute XP (voiceStateUpdate).
+   * Ignores the AFK channel and bots; minutes are credited on leave/switch.
    */
   public async handleVoiceStateUpdate(oldState: VoiceState, newState: VoiceState): Promise<void> {
     const member = newState.member ?? oldState.member;
@@ -426,7 +426,7 @@ export class LevelService {
       if (started) {
         const minutes = Math.floor((Date.now() - started) / 60_000);
         if (minutes >= 1) {
-          // Actividad de voz para Analíticas (minutos por día)
+          // Voice activity for Analytics (minutes per day)
           await this.db?.prisma.logEntry.create({
             data: { guildId: member.guild.id, type: 'voice', userId: member.id, channelId: oldState.channelId, data: { minutes } },
           }).catch(() => null);
@@ -440,7 +440,7 @@ export class LevelService {
   }
 
   /**
-   * Añade XP por tiempo en canal de voz
+   * Adds XP for time spent in a voice channel
    */
   public async addVoiceXp(
     guild: Guild,
@@ -466,18 +466,18 @@ export class LevelService {
     const user = await this.getUser(guild.id, member.id);
     const oldLevel = user.level;
 
-    // Calcular XP por voz
+    // Calculate voice XP
     let xpGain = config.xpPerVoiceMinute * minutes;
 
     xpGain *= config.xpMultiplier;
     xpGain = Math.round(xpGain);
 
-    // Añadir XP
+    // Add XP
     user.xp += xpGain;
     user.totalXp += xpGain;
     user.voiceMinutes += minutes;
 
-    // Verificar si subió de nivel
+    // Check whether the user leveled up
     const newLevel = this.calculateLevel(user.totalXp);
     const leveledUp = newLevel > oldLevel;
 
@@ -495,7 +495,7 @@ export class LevelService {
       xpGained: xpGain,
     };
 
-    // Manejar subida de nivel
+    // Handle level-up
     if (leveledUp) {
       result.roleRewards = await this.handleLevelUp(guild, member, newLevel, config);
 
@@ -508,30 +508,30 @@ export class LevelService {
   }
 
   /**
-   * Calcula el nivel basado en XP total
+   * Calculates the level based on total XP
    */
   public calculateLevel(totalXp: number): number {
-    // Fórmula: nivel = floor(sqrt(totalXp / 100))
+    // Formula: level = floor(sqrt(totalXp / 100))
     return Math.floor(Math.sqrt(totalXp / 100));
   }
 
   /**
-   * Calcula el XP necesario para un nivel específico
+   * Calculates the XP required for a specific level
    */
   public getXpForLevel(level: number): number {
-    // Fórmula: xp = (nivel^2) * 100
+    // Formula: xp = (level^2) * 100
     return level * level * 100;
   }
 
   /**
-   * Calcula el XP necesario para el siguiente nivel
+   * Calculates the XP required for the next level
    */
   public getXpForNextLevel(currentLevel: number): number {
     return this.getXpForLevel(currentLevel + 1);
   }
 
   /**
-   * Maneja la subida de nivel (roles, etc.)
+   * Handles level-ups (roles, etc.)
    */
   private async handleLevelUp(
     guild: Guild,
@@ -541,11 +541,11 @@ export class LevelService {
   ): Promise<string[]> {
     const roleRewards: string[] = [];
 
-    // Roles por nivel de Niveles (dashboard → Niveles → Recompensas)
+    // Level roles from Levels (dashboard → Levels → Rewards)
     if (config.levelRoles && Object.keys(config.levelRoles).length > 0) {
       try {
         const botTop = guild.members.me?.roles.highest;
-        // Todos los niveles alcanzados (cubre saltos de varios niveles a la vez)
+        // All levels reached (covers jumping several levels at once)
         const earned = Object.entries(config.levelRoles)
           .map(([level, roleId]) => ({ level: parseInt(level, 10), roleId: String(roleId) }))
           .filter((r) => Number.isFinite(r.level) && r.level <= newLevel)
@@ -561,7 +561,7 @@ export class LevelService {
           }
         }
 
-        // Si no se apilan roles, quitar los de niveles inferiores
+        // If roles are not stacked, remove those from lower levels
         if (!config.stackRoles && toGrant.length > 0) {
           const keep = toGrant[0].roleId;
           const remove = Object.values(config.levelRoles)
@@ -574,10 +574,10 @@ export class LevelService {
       }
     }
 
-    // Roles por nivel configurados con /autoroles level
+    // Level roles configured with /autoroles level
     await this.autoRoleService?.handleLevelUp(member, newLevel);
 
-    // Subida de nivel para Analíticas
+    // Level-up for Analytics
     await this.db?.prisma.logEntry.create({
       data: { guildId: guild.id, type: 'levelup', userId: member.id, data: { level: newLevel } },
     }).catch(() => null);
@@ -587,7 +587,7 @@ export class LevelService {
 
 
   /**
-   * Envía mensaje de subida de nivel
+   * Sends the level-up message
    */
   private async sendLevelUpMessage(
     guild: Guild,
@@ -599,12 +599,12 @@ export class LevelService {
     try {
       let channel: TextChannel | null = null;
 
-      // 1. Usar canal configurado específicamente
+      // 1. Use the specifically configured channel
       if (config.levelUpChannelId) {
         channel = guild.channels.cache.get(config.levelUpChannelId) as TextChannel;
       }
 
-      // 2. Usar canal actual del mensaje (si se proporcionó)
+      // 2. Use the message's current channel (if provided)
       if (!channel && currentChannel) {
         channel = currentChannel;
       }
@@ -615,7 +615,7 @@ export class LevelService {
         return;
       }
 
-      // Verificar permisos del bot
+      // Check bot permissions
       const permissions = channel.permissionsFor(guild.members.me!);
 
       if (!permissions?.has(['SendMessages', 'EmbedLinks'])) {
@@ -624,9 +624,9 @@ export class LevelService {
         return;
       }
 
-      // Formatear mensaje (todas las apariciones de cada variable)
+      // Format message (every occurrence of each variable)
       const t = (key: string, vars?: Record<string, string>) => i18n.t(key, guild.id, vars);
-      // El valor por defecto del esquema está en español: se trata como "sin personalizar"
+      // The schema default value is in Spanish: it is treated as "not customized"
       const SCHEMA_DEFAULT = '🎉 ¡{user} subió al nivel {level}!';
       const custom = config.levelUpMessage?.trim();
       const template = custom && custom !== SCHEMA_DEFAULT ? custom : t('levels.levelup.default_message');
@@ -659,7 +659,7 @@ export class LevelService {
   }
 
   /**
-   * Obtiene el leaderboard de niveles
+   * Gets the level leaderboard
    */
   public async getLeaderboard(guildId: string, limit: number = 10, offset: number = 0): Promise<LevelUser[]> {
     try {
@@ -692,7 +692,7 @@ export class LevelService {
   }
 
   /**
-   * Obtiene la posición de un usuario en el leaderboard
+   * Gets a user's position on the leaderboard
    */
   public async getUserRank(guildId: string, userId: string): Promise<number> {
     try {
@@ -724,7 +724,7 @@ export class LevelService {
   }
 
   /**
-   * Añade XP manualmente a un usuario
+   * Manually adds XP to a user
    */
   public async addXp(
     guild: Guild,
@@ -733,7 +733,7 @@ export class LevelService {
     reason: string = 'Manual addition'
   ): Promise<LevelUpResult> {
     try {
-      // Respeta el sistema de niveles (config y toggle del módulo), p. ej. XP por invitaciones
+      // Respects the leveling system (config and module toggle), e.g. XP for invites
       const levelConfig = await this.getConfig(guild.id);
       if (!levelConfig.enabled || !(await this.isGuildModuleEnabled(guild.id, 'levels'))) {
         return { leveledUp: false, oldLevel: 0, newLevel: 0, xpGained: 0 };
@@ -745,7 +745,7 @@ export class LevelService {
       user.xp += amount;
       user.totalXp += amount;
 
-      // Verificar si subió de nivel
+      // Check whether the user leveled up
       const newLevel = this.calculateLevel(user.totalXp);
       const leveledUp = newLevel > oldLevel;
 
@@ -767,7 +767,7 @@ export class LevelService {
         xpGained: amount,
       };
 
-      // Manejar subida de nivel si es necesario
+      // Handle level-up if needed
       if (leveledUp) {
         const member = await guild.members.fetch(userId).catch(() => null);
 
@@ -796,7 +796,7 @@ export class LevelService {
   }
 
   /**
-   * Quita XP a un usuario
+   * Removes XP from a user
    */
   public async removeXp(
     guild: Guild,
@@ -810,7 +810,7 @@ export class LevelService {
 
       user.totalXp = Math.max(0, user.totalXp - amount);
 
-      // Recalcular nivel y XP actual
+      // Recalculate level and current XP
       const newLevel = this.calculateLevel(user.totalXp);
 
       user.level = newLevel;
@@ -841,7 +841,7 @@ export class LevelService {
   }
 
   /**
-   * Obtiene estadísticas de niveles del servidor
+   * Gets the server's leveling statistics
    */
   public async getServerStats(guildId: string): Promise<{
     totalUsers: number;

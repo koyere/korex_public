@@ -34,7 +34,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
         if (svc) await svc.handleButton(interaction).catch(() => {});
         return;
       }
-      // Captcha de verificación: abrir el modal para escribir el código
+      // Verification captcha: open the modal to type the code
       if (interaction.customId === 'verify:captcha') {
         const svc = (this.client as any).verificationService;
         if (svc) await svc.handleCaptchaButton(interaction).catch(() => {});
@@ -59,7 +59,7 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
 
     // Modals
     if (interaction.isModalSubmit()) {
-      // Captcha de verificación: comprobar el código
+      // Verification captcha: check the code
       if (interaction.customId === 'verify:captcha_modal') {
         const svc = (this.client as any).verificationService;
         if (svc) await svc.handleCaptchaModal(interaction).catch(() => {});
@@ -77,15 +77,15 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
   }
 
   /**
-   * Manejar comandos slash
-   * (pipeline compartido con los comandos de prefijo: src/client/commandPipeline.ts)
+   * Handle slash commands
+   * (pipeline shared with prefix commands: src/client/commandPipeline.ts)
    */
   private async handleSlashCommand(interaction: ChatInputCommandInteraction): Promise<void> {
     await runChatInputCommand(this.client, interaction);
   }
 
   /**
-   * Manejar autocomplete
+   * Handle autocomplete
    */
   private async handleAutocomplete(interaction: any): Promise<void> {
     const command = this.client.commands.getCommand(interaction.commandName);
@@ -97,12 +97,12 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
     try {
       await (command as any).executeAutocomplete(interaction);
     } catch (error) {
-      this.client.logger.error(`Error en autocomplete ${command.name}:`, error);
+      this.client.logger.error(`Error in autocomplete ${command.name}:`, error);
     }
   }
 
   /**
-   * Responder con error de forma consistente
+   * Reply with an error consistently
    */
   private async replyError(
     interaction: ChatInputCommandInteraction,

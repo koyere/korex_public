@@ -8,8 +8,8 @@ import { KorexClient } from '../../client/KorexClient';
 import { i18n } from '../../utils/i18n';
 
 /**
- * /pause — pausa o reanuda la reproducción (mismo comportamiento que el botón ⏯️ de /queue).
- * La respuesta ya viene diferida (interactionCreate difiere los comandos de música).
+ * /pause — pauses or resumes playback (same behavior as the ⏯️ button in /queue).
+ * The reply is already deferred (interactionCreate defers music commands).
  */
 export default class PauseCommand extends Command {
   constructor(client: KorexClient) {

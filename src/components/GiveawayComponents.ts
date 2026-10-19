@@ -105,7 +105,7 @@ export class GiveawayComponents extends Component {
           errorMessage = i18n.t('giveaways.join.requirements_not_met', guildId);
           break;
         default:
-          // Requisitos y detección de alts ya vienen traducidos desde el servicio
+          // Requirements and alt detection messages arrive already translated from the service
           errorMessage = result.reason;
       }
 
@@ -490,6 +490,6 @@ export class GiveawayBonusModal extends Component {
   }
 }
 
-// El ComponentManager solo registra el export por defecto: incluir los modales
+// The ComponentManager only registers the default export: include the modals
 export default [GiveawayComponents, GiveawayRequirementsModal, GiveawayBonusModal];
 

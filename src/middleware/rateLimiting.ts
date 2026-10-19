@@ -26,61 +26,61 @@ export interface RateLimitResult {
 }
 
 /**
- * Sistema de Rate Limiting para Korex
- * Previene abuso y spam de comandos
+ * Rate Limiting system for Korex
+ * Prevents command abuse and spam
  */
 export class RateLimiter {
   private client: KorexClient;
   private logger = createLogger('rate-limiter');
 
-  // Configuraciones predefinidas
+  // Predefined configurations
   public static readonly CONFIGS = {
-    // Límites generales
+    // General limits
     GLOBAL: {
       maxRequests: 60,
-      windowMs: 60000 // 1 minuto
+      windowMs: 60000 // 1 minute
     },
 
-    // Límites por usuario
+    // Per-user limits
     USER: {
       maxRequests: 30,
-      windowMs: 60000 // 30 comandos por minuto por usuario
+      windowMs: 60000 // 30 commands per minute per user
     },
 
-    // Límites por servidor
+    // Per-server limits
     GUILD: {
       maxRequests: 100,
-      windowMs: 60000 // 100 comandos por minuto por servidor
+      windowMs: 60000 // 100 commands per minute per server
     },
 
-    // Límites estrictos para comandos pesados
+    // Strict limits for heavy commands
     HEAVY: {
       maxRequests: 5,
-      windowMs: 60000 // 5 comandos por minuto
+      windowMs: 60000 // 5 commands per minute
     },
 
-    // Límites para comandos de moderación
+    // Limits for moderation commands
     MODERATION: {
       maxRequests: 20,
-      windowMs: 60000 // 20 acciones de moderación por minuto
+      windowMs: 60000 // 20 moderation actions per minute
     },
 
-    // Límites para comandos económicos
+    // Limits for economy commands
     ECONOMY: {
       maxRequests: 15,
-      windowMs: 60000 // 15 comandos económicos por minuto
+      windowMs: 60000 // 15 economy commands per minute
     },
 
-    // Límites para comandos de música
+    // Limits for music commands
     MUSIC: {
       maxRequests: 10,
-      windowMs: 30000 // 10 comandos de música por 30 segundos
+      windowMs: 30000 // 10 music commands per 30 seconds
     },
 
-    // Límites para comandos de diversión
+    // Limits for fun commands
     FUN: {
       maxRequests: 20,
-      windowMs: 60000 // 20 comandos de diversión por minuto
+      windowMs: 60000 // 20 fun commands per minute
     }
   };
 
@@ -105,7 +105,7 @@ export class RateLimiter {
   }
 
   /**
-   * Verificar rate limit — patrón INCR+EXPIRE atómico sobre Redis
+   * Check rate limit — atomic INCR+EXPIRE pattern on Redis
    */
   async checkRateLimit(
     interaction: CommandInteraction,
@@ -121,7 +121,7 @@ export class RateLimiter {
 
     const count = await redis.incr(redisKey);
     if (count === 1) {
-      // Primera petición en esta ventana — fijar TTL
+      // First request in this window — set TTL
       await redis.expire(redisKey, windowSecs);
     }
 
@@ -150,7 +150,7 @@ export class RateLimiter {
   }
 
   /**
-   * Middleware de rate limiting para comandos
+   * Rate limiting middleware for commands
    */
   static createMiddleware(config: RateLimitConfig) {
     return async function rateLimitMiddleware(
@@ -186,7 +186,7 @@ export class RateLimiter {
   }
 
   /**
-   * Decorador para rate limiting
+   * Decorator for rate limiting
    */
   static RateLimit(configName: keyof typeof RateLimiter.CONFIGS | RateLimitConfig) {
     return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
@@ -228,7 +228,7 @@ export class RateLimiter {
   }
 
   /**
-   * Generar clave para rate limiting
+   * Generate rate limiting key
    */
   private generateKey(interaction: CommandInteraction, type: 'user' | 'guild' | 'global'): string {
     const command = interaction.commandName;
@@ -246,7 +246,7 @@ export class RateLimiter {
   }
 
   /**
-   * Verificar múltiples límites
+   * Check multiple limits
    */
   async checkMultipleLimits(
     interaction: CommandInteraction,
@@ -268,7 +268,7 @@ export class RateLimiter {
   }
 
   /**
-   * Obtener información de límite actual
+   * Get current limit information
    */
   async getLimitInfo(key: string): Promise<RateLimitInfo | null> {
     const redis = this.client.redis.getClient();
@@ -290,7 +290,7 @@ export class RateLimiter {
   }
 
   /**
-   * Resetear límite para una clave específica
+   * Reset the limit for a specific key
    */
   async resetLimit(key: string): Promise<boolean> {
     const redis = this.client.redis.getClient();
@@ -299,7 +299,7 @@ export class RateLimiter {
   }
 
   /**
-   * Resetear todos los límites de un usuario
+   * Reset all limits for a user
    */
   async resetUserLimits(userId: string): Promise<number> {
     const keys = await this.scanKeys(`${this.redisPrefix}user:${userId}:*`);
@@ -310,7 +310,7 @@ export class RateLimiter {
   }
 
   /**
-   * Resetear todos los límites de un servidor
+   * Reset all limits for a server
    */
   async resetGuildLimits(guildId: string): Promise<number> {
     const keys = await this.scanKeys(`${this.redisPrefix}guild:${guildId}:*`);
@@ -321,7 +321,7 @@ export class RateLimiter {
   }
 
   /**
-   * Obtener estadísticas de rate limiting
+   * Get rate limiting statistics
    */
   async getStats(): Promise<{
     totalLimits: number;
@@ -359,14 +359,14 @@ export class RateLimiter {
   }
 
   /**
-   * Configurar límites personalizados para un comando
+   * Configure custom limits for a command
    */
   setCustomLimit(commandName: string, config: RateLimitConfig): void {
     this.logger.info(`Custom rate limit set for command: ${commandName}`);
   }
 
   /**
-   * Verificar si un usuario está siendo limitado excesivamente
+   * Check whether a user is being rate limited excessively
    */
   async isUserAbusing(userId: string): Promise<boolean> {
     const keys = await this.scanKeys(`${this.redisPrefix}user:${userId}:*`);
@@ -374,7 +374,7 @@ export class RateLimiter {
   }
 
   /**
-   * Destruir el rate limiter
+   * Destroy the rate limiter
    */
   destroy(): void {
     this.logger.info('Rate limiter destroyed');
@@ -382,10 +382,10 @@ export class RateLimiter {
 }
 
 /**
- * Configuraciones específicas por tipo de comando
+ * Specific configurations per command type
  */
 export const CommandRateLimits = {
-  // Comandos de moderación
+  // Moderation commands
   moderation: {
     maxRequests: 15,
     windowMs: 60000,
@@ -393,7 +393,7 @@ export const CommandRateLimits = {
       `moderation:${interaction.user.id}:${interaction.guildId}`
   },
 
-  // Comandos económicos
+  // Economy commands
   economy: {
     maxRequests: 10,
     windowMs: 60000,
@@ -401,7 +401,7 @@ export const CommandRateLimits = {
       `economy:${interaction.user.id}:${interaction.guildId}`
   },
 
-  // Comandos de música
+  // Music commands
   music: {
     maxRequests: 8,
     windowMs: 30000,
@@ -409,7 +409,7 @@ export const CommandRateLimits = {
       `music:${interaction.guildId}`
   },
 
-  // Comandos pesados (que requieren mucho procesamiento)
+  // Heavy commands (requiring a lot of processing)
   heavy: {
     maxRequests: 3,
     windowMs: 60000,
@@ -417,7 +417,7 @@ export const CommandRateLimits = {
       `heavy:${interaction.user.id}`
   },
 
-  // Comandos de diversión
+  // Fun commands
   fun: {
     maxRequests: 15,
     windowMs: 60000,

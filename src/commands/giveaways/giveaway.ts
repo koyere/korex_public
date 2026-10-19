@@ -317,7 +317,7 @@ export default class GiveawayCommand extends Command {
 
     await interaction.deferReply({ ephemeral: true });
 
-    // Solo sorteos de este servidor y sin re-terminar uno ya acabado
+    // Only giveaways from this server, and never re-end one that already ended
     const owned = await this.client.db.giveaway.findFirst({
       where: { id: giveawayId, guildId },
       select: { id: true },

@@ -1,10 +1,10 @@
 /**
- * KOREX - Sistema de Addons Dinámico
+ * KOREX - Dynamic Addon System
  *
- * Los addons premium son módulos opcionales que extienden la funcionalidad del bot.
- * Cada addon requiere una licencia activa para ejecutarse en un servidor.
+ * Premium addons are optional modules that extend the bot's functionality.
+ * Each addon requires an active license to run on a server.
  *
- * Addons disponibles en https://korex.dev
+ * Addons available at https://korex.dev
  */
 
 export * from './types/addon.types';

@@ -2,8 +2,8 @@ import { Event } from '../../client/structures/Event';
 import { KorexClient } from '../../client/KorexClient';
 
 /**
- * Evento que se dispara cuando el cliente está listo y conectado a Discord.
- * Usa 'clientReady' para compatibilidad con Discord.js v15+
+ * Event fired when the client is ready and connected to Discord.
+ * Uses 'clientReady' for compatibility with Discord.js v15+
  */
 export default class ReadyEvent extends Event<'clientReady'> {
   constructor(client: KorexClient) {
@@ -14,13 +14,13 @@ export default class ReadyEvent extends Event<'clientReady'> {
   }
 
   async execute(): Promise<void> {
-    // Llamar al método onReady del cliente
+    // Call the client's onReady method
     await this.client.onReady();
 
-    // Caché de invitaciones para saber quién invitó a cada miembro (/invites)
+    // Invite cache to know who invited each member (/invites)
     this.client.inviteService.init().catch((err) => this.client.logger.warn('Invite tracking init failed:', err));
 
-    // Configurar presencia del bot
+    // Set up the bot presence
     this.client.user?.setPresence({
       activities: [
         {
@@ -31,7 +31,7 @@ export default class ReadyEvent extends Event<'clientReady'> {
       status: 'online',
     });
 
-    // Actualizar presencia cada 5 minutos
+    // Update presence every 5 minutes
     setInterval(
       () => {
         this.updatePresence();
@@ -39,16 +39,16 @@ export default class ReadyEvent extends Event<'clientReady'> {
       5 * 60 * 1000
     );
 
-    // Inicializar tareas periódicas
+    // Initialize periodic tasks
     this.setupPeriodicTasks();
 
-    // Inicializar sistema de música
+    // Initialize music system
     if (this.client.music && this.client.music.isEnabled()) {
       try {
         await this.client.music.init();
-        this.client.logger.info('🎵 Sistema de música inicializado');
+        this.client.logger.info('🎵 Music system initialized');
       } catch (error) {
-        this.client.logger.warn('Sistema de música no disponible:', error);
+        this.client.logger.warn('Music system unavailable:', error);
       }
     }
 
@@ -57,7 +57,7 @@ export default class ReadyEvent extends Event<'clientReady'> {
       this.client.logger.warn('Could not restore bot nicknames:', err)
     );
 
-    this.client.logger.info('🎯 Evento ready ejecutado completamente');
+    this.client.logger.info('🎯 Ready event fully executed');
   }
 
   /**
@@ -80,12 +80,12 @@ export default class ReadyEvent extends Event<'clientReady'> {
     }
 
     if (guildsWithNickname.length > 0) {
-      this.client.logger.info(`✅ Nicknames restaurados en ${guildsWithNickname.length} servidor(es)`);
+      this.client.logger.info(`✅ Nicknames restored in ${guildsWithNickname.length} server(s)`);
     }
   }
 
   /**
-   * Actualizar presencia del bot
+   * Update the bot presence
    */
   private updatePresence(): void {
     if (!this.client.user) return;
@@ -112,57 +112,57 @@ export default class ReadyEvent extends Event<'clientReady'> {
   }
 
   /**
-   * Configurar tareas periódicas
+   * Set up periodic tasks
    */
   private setupPeriodicTasks(): void {
-    // Roles de entrada con retraso pendientes (persistidos en BD: sobreviven a reinicios)
+    // Pending delayed join roles (persisted in DB: survive restarts)
     try {
       this.client.autoRole.startDelayedJoinRoleWorker(this.client);
     } catch (error) {
       this.client.logger.error('Error starting delayed join role worker:', error);
     }
 
-    // Plazos de verificación pendientes (persistidos en Redis: sobreviven a reinicios)
+    // Pending verification deadlines (persisted in Redis: survive restarts)
     try {
       this.client.verificationService.startDeadlineWorker();
     } catch (error) {
       this.client.logger.error('Error starting verification deadline worker:', error);
     }
 
-    // Limpiar base de datos cada 24 horas
+    // Clean the database every 24 hours
     setInterval(
       async () => {
         try {
-          this.client.logger.info('🧹 Iniciando limpieza periódica de base de datos...');
+          this.client.logger.info('🧹 Starting periodic database cleanup...');
           const result = await this.client.database.cleanup();
 
-          this.client.logger.info('✅ Limpieza completada:', result);
+          this.client.logger.info('✅ Cleanup completed:', result);
         } catch (error) {
-          this.client.logger.error('❌ Error en limpieza periódica:', error);
+          this.client.logger.error('❌ Error in periodic cleanup:', error);
         }
       },
       24 * 60 * 60 * 1000
-    ); // 24 horas
+    ); // 24 hours
 
-    // Actualizar estadísticas cada hora
+    // Update statistics every hour
     setInterval(
       async () => {
         try {
           const stats = this.client.getBotInfo();
 
-          this.client.logger.debug('📊 Estadísticas actualizadas:', {
+          this.client.logger.debug('📊 Statistics updated:', {
             guilds: stats.guilds,
             users: stats.users,
-            uptime: Math.floor(stats.uptime / 1000 / 60), // minutos
+            uptime: Math.floor(stats.uptime / 1000 / 60), // minutes
             memory: Math.floor(stats.memory.heapUsed / 1024 / 1024), // MB
           });
         } catch (error) {
-          this.client.logger.error('❌ Error actualizando estadísticas:', error);
+          this.client.logger.error('❌ Error updating statistics:', error);
         }
       },
       60 * 60 * 1000
-    ); // 1 hora
+    ); // 1 hour
 
-    this.client.logger.debug('⏰ Tareas periódicas configuradas');
+    this.client.logger.debug('⏰ Periodic tasks configured');
   }
 }

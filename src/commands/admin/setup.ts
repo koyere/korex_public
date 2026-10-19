@@ -166,7 +166,7 @@ export default class SetupCommand extends Command {
         }
       });
 
-      // Botón del escalado por avisos (resultado de la opción Moderación)
+      // Warn escalation button (result of the Moderation option)
       const buttonCollector = response.createMessageComponentCollector({
         componentType: ComponentType.Button,
         time: 300000,
@@ -297,7 +297,7 @@ export default class SetupCommand extends Command {
         },
       });
 
-      // El AutoMod y los logs de moderación leen estas tablas (las mismas que el dashboard)
+      // AutoMod and moderation logs read these tables (the same ones as the dashboard)
       const modConfig = await this.client.db.moderationConfig.upsert({
         where: { guildId: guild.id },
         update: { autoModEnabled: true },
@@ -351,10 +351,10 @@ export default class SetupCommand extends Command {
     await interaction.editReply({ embeds: [embed], components: [] });
   }
 
-  // ── Escalado por avisos (3 → silencio, 5 → expulsión, 7 → baneo; desactivado por defecto) ──
+  // ── Warn escalation (3 → mute, 5 → kick, 7 → ban; disabled by default) ──
 
   private async getEscalationState(guildId: string): Promise<{ enabled: boolean; steps: WarnEscalationStep[] }> {
-    // Columnas aditivas de moderation_configs: acceso sin tipar
+    // Additive moderation_configs columns: untyped access
     const cfg: any = await (this.client.db as any).moderationConfig.findUnique({ where: { guildId } }).catch(() => null);
     return { enabled: cfg?.warnEscalationEnabled === true, steps: readWarnEscalation(cfg?.warnEscalationSteps) };
   }

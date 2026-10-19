@@ -57,19 +57,19 @@ export class AnalyticsService {
 
     try {
       const [commandsUsed, messagesCount, levelUps, moderationActions] = await Promise.all([
-        // Comandos usados últimos 30 días
+        // Commands used in the last 30 days
         this.prisma.commandUsage.count({
           where: { guildId, createdAt: { gte: last30Days } }
         }),
-        // Mensajes últimos 30 días (desde LogEntry)
+        // Messages in the last 30 days (from LogEntry)
         this.prisma.logEntry.count({
           where: { guildId, type: 'message', createdAt: { gte: last30Days } }
         }),
-        // Level ups últimos 30 días
+        // Level ups in the last 30 days
         this.prisma.logEntry.count({
           where: { guildId, type: 'levelup', createdAt: { gte: last30Days } }
         }),
-        // Acciones de moderación últimos 30 días
+        // Moderation actions in the last 30 days
         this.prisma.moderationCase.count({
           where: { guildId, createdAt: { gte: last30Days } }
         })

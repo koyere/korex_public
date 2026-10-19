@@ -83,7 +83,7 @@ export default class QueueCommand extends Command {
   }
 }
 
-/** Embed + botones de la cola (lo usan /queue y los botones de página). */
+/** Queue embed + buttons (used by /queue and the page buttons). */
 export function buildQueueMessage(client: KorexClient, guildId: string, page: number) {
   const queueData = client.music.getQueueDisplay(guildId, page);
   if (!queueData) return null;

@@ -1,7 +1,7 @@
 /**
- * LogStream — singleton EventEmitter para streaming de logs en tiempo real.
- * El Logger emite aquí; el endpoint SSE de admin escucha aquí.
- * Funciona dentro del mismo proceso sin necesidad de Redis pub/sub.
+ * LogStream — singleton EventEmitter for real-time log streaming.
+ * The Logger emits here; the admin SSE endpoint listens here.
+ * Works within the same process without needing Redis pub/sub.
  */
 
 import { EventEmitter } from 'events';
@@ -17,5 +17,5 @@ class LogStreamEmitter extends EventEmitter {}
 
 export const logStream = new LogStreamEmitter();
 
-// Permite muchos clientes SSE simultáneos sin warnings de memory leak
+// Allows many simultaneous SSE clients without memory leak warnings
 logStream.setMaxListeners(200);

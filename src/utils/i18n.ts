@@ -154,8 +154,8 @@ export class I18n {
    * Get translated text with comprehensive fallback search
    */
   public t(key: string, langOrGuildId?: string, replacements?: Record<string, string>): string {
-    // Determinar el idioma: si es un código de idioma válido, usarlo directamente
-    // Si no, tratarlo como guildId y buscar el idioma
+    // Determine the language: if it is a valid language code, use it directly
+    // Otherwise, treat it as a guildId and look up the language
     let language: string;
 
     if (langOrGuildId && this.languages.has(langOrGuildId)) {
@@ -314,7 +314,7 @@ export class I18n {
    */
   public async loadGuildLanguagesFromDB(prisma: PrismaLike): Promise<void> {
     try {
-      // Leer todos los guilds que tienen idioma configurado
+      // Read all guilds that have a language configured
       const guilds = await prisma.guild.findMany({
         select: {
           id: true,

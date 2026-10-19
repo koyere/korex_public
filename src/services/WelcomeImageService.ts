@@ -17,7 +17,7 @@ export interface WelcomeTemplate {
   name: string;
   width: number;
   height: number;
-  // subtext: color de las líneas secundarias (por defecto gris claro, para fondos oscuros)
+  // subtext: color of secondary lines (light gray by default, for dark backgrounds)
   colors: { primary: string; secondary: string; text: string; accent: string; subtext?: string };
 }
 
@@ -29,7 +29,7 @@ const templates: Record<string, WelcomeTemplate> = {
   'sunset':       { id: 'sunset',       name: 'Sunset',       width: 700, height: 250, colors: { primary: '#2d1a3d', secondary: '#4a1942', text: '#ffffff', accent: '#ff6b6b' } },
   'ocean':        { id: 'ocean',        name: 'Ocean',        width: 700, height: 250, colors: { primary: '#0a1628', secondary: '#1a2744', text: '#ffffff', accent: '#00bcd4' } },
   'forest':       { id: 'forest',       name: 'Forest',       width: 700, height: 250, colors: { primary: '#1a2e1a', secondary: '#2d4a2d', text: '#ffffff', accent: '#4caf50' } },
-  // Plantillas del catálogo de /welcome-image (paletas propias; mismo diseño de tarjeta)
+  // Templates from the /welcome-image catalog (own palettes; same card layout)
   'minimalist-light': { id: 'minimalist-light', name: 'Minimalist Light', width: 700, height: 250, colors: { primary: '#ffffff', secondary: '#eef0f3', text: '#111827', accent: '#4b5563', subtext: '#4b5563' } },
   'gaming-neon':      { id: 'gaming-neon',      name: 'Gaming Neon',      width: 700, height: 250, colors: { primary: '#0d0221', secondary: '#1b0b3b', text: '#ffffff', accent: '#39ff14' } },
   'corporate-blue':   { id: 'corporate-blue',   name: 'Corporate Blue',   width: 700, height: 250, colors: { primary: '#0b2e6b', secondary: '#1d4f9c', text: '#ffffff', accent: '#7cc4ff' } },
@@ -64,7 +64,7 @@ export class WelcomeImageService {
     return templates[templateId];
   }
 
-  /** Imagen de bienvenida o despedida lista para adjuntar (null si falla). */
+  /** Welcome or goodbye image ready to attach (null on failure). */
   public async generateImage(
     member: GuildMember,
     kind: WelcomeImageKind,
@@ -84,7 +84,7 @@ export class WelcomeImageService {
     }
   }
 
-  /** Compatibilidad con /welcome-image (vista previa). */
+  /** Compatibility with /welcome-image (preview). */
   public async generateWelcomeImage(member: GuildMember, templateId: string = DEFAULT_WELCOME_TEMPLATE, backgroundUrl?: string): Promise<AttachmentBuilder | null> {
     return this.generateImage(member, 'welcome', templateId, backgroundUrl);
   }
@@ -97,7 +97,7 @@ async function renderImage(member: GuildMember, kind: WelcomeImageKind, template
   const ctx = canvas.getContext('2d');
   const guildId = member.guild.id;
 
-  // Background (URL pública del usuario, con protección SSRF; si falla, degradado)
+  // Background (user-provided public URL, with SSRF protection; gradient on failure)
   let drewCustomBg = false;
   if (backgroundUrl) {
     try {
@@ -140,7 +140,7 @@ async function renderImage(member: GuildMember, kind: WelcomeImageKind, template
     ctx.fill();
   }
 
-  // Text (en el idioma del servidor)
+  // Text (in the server language)
   const textX = avatarX + avatarSize + 30;
   const count = String(member.guild.memberCount);
 

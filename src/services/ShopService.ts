@@ -77,7 +77,7 @@ export class ShopService {
   ];
 
   /**
-   * Inserta el catálogo base en un guild nuevo (idempotente por nombre)
+   * Inserts the base catalog into a new guild (idempotent by name)
    */
   public async seedDefaultItems(guildId: string): Promise<void> {
     if (!this.db) return;
@@ -95,7 +95,7 @@ export class ShopService {
       }
 
       if (toInsert.length > 0) {
-        this.logger.info(`Shop: ${toInsert.length} items insertados en guild ${guildId}`);
+        this.logger.info(`Shop: ${toInsert.length} items inserted in guild ${guildId}`);
       }
     } catch (error) {
       this.logger.error(`Error seeding shop items for guild ${guildId}:`, error);
@@ -103,7 +103,7 @@ export class ShopService {
   }
 
   /**
-   * Obtiene items de la tienda desde la BD
+   * Gets shop items from the DB
    */
   public async getShopItems(guildId: string): Promise<ShopItem[]> {
     if (!this.db) return [];
@@ -135,13 +135,13 @@ export class ShopService {
   }
 
   /**
-   * Obtiene un item específico
+   * Gets a specific item
    */
   public async getItem(itemId: string, guildId: string): Promise<ShopItem | null> {
     if (!this.db) return null;
 
     try {
-      // Siempre acotado al servidor y a items activos: el ID llega del usuario
+      // Always scoped to the server and to active items: the ID comes from the user
       const item = await this.db.prisma.shopItem.findFirst({
         where: { id: itemId, guildId, enabled: true }
       });
@@ -170,8 +170,8 @@ export class ShopService {
   }
 
   /**
-   * Reserva una unidad de stock de forma atómica (stock -1 = ilimitado).
-   * Devuelve false si el item está agotado.
+   * Atomically reserves one unit of stock (stock -1 = unlimited).
+   * Returns false if the item is out of stock.
    */
   public async reserveStock(itemId: string, guildId: string): Promise<boolean> {
     if (!this.db) return false;
@@ -185,7 +185,7 @@ export class ShopService {
     return count === 1;
   }
 
-  /** Devuelve una unidad reservada (compra fallida). */
+  /** Returns a reserved unit (failed purchase). */
   public async releaseStock(itemId: string, guildId: string): Promise<void> {
     if (!this.db) return;
     await this.db.prisma.shopItem.updateMany({
@@ -195,7 +195,7 @@ export class ShopService {
   }
 
   /**
-   * Agrega item al inventario del usuario
+   * Adds an item to the user's inventory
    */
   public async addToInventory(guildId: string, userId: string, itemId: string): Promise<boolean> {
     if (!this.db) return false;
@@ -225,7 +225,7 @@ export class ShopService {
   }
 
   /**
-   * Obtiene el inventario del usuario
+   * Gets the user's inventory
    */
   public async getUserInventory(guildId: string, userId: string): Promise<InventoryItem[]> {
     if (!this.db) return [];
@@ -254,7 +254,7 @@ export class ShopService {
   }
 
   /**
-   * Equipa/desequipa un item cosmético
+   * Equips/unequips a cosmetic item
    */
   public async toggleEquip(guildId: string, userId: string, inventoryId: string): Promise<{ success: boolean; equipped: boolean; message: string }> {
     if (!this.db) return { success: false, equipped: false, message: i18n.t('shop.inv.unavailable', guildId) };
@@ -273,7 +273,7 @@ export class ShopService {
         return { success: false, equipped: false, message: i18n.t('shop.inv.only_cosmetic', guildId) };
       }
 
-      // Si va a equipar, desequipar otros del mismo tipo
+      // If equipping, unequip others of the same type
       if (!inv.equipped) {
         await this.db.prisma.userInventory.updateMany({
           where: { guildId, userId, equipped: true, item: { type: 'cosmetic' } },
@@ -301,7 +301,7 @@ export class ShopService {
   }
 
   /**
-   * Usa un item consumible
+   * Uses a consumable item
    */
   public async useItem(guildId: string, userId: string, inventoryId: string): Promise<{ success: boolean; message: string }> {
     if (!this.db) return { success: false, message: i18n.t('shop.inv.unavailable', guildId) };
@@ -320,7 +320,7 @@ export class ShopService {
         return { success: false, message: i18n.t('shop.inv.not_consumable', guildId) };
       }
 
-      // Reducir cantidad o eliminar
+      // Reduce quantity or delete
       if (inv.quantity > 1) {
         await this.db.prisma.userInventory.update({
           where: { id: inventoryId },
@@ -344,7 +344,7 @@ export class ShopService {
   }
 
   /**
-   * Obtiene el cosmético equipado del usuario
+   * Gets the user's equipped cosmetic
    */
   public async getEquippedCosmetic(guildId: string, userId: string): Promise<InventoryItem | null> {
     if (!this.db) return null;

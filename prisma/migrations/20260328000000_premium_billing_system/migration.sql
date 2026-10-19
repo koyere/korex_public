@@ -1,15 +1,15 @@
 -- ─────────────────────────────────────────────────────────────────
 -- Migration: 20260328000000_premium_billing_system
--- Agrega tracking de pagos a addon_licenses y crea tabla guild_premiums
+-- Adds payment tracking to addon_licenses and creates the guild_premiums table
 -- ─────────────────────────────────────────────────────────────────
 
--- 1. Nuevos campos en addon_licenses
+-- 1. New fields in addon_licenses
 ALTER TABLE "addon_licenses"
   ADD COLUMN IF NOT EXISTS "suspendedAt"          TIMESTAMP(3),
   ADD COLUMN IF NOT EXISTS "paymentFailures"       INTEGER NOT NULL DEFAULT 0,
   ADD COLUMN IF NOT EXISTS "lastPaymentFailedAt"   TIMESTAMP(3);
 
--- 2. Tabla guild_premiums (planes Basic/Pro por servidor)
+-- 2. guild_premiums table (Basic/Pro plans per server)
 CREATE TABLE IF NOT EXISTS "guild_premiums" (
     "id"                   TEXT         NOT NULL,
     "guildId"              TEXT         NOT NULL,

@@ -15,9 +15,9 @@ import { i18n } from '../utils/i18n';
 import { checkSelfAssignableRole } from '../utils/roleSafety';
 
 /**
- * Comprueba que todos los roles del panel sean seguros de autoasignar por
- * cualquier miembro (sin permisos de moderación, por debajo del bot y del creador).
- * Devuelve el mensaje de error traducido o null si todo es válido.
+ * Checks that every role in the panel is safe to be self-assigned by
+ * any member (no moderation permissions, below the bot and the creator).
+ * Returns the translated error message, or null if everything is valid.
  */
 function validatePanelRoles(interaction: ModalSubmitInteraction, roleIds: string[]): string | null {
   const guild = interaction.guild!;
@@ -276,7 +276,7 @@ export class AutoRolesButtonWizardModal extends Component {
 
       const sent = await (channel as TextChannel).send({ embeds: [embed], components: rows });
 
-      // Registrar el panel para que aparezca (y se pueda borrar) en el dashboard
+      // Register the panel so it shows up (and can be deleted) in the dashboard
       await this.client.db.reactionRoleMessage.create({
         data: {
           guildId: guild.id,
@@ -334,8 +334,8 @@ export class AutoRoleButtonHandler extends Component {
       return;
     }
 
-    // Re-validar en cada clic: un panel antiguo (o un rol al que luego se le
-    // añadieron permisos) no debe repartir permisos de moderación.
+    // Re-validate on every click: an old panel (or a role that later had
+    // permissions added) must not hand out moderation permissions.
     const safety = checkSelfAssignableRole(guild, role.id);
     if (!safety.ok) {
       await interaction.reply({ content: i18n.t('autorole.button.cannot_assign', guild.id), ephemeral: true });

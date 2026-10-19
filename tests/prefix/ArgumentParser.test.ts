@@ -20,52 +20,52 @@ const BOT_ID = '423456789012345678';
 const values = (opts: { name: string; value: unknown }[]) => Object.fromEntries(opts.map(o => [o.name, o.value]));
 
 describe('tokenize', () => {
-  it('divide por espacios y respeta comillas', () => {
+  it('splits on spaces and respects quotes', () => {
     expect(tokenize('a  "b c"   d').map(t => t.value)).toEqual(['a', 'b c', 'd']);
   });
 
-  it('admite comillas tipográficas y «»', () => {
+  it('supports typographic quotes and «»', () => {
     expect(tokenize('“hola mundo” «otro valor»').map(t => t.value)).toEqual(['hola mundo', 'otro valor']);
   });
 
-  it('escapa comillas con barra invertida', () => {
+  it('escapes quotes with a backslash', () => {
     expect(tokenize('"di \\"hola\\"" fin').map(t => t.value)).toEqual(['di "hola"', 'fin']);
   });
 
-  it('detecta nombre:valor y nombre:"valor con espacios"', () => {
+  it('detects name:value and name:"value with spaces"', () => {
     const [a, b] = tokenize('reason:"spam masivo" days:7');
     expect(a).toMatchObject({ key: 'reason', keyValue: 'spam masivo' });
     expect(b).toMatchObject({ key: 'days', keyValue: '7' });
   });
 
-  it('no trata URLs como nombre:valor cuando no hay opción con ese nombre', () => {
+  it('does not treat URLs as name:value when there is no option with that name', () => {
     const defs: PrefixOptionDef[] = [{ name: 'query', type: T.String, required: true }];
     const res = parseOptions(defs, tokenize('https://soundcloud.com/x'));
     expect(res.ok && values(res.options)).toEqual({ query: 'https://soundcloud.com/x' });
   });
 
-  it('comilla sin cerrar toma el resto', () => {
+  it('unclosed quote takes the rest', () => {
     expect(tokenize('"abc def').map(t => t.value)).toEqual(['abc def']);
   });
 
-  it('cadena vacía', () => {
+  it('empty string', () => {
     expect(tokenize('   ')).toEqual([]);
   });
 });
 
 describe('stripPrefix', () => {
-  it('detecta el prefijo sin distinguir mayúsculas', () => {
+  it('detects the prefix case-insensitively', () => {
     expect(stripPrefix('K!help', 'k!', BOT_ID)).toEqual({ body: 'help', viaMention: false });
     expect(stripPrefix('!ban x', '!', BOT_ID)).toEqual({ body: 'ban x', viaMention: false });
   });
 
-  it('acepta la mención al bot como prefijo', () => {
+  it('accepts the bot mention as a prefix', () => {
     expect(stripPrefix(`<@${BOT_ID}> help`, '!', BOT_ID)).toEqual({ body: 'help', viaMention: true });
     expect(stripPrefix(`<@!${BOT_ID}>ping`, '!', BOT_ID)).toEqual({ body: 'ping', viaMention: true });
     expect(stripPrefix(`<@${BOT_ID}>`, '!', BOT_ID)).toEqual({ body: '', viaMention: true });
   });
 
-  it('ignora mensajes sin prefijo o solo con el prefijo', () => {
+  it('ignores messages without a prefix or with only the prefix', () => {
     expect(stripPrefix('hola', '!', BOT_ID)).toBeNull();
     expect(stripPrefix('!', '!', BOT_ID)).toBeNull();
     expect(stripPrefix(`<@${USER_ID}> help`, '!', BOT_ID)).toBeNull();
@@ -73,7 +73,7 @@ describe('stripPrefix', () => {
 });
 
 describe('PREFIX_PATTERN', () => {
-  it('valida prefijos de 1 a 5 caracteres sin espacios ni caracteres peligrosos', () => {
+  it('validates 1-5 character prefixes without spaces or dangerous characters', () => {
     expect(PREFIX_PATTERN.test('!')).toBe(true);
     expect(PREFIX_PATTERN.test('k!')).toBe(true);
     expect(PREFIX_PATTERN.test('korex')).toBe(true);
@@ -86,7 +86,7 @@ describe('PREFIX_PATTERN', () => {
 });
 
 describe('coerceValue', () => {
-  it('enteros con límites', () => {
+  it('integers with bounds', () => {
     const def: PrefixOptionDef = { name: 'n', type: T.Integer, min_value: 1, max_value: 100 };
     expect(coerceValue(def, '50')).toEqual({ value: 50 });
     expect(coerceValue(def, '0')).toBeNull();
@@ -95,21 +95,21 @@ describe('coerceValue', () => {
     expect(coerceValue(def, 'abc')).toBeNull();
   });
 
-  it('números con punto o coma decimal', () => {
+  it('numbers with decimal point or comma', () => {
     const def: PrefixOptionDef = { name: 'n', type: T.Number };
     expect(coerceValue(def, '1.5')).toEqual({ value: 1.5 });
     expect(coerceValue(def, '2,25')).toEqual({ value: 2.25 });
     expect(coerceValue(def, '1e9')).toBeNull();
   });
 
-  it('booleanos en es/en', () => {
+  it('booleans in es/en', () => {
     const def: PrefixOptionDef = { name: 'b', type: T.Boolean };
     for (const v of ['true', 'sí', 'si', 'yes', 'on', '1']) expect(coerceValue(def, v)).toEqual({ value: true });
     for (const v of ['false', 'no', 'off', '0']) expect(coerceValue(def, v)).toEqual({ value: false });
     expect(coerceValue(def, 'quizás')).toBeNull();
   });
 
-  it('usuarios, roles y canales por mención o ID', () => {
+  it('users, roles and channels by mention or ID', () => {
     expect(coerceValue({ name: 'u', type: T.User }, `<@${USER_ID}>`)).toEqual({ value: USER_ID });
     expect(coerceValue({ name: 'u', type: T.User }, `<@!${USER_ID}>`)).toEqual({ value: USER_ID });
     expect(coerceValue({ name: 'u', type: T.User }, USER_ID)).toEqual({ value: USER_ID });
@@ -119,14 +119,14 @@ describe('coerceValue', () => {
     expect(coerceValue({ name: 'c', type: T.Channel }, 'general')).toBeNull();
   });
 
-  it('mencionables distinguen usuario y rol', () => {
+  it('mentionables distinguish user and role', () => {
     const def: PrefixOptionDef = { name: 'm', type: T.Mentionable };
     expect(coerceValue(def, `<@${USER_ID}>`)).toEqual({ value: USER_ID, mentionKind: 'user' });
     expect(coerceValue(def, `<@&${ROLE_ID}>`)).toEqual({ value: ROLE_ID, mentionKind: 'role' });
     expect(coerceValue(def, USER_ID)).toEqual({ value: USER_ID, mentionKind: 'unknown' });
   });
 
-  it('elecciones por valor o nombre', () => {
+  it('choices by value or name', () => {
     const def: PrefixOptionDef = {
       name: 'privacy', type: T.String,
       choices: [{ name: 'Public', value: 'public' }, { name: 'Private', value: 'private' }],
@@ -139,7 +139,7 @@ describe('coerceValue', () => {
     expect(coerceValue(intDef, '1')).toEqual({ value: 1 });
   });
 
-  it('longitud de texto', () => {
+  it('text length', () => {
     expect(coerceValue({ name: 's', type: T.String, max_length: 3 }, 'abcd')).toBeNull();
     expect(coerceValue({ name: 's', type: T.String, min_length: 2 }, 'a')).toBeNull();
   });
@@ -156,24 +156,24 @@ describe('resolveCommandPath', () => {
     },
   ];
 
-  it('comando sin subcomandos', () => {
+  it('command without subcommands', () => {
     const res = resolveCommandPath([{ name: 'q', type: T.String }], tokenize('hola'));
     expect(res.ok && res.path).toMatchObject({ group: null, subcommand: null });
   });
 
-  it('subcomando simple (sin distinguir mayúsculas)', () => {
+  it('simple subcommand (case-insensitive)', () => {
     const res = resolveCommandPath(root, tokenize('LIST'));
     expect(res.ok && res.path).toMatchObject({ group: null, subcommand: 'list', rest: [] });
   });
 
-  it('grupo + subcomando (varias palabras)', () => {
+  it('group + subcommand (multiple words)', () => {
     const res = resolveCommandPath(root, tokenize('category add Soporte técnico'));
     expect(res.ok && res.path.group).toBe('category');
     expect(res.ok && res.path.subcommand).toBe('add');
     expect(res.ok && res.path.rest.map(t => t.value)).toEqual(['Soporte', 'técnico']);
   });
 
-  it('errores de subcomando', () => {
+  it('subcommand errors', () => {
     const missing = resolveCommandPath(root, []);
     expect(!missing.ok && missing.error).toMatchObject({ code: 'missing_subcommand', available: ['list', 'category'] });
     const unknown = resolveCommandPath(root, tokenize('foo'));
@@ -190,33 +190,33 @@ describe('parseOptions', () => {
     { name: 'delete_days', type: T.Integer, min_value: 0, max_value: 7 },
   ];
 
-  it('posicionales en orden', () => {
+  it('positionals in order', () => {
     const res = parseOptions(ban, tokenize(`<@${USER_ID}> spam 3`));
     expect(res.ok && values(res.options)).toEqual({ user: USER_ID, reason: 'spam', delete_days: 3 });
   });
 
-  it('el texto toma varias palabras si el resto no encaja', () => {
+  it('text takes multiple words if the rest does not fit', () => {
     const res = parseOptions(ban, tokenize(`<@${USER_ID}> spam en el chat`));
     expect(res.ok && values(res.options)).toEqual({ user: USER_ID, reason: 'spam en el chat' });
   });
 
-  it('el texto deja libre lo que encaja en la opción siguiente', () => {
+  it('text leaves free what fits the next option', () => {
     const res = parseOptions(ban, tokenize(`<@${USER_ID}> spam en el chat 7`));
     expect(res.ok && values(res.options)).toEqual({ user: USER_ID, reason: 'spam en el chat', delete_days: 7 });
   });
 
-  it('comillas y argumentos con nombre', () => {
+  it('quotes and named arguments', () => {
     const res = parseOptions(ban, tokenize(`${USER_ID} delete_days:2 reason:"a b c"`));
     expect(res.ok && values(res.options)).toEqual({ user: USER_ID, reason: 'a b c', delete_days: 2 });
   });
 
-  it('una única opción de texto toma todo (!play canción con espacios)', () => {
+  it('a single text option takes everything (!play song with spaces)', () => {
     const play: PrefixOptionDef[] = [{ name: 'query', type: T.String, required: true }];
     const res = parseOptions(play, tokenize('never gonna give you up'));
     expect(res.ok && values(res.options)).toEqual({ query: 'never gonna give you up' });
   });
 
-  it('salta opcionales que no encajan', () => {
+  it('skips optionals that do not fit', () => {
     const defs: PrefixOptionDef[] = [
       { name: 'prize', type: T.String, required: true },
       { name: 'duration', type: T.Integer, required: true },
@@ -231,7 +231,7 @@ describe('parseOptions', () => {
     expect(c.ok && values(c.options)).toEqual({ prize: 'Nitro anual', duration: 24, winners: 2, title: 'Sorteo' });
   });
 
-  it('una opcional de texto tras otra de texto solo va por nombre', () => {
+  it('an optional text option after another text option is named-only', () => {
     const defs: PrefixOptionDef[] = [
       { name: 'title', type: T.String, required: true },
       { name: 'note', type: T.String },
@@ -243,31 +243,31 @@ describe('parseOptions', () => {
     expect(formatUsageArgs(defs)).toBe('<title> [note:…]');
   });
 
-  it('falta opción obligatoria', () => {
+  it('missing required option', () => {
     const res = parseOptions(ban, []);
     expect(!res.ok && res.error.code).toBe('missing_option');
     expect(!res.ok && res.error.option?.name).toBe('user');
   });
 
-  it('valor no válido', () => {
+  it('invalid value', () => {
     const res = parseOptions(ban, tokenize('juan'));
     expect(!res.ok && res.error).toMatchObject({ code: 'invalid_value', value: 'juan' });
     const named = parseOptions(ban, tokenize(`${USER_ID} delete_days:30`));
     expect(!named.ok && named.error).toMatchObject({ code: 'invalid_value', value: '30' });
   });
 
-  it('sobran argumentos', () => {
+  it('too many arguments', () => {
     const defs: PrefixOptionDef[] = [{ name: 'amount', type: T.Integer, required: true }];
     const res = parseOptions(defs, tokenize('5 6'));
     expect(!res.ok && res.error.code).toBe('too_many_arguments');
   });
 
-  it('opción repetida', () => {
+  it('repeated option', () => {
     const res = parseOptions(ban, tokenize(`${USER_ID} reason:a reason:b`));
     expect(!res.ok && res.error.code).toBe('duplicate_option');
   });
 
-  it('adjuntos del mensaje', () => {
+  it('message attachments', () => {
     const defs: PrefixOptionDef[] = [
       { name: 'file', type: T.Attachment, required: true },
       { name: 'title', type: T.String },
@@ -281,7 +281,7 @@ describe('parseOptions', () => {
     expect(!missing.ok && missing.error.code).toBe('missing_attachment');
   });
 
-  it('booleanos, roles y canales posicionales', () => {
+  it('positional booleans, roles and channels', () => {
     const defs: PrefixOptionDef[] = [
       { name: 'channel', type: T.Channel, required: true },
       { name: 'role', type: T.Role },
@@ -291,14 +291,14 @@ describe('parseOptions', () => {
     expect(res.ok && values(res.options)).toEqual({ channel: CHANNEL_ID, role: ROLE_ID, enabled: false });
   });
 
-  it('demasiados tokens', () => {
+  it('too many tokens', () => {
     const res = parseOptions([{ name: 'q', type: T.String }], tokenize(Array(150).fill('x').join(' ')));
     expect(!res.ok && res.error.code).toBe('too_many_tokens');
   });
 });
 
-describe('ayuda y compatibilidad', () => {
-  it('rutas de un comando con grupos', () => {
+describe('help and compatibility', () => {
+  it('paths of a command with groups', () => {
     const paths = listCommandPaths([
       { name: 'view', type: T.Subcommand, options: [] },
       { name: 'ai-key', type: T.SubcommandGroup, options: [{ name: 'set', type: T.Subcommand, options: [] }] },
@@ -306,7 +306,7 @@ describe('ayuda y compatibilidad', () => {
     expect(paths.map(p => p.path)).toEqual(['view', 'ai-key set']);
   });
 
-  it('texto de uso', () => {
+  it('usage text', () => {
     expect(formatUsageArgs([
       { name: 'user', type: T.User, required: true },
       { name: 'reason', type: T.String },
@@ -314,7 +314,7 @@ describe('ayuda y compatibilidad', () => {
     ])).toBe('<user> [reason] [file:📎]');
   });
 
-  it('lista de rutas no compatibles', () => {
+  it('list of unsupported paths', () => {
     expect(getPrefixUnsupportedReason('massban', null, null)).toBe('modal');
     expect(getPrefixUnsupportedReason('poll', null, 'create')).toBe('modal');
     expect(getPrefixUnsupportedReason('poll', null, 'list')).toBeNull();

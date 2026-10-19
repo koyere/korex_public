@@ -6,21 +6,21 @@ import { join } from 'path';
 import { effectiveEnabledAddons, isCoreModule, normalizeStored } from '../../config/coreModules';
 
 /**
- * Localización centralizada (es) de descripciones de slash commands.
- * Mapa plano "texto inglés → texto español" en src/languages/slash/es.json
- * (en subcarpeta para que i18n no lo cargue como un idioma más).
- * Solo se localizan `description` y `name` de choices; NUNCA nombres de
- * comandos/opciones. No se sobrescriben localizaciones ya definidas.
+ * Centralized (es) localization of slash command descriptions.
+ * Flat map "English text → Spanish text" in src/languages/slash/es.json
+ * (in a subfolder so i18n doesn't load it as another language).
+ * Only `description` and choice `name` are localized; NEVER command/option
+ * names. Already-defined localizations are not overwritten.
  */
 const SLASH_ES_LOCALES = ['es-ES', 'es-419'] as const;
 let slashEsMap: Record<string, string> | null = null;
 
 function loadSlashEsMap(): Record<string, string> {
   if (slashEsMap) return slashEsMap;
-  // es.json (core) + es.<addon>.json (uno por addon, para no mezclar dominios)
+  // es.json (core) + es.<addon>.json (one per addon, to keep domains separate)
   const candidates = [
-    join(__dirname, '../../languages/slash'),        // dist/languages (si se copia)
-    join(__dirname, '../../../src/languages/slash'), // src/languages desde dist/
+    join(__dirname, '../../languages/slash'),        // dist/languages (if copied)
+    join(__dirname, '../../../src/languages/slash'), // src/languages from dist/
     join(process.cwd(), 'src/languages/slash'),
   ];
   slashEsMap = {};
@@ -31,7 +31,7 @@ function loadSlashEsMap(): Record<string, string> {
       try {
         const data = JSON.parse(readFileSync(join(dir, file), 'utf8'));
         if (data && typeof data === 'object') Object.assign(slashEsMap, data);
-      } catch { /* fichero inválido: se ignora */ }
+      } catch { /* invalid file: ignored */ }
     }
     break;
   }
@@ -71,9 +71,9 @@ function localizeNode(node: any): void {
   }
 }
 
-/** Añade localizaciones es-ES/es-419 al JSON de un comando (muta y devuelve). */
+/** Adds es-ES/es-419 localizations to a command's JSON (mutates and returns it). */
 export function localizeCommandJson<T>(json: T): T {
-  try { localizeNode(json); } catch { /* nunca bloquear el registro */ }
+  try { localizeNode(json); } catch { /* never block registration */ }
   return json;
 }
 
@@ -266,7 +266,7 @@ export class CommandManager {
           `[CommandManager] Missing Access (50001) for guild ${guildId} — cleaning up guild addon state`
         );
         try {
-          // Quitar solo los addons de pago: conservar los toggles de módulos core
+          // Remove only paid addons: keep the core module toggles
           const current = await this.client.db.guild.findUnique({
             where: { id: guildId },
             select: { enabledAddons: true },

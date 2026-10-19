@@ -1,7 +1,7 @@
 import { GatewayIntentBits, Partials } from 'discord.js';
 
 export const botConfig = {
-  // Intents necesarios
+  // Required intents
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMembers,
@@ -20,7 +20,7 @@ export const botConfig = {
     GatewayIntentBits.MessageContent,
   ],
 
-  // Partials para eventos incompletos
+  // Partials for incomplete events
   partials: [
     Partials.Message,
     Partials.Channel,
@@ -29,7 +29,7 @@ export const botConfig = {
     Partials.GuildMember,
   ],
 
-  // Configuración por defecto
+  // Default settings
   defaults: {
     prefix: process.env.DEFAULT_PREFIX || '!',
     language: process.env.DEFAULT_LANGUAGE || 'es',
@@ -37,7 +37,7 @@ export const botConfig = {
     timezone: process.env.TIMEZONE || 'UTC',
   },
 
-  // Cooldowns por defecto (en segundos)
+  // Default cooldowns (in seconds)
   cooldowns: {
     default: 3,
     economy: 5,
@@ -46,17 +46,17 @@ export const botConfig = {
     fun: 3,
   },
 
-  // Límites
+  // Limits
   limits: {
     maxWarnings: 5,
     maxQueueSize: 500,
     maxPlaylistSize: 100,
-    xpCooldown: 60, // segundos entre ganancia de XP
-    giveaways: 5, // máximo giveaways activos por servidor
-    polls: 10, // máximo polls activas por servidor
+    xpCooldown: 60, // seconds between XP gains
+    giveaways: 5, // max active giveaways per server
+    polls: 10, // max active polls per server
   },
 
-  // Emojis del bot (IDs de emojis custom o unicode)
+  // Bot emojis (custom emoji IDs or unicode)
   emojis: {
     success: '✅',
     error: '❌',
@@ -71,7 +71,7 @@ export const botConfig = {
     mute: '🔇',
   },
 
-  // Colores para embeds
+  // Embed colors
   colors: {
     primary: '#00D9FF',
     success: '#00FF00',

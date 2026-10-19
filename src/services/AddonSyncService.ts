@@ -2,10 +2,10 @@ import { Redis } from 'ioredis';
 import { KorexClient } from '../client/KorexClient';
 import { createLogger } from '../utils/Logger';
 
-/** Precio de referencia del bundle si el catálogo no tiene una fila 'bundle'. */
+/** Reference bundle price if the catalog has no 'bundle' row. */
 export const BUNDLE_DEFAULT_PRICE = 14.99;
 
-/** Addons cubiertos por el paquete bundle. */
+/** Addons covered by the bundle package. */
 export const BUNDLE_ADDONS = new Set([
   'tickets', 'store', 'staff', 'forms', 'links', 'paste', 'analytics-pro', 'events',
 ]);
@@ -19,7 +19,7 @@ export interface AddonEvent {
 }
 
 /**
- * Servicio de sincronización de addons entre shards via Redis Pub/Sub
+ * Addon synchronization service across shards via Redis Pub/Sub
  */
 export class AddonSyncService {
   private redis: Redis;
@@ -41,10 +41,10 @@ export class AddonSyncService {
   }
 
   /**
-   * Configurar suscriptor de eventos de addons
+   * Set up addon event subscriber
    */
   private setupSubscriber(): void {
-    // Suscribirse al canal de eventos de addons
+    // Subscribe to the addon events channel
     this.subscriber.subscribe('addon:events');
     
     this.subscriber.on('message', (channel, message) => {
@@ -63,7 +63,7 @@ export class AddonSyncService {
   }
 
   /**
-   * Manejar eventos de addons
+   * Handle addon events
    */
   private handleAddonEvent(event: AddonEvent): void {
     this.logger.debug(`Received addon event: ${event.type} for ${event.addonName} in guild ${event.guildId}`);
@@ -84,17 +84,17 @@ export class AddonSyncService {
   }
 
   /**
-   * Manejar activación de addon
+   * Handle addon activation
    */
   private handleAddonActivated(event: AddonEvent): void {
-    // Actualizar cache local si es necesario
+    // Update local cache if needed
     const cacheKey = `addon:${event.addonName}:guild_${event.guildId}`;
 
-    this.redis.setex(cacheKey, 3600, 'true'); // 1 hora TTL
+    this.redis.setex(cacheKey, 3600, 'true'); // 1 hour TTL
 
     this.logger.info(`Addon ${event.addonName} activated for guild ${event.guildId}`);
     
-    // Emitir evento interno para que otros servicios puedan reaccionar
+    // Emit internal event so other services can react
     this.client.emit('addonActivated', {
       guildId: event.guildId,
       addonName: event.addonName,
@@ -103,17 +103,17 @@ export class AddonSyncService {
   }
 
   /**
-   * Manejar desactivación de addon
+   * Handle addon deactivation
    */
   private handleAddonDeactivated(event: AddonEvent): void {
-    // Limpiar cache
+    // Clear cache
     const cacheKey = `addon:${event.addonName}:guild_${event.guildId}`;
 
     this.redis.del(cacheKey);
 
     this.logger.info(`Addon ${event.addonName} deactivated for guild ${event.guildId}`);
     
-    // Emitir evento interno
+    // Emit internal event
     this.client.emit('addonDeactivated', {
       guildId: event.guildId,
       addonName: event.addonName,
@@ -122,17 +122,17 @@ export class AddonSyncService {
   }
 
   /**
-   * Manejar actualización de configuración de addon
+   * Handle addon configuration update
    */
   private handleAddonConfigUpdated(event: AddonEvent): void {
-    // Invalidar cache de configuración
+    // Invalidate configuration cache
     const configKey = `addon:${event.addonName}:guild_${event.guildId}:config`;
 
     this.redis.del(configKey);
 
     this.logger.info(`Addon config updated for ${event.addonName} in guild ${event.guildId}`);
     
-    // Emitir evento interno
+    // Emit internal event
     this.client.emit('addonConfigUpdated', {
       guildId: event.guildId,
       addonName: event.addonName,
@@ -141,7 +141,7 @@ export class AddonSyncService {
   }
 
   /**
-   * Publicar evento a todos los shards
+   * Publish event to all shards
    */
   async publishEvent(event: Omit<AddonEvent, 'timestamp'>): Promise<void> {
     const fullEvent: AddonEvent = {
@@ -158,18 +158,18 @@ export class AddonSyncService {
   }
 
   /**
-   * Verificar si un addon está activo para un servidor.
-   * Para addons del bundle, comprueba primero si el servidor tiene guildPremium activo.
+   * Check whether an addon is active for a server.
+   * For bundle addons, first checks whether the server has an active guildPremium.
    */
   async isAddonActive(guildId: string, addonName: string): Promise<boolean> {
     const cacheKey = `addon:${addonName}:guild_${guildId}`;
 
     try {
-      // 1. Cache específico del addon (< 1 ms)
+      // 1. Addon-specific cache (< 1 ms)
       const cached = await this.redis.get(cacheKey);
       if (cached !== null) return cached === 'true';
 
-      // 2. Para addons del bundle, verificar guildPremium antes de buscar licencia individual
+      // 2. For bundle addons, check guildPremium before looking up an individual license
       if (BUNDLE_ADDONS.has(addonName)) {
         const bundleKey = `bundle:guild:${guildId}`;
         const bundleCached = await this.redis.get(bundleKey);
@@ -180,7 +180,7 @@ export class AddonSyncService {
         }
 
         if (bundleCached === null) {
-          // Sin cache de bundle → consultar DB
+          // No bundle cache → query DB
           const premium = await this.client.db.guildPremium.findFirst({
             where: { guildId, planId: 'bundle', status: 'ACTIVE', expiresAt: { gt: new Date() } },
           });
@@ -189,19 +189,19 @@ export class AddonSyncService {
             await this.redis.setex(cacheKey, 3600, 'true');
             return true;
           }
-          // Negativo: TTL corto (5 min) para no bloquear activaciones futuras
+          // Negative: short TTL (5 min) so future activations are not blocked
           await this.redis.setex(bundleKey, 300, 'false');
         }
       }
 
-      // 3. Licencia individual en PostgreSQL
+      // 3. Individual license in PostgreSQL
       const license = await this.client.db.addonLicense.findFirst({
         where: { guildId, addonName, status: 'ACTIVE', expiresAt: { gt: new Date() } },
       });
 
       const isActive = !!license;
-      // Negativo con TTL corto: una compra/cortesía se refleja en ≤ 60 s aunque
-      // el flujo que la creó no invalide la caché.
+      // Negative with short TTL: a purchase/courtesy shows up within ≤ 60 s even if
+      // the flow that created it does not invalidate the cache.
       await this.redis.setex(cacheKey, isActive ? 600 : 60, String(isActive));
       return isActive;
     } catch (error) {
@@ -211,10 +211,10 @@ export class AddonSyncService {
   }
 
   /**
-   * ¿Tiene el servidor derecho de uso vigente sobre el addon? Consulta directa a la BD
-   * (sin caché): licencia propia ACTIVE no vencida o, para addons del bundle, bundle
-   * ACTIVE no vencido. Se usa antes de deshabilitar un addon para no quitar el acceso
-   * que sigue cubierto por otra vía (p. ej. licencia individual + bundle).
+   * Does the server currently have the right to use the addon? Direct DB query
+   * (no cache): its own non-expired ACTIVE license or, for bundle addons, a non-expired
+   * ACTIVE bundle. Used before disabling an addon so access that is still covered
+   * another way is not removed (e.g. individual license + bundle).
    */
   async hasEntitlement(guildId: string, addonName: string): Promise<boolean> {
     const now = new Date();
@@ -232,10 +232,10 @@ export class AddonSyncService {
   }
 
   /**
-   * Retira el acceso a un addon tras perder la licencia (cancelación vencida, expiración,
-   * suspensión, kickout, acción de admin): invalida la caché en todos los shards y quita
-   * el addon de enabledAddons, salvo que siga cubierto por otra licencia o el bundle.
-   * Devuelve true si el addon quedó deshabilitado.
+   * Revokes access to an addon after losing the license (expired cancellation, expiration,
+   * suspension, kickout, admin action): invalidates the cache on all shards and removes
+   * the addon from enabledAddons, unless it is still covered by another license or the bundle.
+   * Returns true if the addon ended up disabled.
    */
   async revokeAccess(guildId: string, addonName: string): Promise<boolean> {
     await this.redis.del(`addon:${addonName}:guild_${guildId}`).catch(() => 0);
@@ -246,7 +246,7 @@ export class AddonSyncService {
     return true;
   }
 
-  /** Retira el acceso del bundle: limpia su caché y deshabilita los addons que no tengan licencia propia. */
+  /** Revokes bundle access: clears its cache and disables addons that have no license of their own. */
   async revokeBundleAccess(guildId: string): Promise<string[]> {
     await this.redis.del(`bundle:guild:${guildId}`).catch(() => 0);
     const disabled: string[] = [];
@@ -254,27 +254,27 @@ export class AddonSyncService {
       try {
         if (await this.revokeAccess(guildId, addonName)) disabled.push(addonName);
       } catch (error) {
-        this.logger.error(`Error retirando ${addonName} del bundle en guild ${guildId}:`, error);
+        this.logger.error(`Error removing ${addonName} from the bundle in guild ${guildId}:`, error);
       }
     }
     return disabled;
   }
 
   /**
-   * Obtener configuración de addon desde cache o base de datos
+   * Get addon configuration from cache or database
    */
   async getAddonConfig(guildId: string, addonName: string): Promise<any> {
     const configKey = `addon:${addonName}:guild_${guildId}:config`;
     
     try {
-      // 1. Verificar cache Redis
+      // 1. Check Redis cache
       const cached = await this.redis.get(configKey);
 
       if (cached) {
         return JSON.parse(cached);
       }
       
-      // 2. Consultar base de datos
+      // 2. Query database
       const config = await this.client.db.addonConfig.findUnique({
         where: {
           guildId_addonName: {
@@ -286,7 +286,7 @@ export class AddonSyncService {
       
       const configData = config?.config || {};
       
-      // 3. Actualizar cache (30 minutos)
+      // 3. Update cache (30 minutes)
       await this.redis.setex(configKey, 1800, JSON.stringify(configData));
       
       return configData;
@@ -298,11 +298,11 @@ export class AddonSyncService {
   }
 
   /**
-   * Actualizar configuración de addon
+   * Update addon configuration
    */
   async updateAddonConfig(guildId: string, addonName: string, config: any): Promise<void> {
     try {
-      // 1. Actualizar en base de datos
+      // 1. Update in database
       await this.client.db.addonConfig.upsert({
         where: {
           guildId_addonName: {
@@ -321,7 +321,7 @@ export class AddonSyncService {
         }
       });
 
-      // 2. Publicar evento de actualización
+      // 2. Publish update event
       await this.publishEvent({
         type: 'ADDON_CONFIG_UPDATED',
         guildId,
@@ -337,8 +337,8 @@ export class AddonSyncService {
   }
 
   /**
-   * Activar addon para un servidor.
-   * Usa upsert para manejar correctamente las reactivaciones tras una cancelación.
+   * Activate addon for a server.
+   * Uses upsert to correctly handle reactivations after a cancellation.
    */
   async activateAddon(
     guildId: string,
@@ -351,8 +351,8 @@ export class AddonSyncService {
       const expiresAt = new Date();
       expiresAt.setMonth(expiresAt.getMonth() + 1);
 
-      // Una licencia previa con días restantes (cancelada pero aún vigente, cortesía…)
-      // no se acorta: se conserva la fecha más lejana.
+      // A previous license with days remaining (cancelled but still valid, courtesy…)
+      // is not shortened: the latest date is kept.
       const previous = await this.client.db.addonLicense.findUnique({
         where: { guildId_addonName: { guildId, addonName } },
         select: { expiresAt: true },
@@ -361,7 +361,7 @@ export class AddonSyncService {
         expiresAt.setTime(previous.expiresAt.getTime());
       }
 
-      // upsert: crea la licencia si no existe, o la reactiva si ya existía
+      // upsert: creates the license if it does not exist, or reactivates it if it already existed
       await this.client.db.addonLicense.upsert({
         where: { guildId_addonName: { guildId, addonName } },
         update: {
@@ -389,7 +389,7 @@ export class AddonSyncService {
         },
       });
 
-      // Publicar evento de activación a todos los shards
+      // Publish activation event to all shards
       await this.publishEvent({
         type: 'ADDON_ACTIVATED',
         guildId,
@@ -397,19 +397,19 @@ export class AddonSyncService {
         data: { userId, plan, expiresAt },
       });
 
-      this.logger.info(`Addon activado: ${addonName} en guild ${guildId}`);
+      this.logger.info(`Addon activated: ${addonName} in guild ${guildId}`);
     } catch (error) {
-      this.logger.error(`Error activando addon ${addonName} para guild ${guildId}:`, error);
+      this.logger.error(`Error activating addon ${addonName} for guild ${guildId}:`, error);
       throw error;
     }
   }
 
   /**
-   * Desactivar addon para un servidor
+   * Deactivate addon for a server
    */
   async deactivateAddon(guildId: string, addonName: string): Promise<void> {
     try {
-      // 1. Actualizar licencia en base de datos
+      // 1. Update license in database
       await this.client.db.addonLicense.updateMany({
         where: {
           guildId,
@@ -422,7 +422,7 @@ export class AddonSyncService {
         }
       });
 
-      // 2. Publicar evento de desactivación
+      // 2. Publish deactivation event
       await this.publishEvent({
         type: 'ADDON_DEACTIVATED',
         guildId,
@@ -437,9 +437,9 @@ export class AddonSyncService {
   }
 
   /**
-   * Suspender addon sin cancelar la suscripción PayPal.
-   * Se usa cuando un pago falla y se supera el umbral de reintentos locales,
-   * o cuando PayPal notifica BILLING.SUBSCRIPTION.SUSPENDED.
+   * Suspend addon without cancelling the PayPal subscription.
+   * Used when a payment fails and the local retry threshold is exceeded,
+   * or when PayPal sends BILLING.SUBSCRIPTION.SUSPENDED.
    */
   async suspendAddon(guildId: string, addonName: string): Promise<void> {
     try {
@@ -448,24 +448,24 @@ export class AddonSyncService {
         data: { status: 'SUSPENDED', suspendedAt: new Date() },
       });
 
-      // Eliminar del cache → isAddonActive devolverá false
+      // Remove from cache → isAddonActive will return false
       const cacheKey = `addon:${addonName}:guild_${guildId}`;
       await this.redis.del(cacheKey);
 
-      // Notificar a todos los shards que el addon fue desactivado
+      // Notify all shards that the addon was deactivated
       await this.publishEvent({ type: 'ADDON_DEACTIVATED', guildId, addonName });
 
-      this.logger.warn(`Addon suspendido: ${addonName} en guild ${guildId}`);
+      this.logger.warn(`Addon suspended: ${addonName} in guild ${guildId}`);
     } catch (error) {
-      this.logger.error(`Error suspendiendo addon ${addonName} para guild ${guildId}:`, error);
+      this.logger.error(`Error suspending addon ${addonName} for guild ${guildId}:`, error);
       throw error;
     }
   }
 
   /**
-   * Incrementa el contador de fallos de pago de una licencia.
-   * Devuelve el nuevo total y si se superó el umbral (addon suspendido).
-   * Los fallos se resetean automáticamente cuando un pago es exitoso.
+   * Increments a license's payment failure counter.
+   * Returns the new total and whether the threshold was exceeded (addon suspended).
+   * Failures are reset automatically when a payment succeeds.
    */
   async trackPaymentFailure(
     guildId: string,
@@ -478,7 +478,7 @@ export class AddonSyncService {
       });
 
       if (!license) {
-        this.logger.warn(`trackPaymentFailure: licencia no encontrada ${addonName} guild=${guildId}`);
+        this.logger.warn(`trackPaymentFailure: license not found ${addonName} guild=${guildId}`);
         return { failures: 0, suspended: false };
       }
 
@@ -499,19 +499,19 @@ export class AddonSyncService {
         await this.redis.del(cacheKey);
         await this.publishEvent({ type: 'ADDON_DEACTIVATED', guildId, addonName });
         this.logger.warn(
-          `Addon auto-suspendido por fallos de pago [${newFailures}/${threshold}]: ${addonName} guild=${guildId}`
+          `Addon auto-suspended due to payment failures [${newFailures}/${threshold}]: ${addonName} guild=${guildId}`
         );
       }
 
       return { failures: newFailures, suspended: shouldSuspend };
     } catch (error) {
-      this.logger.error(`Error en trackPaymentFailure ${addonName} guild=${guildId}:`, error);
+      this.logger.error(`Error in trackPaymentFailure ${addonName} guild=${guildId}:`, error);
       return { failures: 0, suspended: false };
     }
   }
 
   /**
-   * Limpiar recursos al cerrar
+   * Clean up resources on shutdown
    */
   async destroy(): Promise<void> {
     try {

@@ -18,7 +18,7 @@ export default class VoiceStateUpdateEvent extends Event<'voiceStateUpdate'> {
 
       if (!member) return;
 
-      // XP por minuto de voz (Niveles)
+      // XP per voice minute (Levels)
       await this.client.levels.handleVoiceStateUpdate(oldState, newState).catch((err) =>
         this.client.logger.error('Error tracking voice XP:', err)
       );

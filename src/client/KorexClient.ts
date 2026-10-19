@@ -13,7 +13,7 @@ import { DatabaseManager } from './managers/DatabaseManager';
 import { RedisClient } from '../database/cache/RedisClient';
 import { CacheManager } from '../database/cache/CacheManager';
 
-// Services (se importarán cuando los creemos)
+// Services (to be imported once they are created)
 import { LicenseService } from '../services/LicenseService';
 import { ErrorHandler } from '../services/ErrorHandler';
 import { ModerationService } from '../services/ModerationService';
@@ -148,7 +148,7 @@ export class KorexClient extends Client {
   public config = botConfig;
 
   // ═══════════════════════════════════════════════════════════════
-  // ESTADO DEL BOT
+  // BOT STATE
   // ═══════════════════════════════════════════════════════════════
   // Bot ready state (different from Discord.js isReady method)
   public botReady: boolean = false;
@@ -162,7 +162,7 @@ export class KorexClient extends Client {
       ...options,
     });
 
-    // Inicializar managers
+    // Initialize managers
     this.commands = new CommandManager(this);
     this.events = new EventManager(this);
     this.addons = new AddonManager(this);
@@ -170,12 +170,12 @@ export class KorexClient extends Client {
     this.components = new ComponentManager(this);
     this.database = new DatabaseManager(this);
 
-    // Inicializar database y cache
+    // Initialize database and cache
     this.db = this.database.prisma;
     this.redis = new RedisClient(this);
     this.cache = new CacheManager(this);
 
-    // Inicializar servicios que no requieren DatabaseManager
+    // Initialize services that do not require DatabaseManager
     this.errorHandler = ErrorHandler.getInstance();
     this.economy = EconomyService.getInstance();
     this.levels = LevelService.getInstance();
@@ -205,7 +205,7 @@ export class KorexClient extends Client {
       this.emailService
     );
 
-    // Inicializar servicios que requieren DatabaseManager
+    // Initialize services that require DatabaseManager
     this.licenses = LicenseService.getInstance(this.database);
     this.moderation = ModerationService.getInstance(this.database);
     this.logging = LoggingService.getInstance(this.database);
@@ -214,14 +214,14 @@ export class KorexClient extends Client {
     this.autoRole = AutoRoleService.getInstance(this.database);
     this.userStats = UserStatsService.getInstance(this.database);
 
-    // Configurar la base de datos en los servicios
+    // Set the database on the services
     this.errorHandler.setDatabase(this.database);
     this.economy.setDatabase(this.database);
-    this.economy.setRedis(this.redis.getClient() as any); // contador "transacciones hoy"
+    this.economy.setRedis(this.redis.getClient() as any); // "transactions today" counter
     this.levels.setDatabase(this.database);
     this.shop.setDatabase(this.database);
 
-    // Inicializar servicios de producción
+    // Initialize production services
     this.rateLimiter = new RateLimiter(this);
     this.productionLogger = new ProductionLogger(this);
     this.healthMonitor = new HealthMonitor(this);
@@ -232,61 +232,61 @@ export class KorexClient extends Client {
     this.kickoutService = new GuildKickoutService(this);
     this.prefixCommands = new PrefixCommandHandler(this);
 
-    // Configurar owners
+    // Configure owners
     this.setupOwners();
 
-    // Configurar event handlers básicos
+    // Configure basic event handlers
     this.setupBasicHandlers();
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // INICIALIZACIÓN
+  // INITIALIZATION
   // ═══════════════════════════════════════════════════════════════
 
   /**
-   * Iniciar el bot completo
+   * Start the full bot
    */
   async start(): Promise<void> {
     try {
-      this.logger.info('🚀 Iniciando Korex...');
-      this.logger.info(`📋 Versión: ${process.env.npm_package_version || '1.0.0'}`);
-      this.logger.info(`🌍 Entorno: ${process.env.NODE_ENV || 'development'}`);
+      this.logger.info('🚀 Starting Korex...');
+      this.logger.info(`📋 Version: ${process.env.npm_package_version || '1.0.0'}`);
+      this.logger.info(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
 
-      // 1. Validar variables de entorno
+      // 1. Validate environment variables
       await this.validateEnvironment();
 
-      // 2. Conectar a base de datos
+      // 2. Connect to the database
       await this.database.connect();
-      this.logger.info('✅ Base de datos conectada');
+      this.logger.info('✅ Database connected');
 
-      // 2.1 Cargar preferencias de idioma de guilds
+      // 2.1 Load guild language preferences
       await i18n.loadGuildLanguagesFromDB(this.db);
 
-      // 3. Conectar a Redis
+      // 3. Connect to Redis
       await this.redis.connect();
-      this.logger.info('✅ Redis conectado');
+      this.logger.info('✅ Redis connected');
 
-      // 4. Validar licencia (cuando creemos el servicio)
+      // 4. Validate license (once the service exists)
       // await this.validateLicense();
 
-      // 5. Cargar comandos del core
+      // 5. Load core commands
       await this.commands.loadCommands(path.join(__dirname, '../commands'));
 
-      // 6. Cargar eventos del core
+      // 6. Load core events
       await this.events.loadEvents(path.join(__dirname, '../events'));
 
-      // 7. Cargar componentes del core
+      // 7. Load core components
       await this.components.loadComponents(path.join(__dirname, '../components'));
 
-      // 8. Cargar addons
+      // 8. Load addons
       await this.addons.loadAddons();
 
-      // 9. Iniciar servicios de producción
+      // 9. Start production services
       if (process.env.NODE_ENV === 'production') {
         await this.startProductionServices();
       }
 
-      // 10. Conectar a Discord con reintentos para errores transitorios.
+      // 10. Connect to Discord with retries for transient errors.
       // Discord.js internal REST library retries 429s indefinitely — we wrap
       // each login attempt with a hard timeout via Promise.race to guarantee
       // the outer retry loop gets control.
@@ -331,41 +331,41 @@ export class KorexClient extends Client {
         }
       }
 
-      this.logger.info('🎉 Korex iniciado exitosamente');
+      this.logger.info('🎉 Korex started successfully');
     } catch (error) {
-      this.logger.error('❌ Error iniciando Korex:', error);
+      this.logger.error('❌ Error starting Korex:', error);
       await this.shutdown(1);
     }
   }
 
   /**
-   * Iniciar servicios de producción
+   * Start production services
    */
   private async startProductionServices(): Promise<void> {
     this.logger.info('🔧 Starting production services...');
 
     try {
-      // Optimizar base de datos
+      // Optimize database
       await this.databaseOptimizer.optimizeDatabase();
       this.logger.info('✅ Database optimization completed');
 
-      // Iniciar health monitoring
-      this.healthMonitor.startMonitoring(30000); // Cada 30 segundos
+      // Start health monitoring
+      this.healthMonitor.startMonitoring(30000); // Every 30 seconds
       this.logger.info('✅ Health monitoring started');
 
       // Statuspage.io integration
       this.statusPage.start();
       this.logger.info('✅ Statuspage integration started');
 
-      // Iniciar job de expiración de licencias
+      // Start license expiry job
       this.licenseExpiryJob.start();
       this.logger.info('✅ License expiry job started');
 
-      // Iniciar servicio de kickout de guilds
+      // Start guild kickout service
       this.kickoutService.start();
       this.logger.info('✅ Guild kickout service started');
 
-      // Iniciar backup manager
+      // Start backup manager
       if (process.env.ENABLE_BACKUPS !== 'false') {
         await this.backupManager.start();
         this.logger.info('✅ Backup manager started');
@@ -380,7 +380,7 @@ export class KorexClient extends Client {
   }
 
   /**
-   * Validar variables de entorno requeridas
+   * Validate required environment variables
    */
   private async validateEnvironment(): Promise<void> {
     const required = [
@@ -394,17 +394,17 @@ export class KorexClient extends Client {
     const missing = required.filter((env) => !process.env[env]);
 
     if (missing.length > 0) {
-      throw new Error(`Variables de entorno faltantes: ${missing.join(', ')}`);
+      throw new Error(`Missing environment variables: ${missing.join(', ')}`);
     }
 
-    this.logger.debug('✅ Variables de entorno validadas');
+    this.logger.debug('✅ Environment variables validated');
   }
 
   /**
-   * Configurar propietarios del bot
+   * Configure bot owners
    */
   private setupOwners(): void {
-    // Obtener owners desde variable de entorno o usar el owner de la aplicación
+    // Get owners from the environment variable or fall back to the application owner
     const ownerIds = process.env.BOT_OWNERS?.split(',') || [];
 
     for (const ownerId of ownerIds) {
@@ -413,20 +413,20 @@ export class KorexClient extends Client {
       }
     }
 
-    this.logger.debug(`👑 ${this.owners.size} propietarios configurados`);
+    this.logger.debug(`👑 ${this.owners.size} owners configured`);
   }
 
   /**
-   * Configurar event handlers básicos del cliente
+   * Configure basic client event handlers
    */
   private setupBasicHandlers(): void {
-    // Error handling básico
+    // Basic error handling
     this.on('error', (error) => {
-      this.logger.error('Error del cliente Discord:', error);
+      this.logger.error('Discord client error:', error);
     });
 
     this.on('warn', (warning) => {
-      this.logger.warn('Advertencia del cliente Discord:', warning);
+      this.logger.warn('Discord client warning:', warning);
     });
 
     this.on('debug', (info) => {
@@ -437,35 +437,35 @@ export class KorexClient extends Client {
 
     // Shard events
     this.on('shardError', (error, shardId) => {
-      this.logger.error(`Error en shard ${shardId}:`, error);
+      this.logger.error(`Error on shard ${shardId}:`, error);
     });
 
     this.on('shardReady', (shardId) => {
-      this.logger.info(`✅ Shard ${shardId} listo`);
+      this.logger.info(`✅ Shard ${shardId} ready`);
     });
 
     this.on('shardDisconnect', (event, shardId) => {
-      this.logger.warn(`🔌 Shard ${shardId} desconectado:`, event);
+      this.logger.warn(`🔌 Shard ${shardId} disconnected:`, event);
     });
 
     this.on('shardReconnecting', (shardId) => {
-      this.logger.info(`🔄 Shard ${shardId} reconectando...`);
+      this.logger.info(`🔄 Shard ${shardId} reconnecting...`);
     });
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // MÉTODOS DE UTILIDAD
+  // UTILITY METHODS
   // ═══════════════════════════════════════════════════════════════
 
   /**
-   * Verificar si un usuario es propietario del bot
+   * Check whether a user is a bot owner
    */
   isOwner(userId: string): boolean {
     return this.owners.has(userId) || this.application?.owner?.id === userId;
   }
 
   /**
-   * Obtener información del bot
+   * Get bot information
    */
   getBotInfo(): {
     name: string;
@@ -494,7 +494,7 @@ export class KorexClient extends Client {
   }
 
   /**
-   * Obtener estadísticas detalladas
+   * Get detailed statistics
    */
   async getDetailedStats() {
     return {
@@ -510,7 +510,7 @@ export class KorexClient extends Client {
   }
 
   /**
-   * Verificar salud del sistema
+   * Check system health
    */
   async healthCheck() {
     const checks = {
@@ -519,7 +519,7 @@ export class KorexClient extends Client {
       redis: await this.redis.healthCheck(),
     };
 
-    // Determinar estado general
+    // Determine overall status
     let status: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
 
     const failedChecks = Object.values(checks).filter(
@@ -530,7 +530,7 @@ export class KorexClient extends Client {
       status = failedChecks.length === Object.keys(checks).length ? 'unhealthy' : 'degraded';
     }
 
-    // Agregar checks de producción si están disponibles
+    // Add production checks if available
     let productionHealth: any = null;
 
     if (this.healthMonitor) {
@@ -558,18 +558,18 @@ export class KorexClient extends Client {
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // GESTIÓN DE GUILDS
+  // GUILD MANAGEMENT
   // ═══════════════════════════════════════════════════════════════
 
   /**
-   * Obtener o crear configuración de guild
+   * Get or create guild configuration
    */
   async getGuildConfig(guildId: string) {
     return await this.cache.getGuildConfig(guildId);
   }
 
   /**
-   * Actualizar configuración de guild
+   * Update guild configuration
    */
   async updateGuildConfig(guildId: string, updates: any) {
     const updated = await this.db.guild.update({
@@ -577,18 +577,18 @@ export class KorexClient extends Client {
       data: updates,
     });
 
-    // Invalidar caché
+    // Invalidate cache
     await this.cache.invalidateGuildConfig(guildId);
 
     return updated;
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // EVENTOS DEL CICLO DE VIDA
+  // LIFECYCLE EVENTS
   // ═══════════════════════════════════════════════════════════════
 
   /**
-   * Llamado cuando el bot está listo
+   * Called when the bot is ready
    */
   async onReady(): Promise<void> {
     this.botReady = true;
@@ -598,40 +598,40 @@ export class KorexClient extends Client {
     // leniency (degraded vs unhealthy for ping=-1, music node, etc.) is lifted.
     this.healthMonitor?.markBotReady();
 
-    // Registrar slash commands globales (solo core, sin addons)
+    // Register global slash commands (core only, no addons)
     await this.commands.registerSlashCommands();
 
-    // Sincronizar comandos de addons por guild para las guilds que ya tienen addons activos
+    // Sync addon commands per guild for guilds that already have active addons
     this.commands.syncAllGuildsOnStartup().catch(err =>
       this.logger.warn('Startup guild command sync failed:', err)
     );
 
-    // Configurar owners si no están configurados
+    // Configure owners if not already configured
     if (this.owners.size === 0 && this.application?.owner) {
       if ('id' in this.application.owner) {
         this.owners.add(this.application.owner.id);
       }
     }
 
-    this.logger.info(`🤖 ${this.user?.tag} está listo!`);
+    this.logger.info(`🤖 ${this.user?.tag} is ready!`);
     this.logger.info(
-      `📊 Sirviendo ${this.guilds.cache.size} servidores con ${this.users.cache.size} usuarios`
+      `📊 Serving ${this.guilds.cache.size} servers with ${this.users.cache.size} users`
     );
-    this.logger.info(`⚡ Latencia: ${this.ws.ping}ms`);
+    this.logger.info(`⚡ Latency: ${this.ws.ping}ms`);
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // SHUTDOWN Y CLEANUP
+  // SHUTDOWN AND CLEANUP
   // ═══════════════════════════════════════════════════════════════
 
   /**
-   * Apagar el bot de forma segura
+   * Shut down the bot safely
    */
   async shutdown(exitCode: number = 0): Promise<void> {
-    this.logger.info('🛑 Apagando Korex...');
+    this.logger.info('🛑 Shutting down Korex...');
 
     try {
-      // 1. Detener servicios de producción
+      // 1. Stop production services
       if (this.healthMonitor) {
         this.healthMonitor.destroy();
       }
@@ -651,41 +651,41 @@ export class KorexClient extends Client {
         this.productionLogger.destroy();
       }
 
-      // 2. Descargar addons
+      // 2. Unload addons
       await this.addons.clear();
 
-      // 3. Limpiar servicios
+      // 3. Clean up services
       if (this.addonSync) {
         await this.addonSync.destroy();
       }
 
-      // 4. Limpiar managers
+      // 4. Clean up managers
       this.cooldowns.destroy();
       this.commands.clear();
       this.events.clear();
       this.components.clear();
 
-      // 5. Desconectar de Discord
+      // 5. Disconnect from Discord
       this.destroy();
 
-      // 6. Cerrar conexiones de base de datos
+      // 6. Close database connections
       await this.database.disconnect();
       await this.redis.disconnect();
 
-      this.logger.info('✅ Korex apagado correctamente');
+      this.logger.info('✅ Korex shut down cleanly');
     } catch (error) {
-      this.logger.error('❌ Error durante el apagado:', error);
+      this.logger.error('❌ Error during shutdown:', error);
     } finally {
       process.exit(exitCode);
     }
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // MÉTODOS DE CONVENIENCIA
+  // CONVENIENCE METHODS
   // ═══════════════════════════════════════════════════════════════
 
   /**
-   * Enviar mensaje a un canal
+   * Send a message to a channel
    */
   async sendMessage(channelId: string, content: any) {
     try {
@@ -697,14 +697,14 @@ export class KorexClient extends Client {
         }
       }
     } catch (error) {
-      this.logger.error(`Error enviando mensaje a canal ${channelId}:`, error);
+      this.logger.error(`Error sending message to channel ${channelId}:`, error);
     }
 
     return null;
   }
 
   /**
-   * Obtener miembro de guild
+   * Get a guild member
    */
   async getMember(guildId: string, userId: string) {
     try {
@@ -712,14 +712,14 @@ export class KorexClient extends Client {
 
       return await guild.members.fetch(userId);
     } catch (error) {
-      this.logger.debug(`No se pudo obtener miembro ${userId} en guild ${guildId}`);
+      this.logger.debug(`Could not fetch member ${userId} in guild ${guildId}`);
 
       return null;
     }
   }
 
   /**
-   * Verificar permisos de bot en guild
+   * Check bot permissions in a guild
    */
   async checkBotPermissions(guildId: string, permissions: bigint[]) {
     try {
@@ -728,14 +728,14 @@ export class KorexClient extends Client {
 
       return permissions.every((permission) => botMember.permissions.has(permission));
     } catch (error) {
-      this.logger.error(`Error verificando permisos en guild ${guildId}:`, error);
+      this.logger.error(`Error checking permissions in guild ${guildId}:`, error);
 
       return false;
     }
   }
 
   /**
-   * Obtener información de guild
+   * Get guild information
    */
   async getGuildInfo(guildId: string) {
     try {
@@ -751,7 +751,7 @@ export class KorexClient extends Client {
         features: guild.features,
       };
     } catch (error) {
-      this.logger.error(`Error obteniendo info de guild ${guildId}:`, error);
+      this.logger.error(`Error fetching info for guild ${guildId}:`, error);
 
       return null;
     }

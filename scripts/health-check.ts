@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 /**
- * Script de Health Check para Korex
- * Verifica el estado del sistema y todos sus componentes
+ * Health Check script for Korex
+ * Checks the status of the system and all its components
  */
 
 import { KorexClient } from '../src/client/KorexClient';
@@ -13,17 +13,17 @@ async function performHealthCheck() {
   logger.info('🔍 Starting system health check...');
 
   try {
-    // Crear cliente temporal para health check
+    // Create a temporary client for the health check
     const client = new KorexClient();
     
-    // Conectar solo a servicios necesarios
+    // Connect only to the required services
     await client.database.connect();
     await client.redis.connect();
 
-    // Realizar health check completo
+    // Run the full health check
     const health = await client.healthCheck();
     
-    // Mostrar resultados
+    // Show results
     logger.info('📊 Health Check Results:');
     logger.info(`Overall Status: ${health.status}`);
     
@@ -40,7 +40,7 @@ async function performHealthCheck() {
       }
     });
 
-    // Health check de producción si está disponible
+    // Production health check if available
     if (health.production) {
       logger.info('🏭 Production Health:');
       logger.info(`Status: ${health.production.overall}`);
@@ -53,11 +53,11 @@ async function performHealthCheck() {
       });
     }
 
-    // Desconectar
+    // Disconnect
     await client.database.disconnect();
     await client.redis.disconnect();
 
-    // Exit code basado en el estado
+    // Exit code based on status
     const exitCode = health.status === 'healthy' ? 0 : 
                      health.status === 'degraded' ? 1 : 2;
     
@@ -70,7 +70,7 @@ async function performHealthCheck() {
   }
 }
 
-// Ejecutar si es llamado directamente
+// Run if called directly
 if (require.main === module) {
   performHealthCheck();
 }

@@ -13,23 +13,23 @@ export default class GuildCreateEvent extends Event<'guildCreate'> {
   }
 
   async execute(guild: Guild): Promise<void> {
-    this.client.logger.info(`📥 Bot añadido al servidor: ${guild.name} (${guild.id})`);
+    this.client.logger.info(`📥 Bot added to server: ${guild.name} (${guild.id})`);
 
     try {
-      // 1. Crear configuración inicial del servidor en la base de datos
-      // El idioma inicial sale del idioma preferido del servidor (es/en)
+      // 1. Create the server's initial configuration in the database
+      // The initial language comes from the server's preferred locale (es/en)
       const record = await this.client.database.getOrCreateGuild(guild.id, this.detectLanguage(guild));
       i18n.setGuildLanguage(guild.id, record.language);
 
-      // 2. Intentar restaurar licencias en periodo de gracia (KICKOUT)
+      // 2. Try to restore licenses in grace period (KICKOUT)
       const restored = await this.client.kickoutService.handleGuildRejoined(guild.id);
 
       if (restored) {
-        // El servidor volvió dentro del periodo de gracia — notificar restauración
+        // The server came back within the grace period — notify restoration
         await this.notifyKickoutRestored(guild);
-        this.client.logger.info(`🔄 Licencias restauradas para servidor ${guild.id} tras reincorporación`);
+        this.client.logger.info(`🔄 Licenses restored for server ${guild.id} after rejoin`);
       } else {
-        // Servidor nuevo o reincorporación fuera del periodo de gracia
+        // New server or rejoin outside the grace period
         await this.client.shop.seedDefaultItems(guild.id);
         await this.sendWelcomeMessage(guild);
       }
@@ -37,17 +37,17 @@ export default class GuildCreateEvent extends Event<'guildCreate'> {
       // 3. Initialize invite tracking for the new guild
       await this.client.inviteService.cacheGuildInvites(guild);
 
-      // 4. Actualizar presencia del bot
+      // 4. Update bot presence
       this.updateBotPresence();
 
-      this.client.logger.info(`📊 Ahora sirviendo ${this.client.guilds.cache.size} servidores`);
+      this.client.logger.info(`📊 Now serving ${this.client.guilds.cache.size} servers`);
     } catch (error) {
-      this.client.logger.error(`Error configurando nuevo servidor ${guild.id}:`, error);
+      this.client.logger.error(`Error setting up new server ${guild.id}:`, error);
     }
   }
 
   /**
-   * Notifica al owner que sus licencias fueron restauradas automáticamente.
+   * Notifies the owner that their licenses were restored automatically.
    */
   private async notifyKickoutRestored(guild: Guild): Promise<void> {
     try {
@@ -65,7 +65,7 @@ export default class GuildCreateEvent extends Event<'guildCreate'> {
       await owner.send({ embeds: [embed], allowedMentions: { parse: [] } }).catch(() => null);
     } catch (error) {
       this.client.logger.error(
-        `Error notificando restauración de kickout al owner de ${guild.id}:`,
+        `Error notifying kickout restoration to the owner of ${guild.id}:`,
         error
       );
     }
@@ -81,11 +81,11 @@ export default class GuildCreateEvent extends Event<'guildCreate'> {
   }
 
   /**
-   * Enviar mensaje de bienvenida
+   * Send welcome message
    */
   private async sendWelcomeMessage(guild: Guild): Promise<void> {
     try {
-      // Intentar enviar DM al owner primero
+      // Try to DM the owner first
       const owner = await guild.fetchOwner();
 
       const lang = this.detectLanguage(guild);
@@ -108,22 +108,22 @@ export default class GuildCreateEvent extends Event<'guildCreate'> {
 
       try {
         await owner.send({ embeds: [welcomeEmbed] });
-        this.client.logger.debug(`Mensaje de bienvenida enviado al owner de ${guild.name}`);
+        this.client.logger.debug(`Welcome message sent to the owner of ${guild.name}`);
       } catch (dmError) {
-        // Si no se puede enviar DM, intentar en canal general
+        // If the DM fails, try a general channel
         await this.sendToGeneralChannel(guild, welcomeEmbed, lang);
       }
     } catch (error) {
-      this.client.logger.error(`Error enviando mensaje de bienvenida a ${guild.id}:`, error);
+      this.client.logger.error(`Error sending welcome message to ${guild.id}:`, error);
     }
   }
 
   /**
-   * Enviar mensaje al canal general si no se puede enviar DM
+   * Send message to a general channel if the DM fails
    */
   private async sendToGeneralChannel(guild: Guild, embed: any, lang: string): Promise<void> {
     try {
-      // Buscar canal general, system channel, o primer canal de texto disponible
+      // Find a general channel, the system channel, or the first available text channel
       const channels = [
         guild.systemChannel,
         guild.channels.cache.find((c) => c.name.includes('general') && c.isTextBased()),
@@ -141,16 +141,16 @@ export default class GuildCreateEvent extends Event<'guildCreate'> {
           embeds: [embed],
         });
         this.client.logger.debug(
-          `Mensaje de bienvenida enviado al canal ${targetChannel.name} en ${guild.name}`
+          `Welcome message sent to channel ${targetChannel.name} in ${guild.name}`
         );
       }
     } catch (error) {
-      this.client.logger.debug(`No se pudo enviar mensaje de bienvenida en canal de ${guild.name}`);
+      this.client.logger.debug(`Could not send welcome message to a channel in ${guild.name}`);
     }
   }
 
   /**
-   * Actualizar presencia del bot
+   * Update bot presence
    */
   private updateBotPresence(): void {
     this.client.user?.setPresence({

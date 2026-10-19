@@ -9,7 +9,7 @@ export interface AddonCheckResult {
 }
 
 /**
- * Verificar si un addon está activo para un servidor
+ * Check whether an addon is active for a server
  */
 export async function requireAddon(
   client: KorexClient,
@@ -26,7 +26,7 @@ export async function requireAddon(
   }
 
   try {
-    // Verificar licencia (AddonLicense activa) Y que el addon esté habilitado en el guild
+    // Check license (active AddonLicense) AND that the addon is enabled in the guild
     const [isActive, isEnabled] = await Promise.all([
       client.addonSync.isAddonActive(guildId, addonName),
       client.addons.isEnabled(guildId, addonName),
@@ -36,7 +36,7 @@ export async function requireAddon(
       return { allowed: true };
     }
 
-    // Addon no activo - mostrar mensaje premium
+    // Addon not active - show premium message
     const addonInfo = client.addons.getAddon(addonName);
     const displayName = addonInfo?.config.displayName || addonName;
 
@@ -58,7 +58,7 @@ export async function requireAddon(
 }
 
 /**
- * Decorador para comandos de addon
+ * Decorator for addon commands
  */
 export function AddonCommand(addonName: string) {
   return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
@@ -96,7 +96,7 @@ export function AddonCommand(addonName: string) {
 }
 
 /**
- * Middleware para verificar addon en tiempo de ejecución
+ * Middleware to check an addon at runtime
  */
 export async function checkAddonAccess(
   client: KorexClient,
@@ -113,7 +113,7 @@ export async function checkAddonAccess(
 }
 
 /**
- * Obtener lista de addons activos para un servidor
+ * Get the list of active addons for a server
  */
 export async function getActiveAddons(
   client: KorexClient,
@@ -140,7 +140,7 @@ export async function getActiveAddons(
 }
 
 /**
- * Verificar si un servidor tiene acceso a funciones premium
+ * Check whether a server has access to premium features
  */
 export async function hasPremiumAccess(
   client: KorexClient,
@@ -158,7 +158,7 @@ export async function hasPremiumAccess(
 }
 
 /**
- * Obtener información de licencia de addon
+ * Get addon license information
  */
 export async function getAddonLicense(
   client: KorexClient,
@@ -182,7 +182,7 @@ export async function getAddonLicense(
 }
 
 /**
- * Verificar límites de uso de addon
+ * Check addon usage limits
  */
 export async function checkAddonLimits(
   client: KorexClient,
@@ -198,12 +198,12 @@ export async function checkAddonLimits(
       return { allowed: false };
     }
 
-    // Obtener límites desde configuración del addon
+    // Get limits from the addon configuration
     const addonInfo = client.addons.getAddon(addonName);
     const limits = (addonInfo?.config as any)?.limits?.[license.plan];
     
     if (!limits || !limits[feature]) {
-      return { allowed: true }; // Sin límites definidos
+      return { allowed: true }; // No limits defined
     }
 
     const limit = limits[feature];

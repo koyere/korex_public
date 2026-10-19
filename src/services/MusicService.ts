@@ -6,10 +6,9 @@
  * continue to work without changes.
  *
  * LAVALINK FALLBACK NOTE:
- * Lavalink is kept stopped in PM2 (pm2 stop lavalink) and its application.yml
- * is preserved at /home/ubuntu/application.yml.  If youtube-source ever gains
- * reliable cookie/OAuth support, the Lavalink path can be restored by:
- *   1. pm2 start lavalink
+ * Lavalink is not used by default. If youtube-source ever gains reliable
+ * cookie/OAuth support, the Lavalink path can be restored by:
+ *   1. Starting a Lavalink node with your own application.yml
  *   2. Reverting this file to the lavalink-client implementation
  *   3. Re-adding lavalink-client to package.json
  */
@@ -108,7 +107,7 @@ export interface MusicConfig {
   announceNowPlaying: boolean;
   restrictedChannels: string[];
   voteSkipEnabled: boolean;
-  voteSkipThreshold: number; // % de oyentes necesarios
+  voteSkipThreshold: number; // % of listeners required
 }
 
 export interface MusicTrackView {
@@ -163,7 +162,7 @@ export class MusicService {
   private logger: ReturnType<typeof createLogger>;
   private player: Player | null = null;
   private initialized = false;
-  // Inicio de la sesión de reproducción por servidor (cola creada → cola eliminada)
+  // Start of the playback session per server (queue created → queue deleted)
   private sessionStart = new Map<string, number>();
 
   constructor(client: KorexClient) {
@@ -191,8 +190,8 @@ export class MusicService {
 
   public async init(): Promise<void> {
     if (!this.player) return;
-    // SoundCloud only — YoutubeiExtractor is NOT registered because this VPS IP
-    // is blocked by YouTube for streaming (400 on player API + decipher failure).
+    // SoundCloud only — YoutubeiExtractor is NOT registered because many hosting
+    // provider IPs are blocked by YouTube for streaming (400 on player API + decipher failure).
     // Registering it causes discord-player to call it as a fallback stream provider
     // even for SoundCloud tracks, breaking playback.
     // TODO: re-enable YoutubeiExtractor when proxy/IP rotation is available for premium.
@@ -237,11 +236,11 @@ export class MusicService {
     const guildId = member.guild.id;
     const isUrl = query.startsWith('http://') || query.startsWith('https://');
 
-    // SSRF: una URL directa no puede apuntar a la red interna de la VPS
+    // SSRF: a direct URL must not point to the host's internal network
     if (isUrl && !(await isPublicHttpUrl(query))) {
       throw new Error('MUSIC_URL_NOT_ALLOWED');
     }
-    // Solo SoundCloud, adjuntos y audio directo: YouTube/Spotify no están soportados
+    // Only SoundCloud, attachments and direct audio: YouTube/Spotify are not supported
     if (isUrl && /(youtube\.com|youtu\.be|spotify\.com|music\.apple\.com|deezer\.com)/i.test(query)) {
       throw new Error('MUSIC_UNSUPPORTED_SOURCE');
     }
@@ -272,7 +271,7 @@ export class MusicService {
 
     if (titleOverride) (trackToPlay as any).title = titleOverride;
 
-    // Límites: los de Music Pro (si el addon está activo) o los del dashboard
+    // Limits: Music Pro's (if the addon is active) or the dashboard's
     limits = {
       maxQueueSize: limits?.maxQueueSize || musicConfig.maxQueueSize,
       maxTrackDuration: limits?.maxTrackDuration || musicConfig.maxSongDuration,
@@ -292,7 +291,7 @@ export class MusicService {
       }
     }
 
-    // Si no había nada sonando, /play ya anuncia esta canción: evitar el doble aviso
+    // If nothing was playing, /play already announces this track: avoid a double notice
     if (!this.queueOf(guildId)?.currentTrack) (trackToPlay as any).__skipAnnounce = true;
 
     const result = await this.player.play(member.voice.channel as any, trackToPlay, {
@@ -331,7 +330,7 @@ export class MusicService {
   public async skip(member: GuildMember, channel: TextChannel): Promise<boolean> {
     const queue = this.queueOf(member.guild.id);
     if (!queue?.currentTrack) {
-      // El comando responde con el mensaje traducido
+      // The command replies with the translated message
       return false;
     }
     queue.node.skip();
@@ -341,7 +340,7 @@ export class MusicService {
   public async stop(member: GuildMember, channel: TextChannel): Promise<boolean> {
     const queue = this.queueOf(member.guild.id);
     if (!queue) {
-      // El comando responde con el mensaje traducido
+      // The command replies with the translated message
       return false;
     }
     queue.delete();
@@ -355,7 +354,7 @@ export class MusicService {
     return true;
   }
 
-  /** Mezcla la cola pendiente. Devuelve false si no hay canciones en cola. */
+  /** Shuffles the pending queue. Returns false if there are no tracks queued. */
   public shuffle(guildId: string): boolean {
     const queue = this.queueOf(guildId);
     if (!queue || queue.tracks.size < 2) return false;
@@ -381,11 +380,11 @@ export class MusicService {
     return true;
   }
 
-  // ── Estado para el dashboard ───────────────────────────────────────────────
+  // ── Dashboard status ──────────────────────────────────────────────────────
 
   /**
-   * Datos en vivo del reproductor de un servidor. Sin Lavalink, el audio lo procesa
-   * el propio bot (discord-player): hay 1 nodo de audio si el sistema está listo.
+   * Live player data for a server. Without Lavalink, audio is processed by
+   * the bot itself (discord-player): there is 1 audio node if the system is ready.
    */
   public getLiveStats(guildId: string): { activePlayers: number; activeSeconds: number; nodes: number } {
     const queue = this.queueOf(guildId);
@@ -400,9 +399,9 @@ export class MusicService {
   }
 
   /**
-   * Cola del servidor sin hooks de discord-player: `useQueue()` lanza
-   * IllegalHookInvocationError fuera de `player.context.provide()` o si el
-   * reproductor no está inicializado (p. ej. desde la API del panel).
+   * Server queue without discord-player hooks: `useQueue()` throws
+   * IllegalHookInvocationError outside `player.context.provide()` or if the
+   * player is not initialized (e.g. from the dashboard API).
    */
   private queueOf(guildId: string): GuildQueue | null {
     if (!this.player || !guildId) return null;
@@ -459,7 +458,7 @@ export class MusicService {
 
   private configCache = new Map<string, { config: MusicConfig; expires: number }>();
 
-  /** Configuración de Música del dashboard (tabla music_configs) o valores por defecto. */
+  /** Music settings from the dashboard (music_configs table) or defaults. */
   public async getMusicConfig(guildId: string): Promise<MusicConfig> {
     const cached = this.configCache.get(guildId);
     if (cached && cached.expires > Date.now()) return cached.config;
@@ -499,8 +498,8 @@ export class MusicService {
   }
 
   /**
-   * Roles DJ de Music Pro: cuentan además del rol DJ del módulo Música cuando el
-   * servidor tiene Music Pro activo (licencia + interruptor maestro).
+   * Music Pro DJ roles: they count in addition to the Music module's DJ role when the
+   * server has Music Pro active (license + master switch).
    */
   private async hasMusicProDJRole(member: GuildMember): Promise<boolean> {
     const proSvc = (this.client as any)?._musicProService;
@@ -514,13 +513,13 @@ export class MusicService {
     }
   }
 
-  // Votos para saltar la canción actual: guildId → { canción, votantes }
+  // Votes to skip the current track: guildId → { track, voters }
   private skipVotes = new Map<string, { trackId: string; voters: Set<string> }>();
 
   /**
-   * Voto para saltar. Salta directamente si la votación está desactivada, si
-   * quien vota es DJ, pidió la canción o está solo con el bot; si no, cuenta el
-   * voto y salta al alcanzar el porcentaje configurado de oyentes.
+   * Vote to skip. Skips directly if voting is disabled, if
+   * the voter is a DJ, requested the track or is alone with the bot; otherwise counts the
+   * vote and skips once the configured percentage of listeners is reached.
    */
   public async registerSkipVote(member: GuildMember): Promise<{ status: 'skip' | 'voted' | 'already_voted'; votes: number; required: number }> {
     const queue = this.queueOf(member.guild.id);
@@ -554,8 +553,8 @@ export class MusicService {
   }
 
   /**
-   * Comprueba si un miembro puede usar los comandos de música en ese canal.
-   * Devuelve el motivo del rechazo (clave i18n music.access.*) o null.
+   * Checks whether a member can use music commands in that channel.
+   * Returns the rejection reason (i18n key music.access.*) or null.
    */
   public async checkAccess(member: GuildMember, textChannelId: string): Promise<'disabled' | 'channel' | 'dj_only' | null> {
     const config = await this.getMusicConfig(member.guild.id);
@@ -660,10 +659,10 @@ export class MusicService {
     });
 
     this.player.events.on('playerStart', async (queue, track) => {
-      this.logger.info(`🎵 Reproduciendo: ${track.title} en ${queue.guild.id}`);
+      this.logger.info(`🎵 Now playing: ${track.title} in ${queue.guild.id}`);
       const meta = (queue as GuildQueue<{ channel: TextChannel }>).metadata;
       if (!meta?.channel) return;
-      // La primera canción ya la anuncia la respuesta de /play
+      // The first track is already announced by the /play reply
       if ((track as any).__skipAnnounce) {
         delete (track as any).__skipAnnounce;
         return;
@@ -686,7 +685,7 @@ export class MusicService {
     });
 
     this.player.events.on('playerError', (queue, error) => {
-      this.logger.error(`🎵 playerError en ${queue.guild.id}:`, error);
+      this.logger.error(`🎵 playerError in ${queue.guild.id}:`, error);
       const meta = (queue as GuildQueue<{ channel: TextChannel }>).metadata;
       // On stream error, skip to next track instead of stopping
       if (queue.tracks.size > 0) {
@@ -698,13 +697,13 @@ export class MusicService {
     });
 
     this.player.events.on('emptyQueue', (queue) => {
-      this.logger.info(`🎵 Cola terminada en ${queue.guild.id}`);
+      this.logger.info(`🎵 Queue finished in ${queue.guild.id}`);
       const meta = (queue as GuildQueue<{ channel: TextChannel }>).metadata;
       meta?.channel?.send(`🎵 ${i18n.t('music.queue_finished', queue.guild.id)}`).catch(() => {});
     });
 
     this.player.events.on('error', (queue, error) => {
-      this.logger.error(`🎵 Error general en ${queue.guild.id}:`, error);
+      this.logger.error(`🎵 General error in ${queue.guild.id}:`, error);
     });
   }
 

@@ -47,13 +47,13 @@ export class AutoModService {
   // Max fingerprints kept per user to bound memory
   private static readonly MAX_FINGERPRINTS = 20;
 
-  // IDs de mensajes que borró el AutoMod (para no tratarlos como ghost ping)
+  // IDs of messages deleted by AutoMod (so they are not treated as ghost pings)
   private selfDeleted = new Set<string>();
 
   constructor(client: KorexClient) {
     this.client = client;
 
-    // Purga periódica de rastreadores inactivos (evita crecimiento sin límite)
+    // Periodic purge of inactive trackers (prevents unbounded growth)
     setInterval(() => {
       const cutoff = Date.now() - 10 * 60_000;
       for (const [key, tr] of this.spamTracker) {
@@ -75,7 +75,7 @@ export class AutoModService {
     if (config.ignoredChannels?.includes(message.channel.id)) return false;
     if (message.member?.roles.cache.some(r => config.ignoredRoles?.includes(r.id))) return false;
 
-    // Skip staff (admins y moderadores) unless configured otherwise
+    // Skip staff (admins and moderators) unless configured otherwise
     const perms = message.member?.permissions;
     const isStaff = !!perms && (perms.has('Administrator') || perms.has('ModerateMembers') || perms.has('ManageMessages'));
     if (isStaff && !config.applyToModerators) return false;
@@ -139,9 +139,9 @@ export class AutoModService {
     if (!message.guild || message.author.bot) return;
     if (message.mentions.users.size === 0 && message.mentions.roles.size === 0) return;
 
-    // Mensajes borrados por el propio AutoMod no son ghost pings
+    // Messages deleted by AutoMod itself are not ghost pings
     if (this.selfDeleted.has(message.id)) return;
-    // Un ghost ping es una mención borrada poco después de enviarla
+    // A ghost ping is a mention deleted shortly after being sent
     if (message.createdTimestamp && Date.now() - message.createdTimestamp > 5 * 60_000) return;
 
     const config = await this.getConfig(message.guild.id);

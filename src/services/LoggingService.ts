@@ -519,8 +519,8 @@ export class LoggingService {
   }
 
   /**
-   * Configuración de logs (tabla logging_configs, la que edita el dashboard en
-   * Logs → Configuración; la misma que usan AutoMod y Moderación).
+   * Logging configuration (logging_configs table, the one edited by the dashboard in
+   * Logs → Configuration; the same one used by AutoMod and Moderation).
    */
   public async getLoggingConfig(guildId: string): Promise<LoggingConfig & { ignoredChannels: string[]; ignoredUsers: string[] }> {
     const cached = this.configCache.get(guildId);
@@ -533,7 +533,7 @@ export class LoggingService {
 
     const config = {
       guildId,
-      // El toggle del módulo (Ajustes) manda sobre el interruptor de Logs
+      // The module toggle (Settings) takes precedence over the Logs switch
       enabled: moduleEnabled && !!row?.enabled,
       channels: {
         messageLog: row?.messageLogChannel ?? undefined,
@@ -569,12 +569,12 @@ export class LoggingService {
     return config;
   }
 
-  /** Canal ignorado o usuario ignorado según la configuración. */
+  /** Ignored channel or ignored user according to the configuration. */
   private isIgnored(config: { ignoredChannels: string[]; ignoredUsers: string[] }, channelId?: string | null, userId?: string | null): boolean {
     return (!!channelId && config.ignoredChannels.includes(channelId)) || (!!userId && config.ignoredUsers.includes(userId));
   }
 
-  /** Los campos de embed admiten 1024 caracteres como máximo. */
+  /** Embed fields allow at most 1024 characters. */
   private truncate(text: string | null | undefined, max = 1024): string {
     if (!text) return '';
     return text.length > max ? `${text.slice(0, max - 1)}…` : text;
@@ -602,7 +602,7 @@ export class LoggingService {
         createdAt: new Date(),
       };
 
-      // Guardar en log_entries (lo muestra la página Logs del dashboard)
+      // Store in log_entries (shown by the dashboard Logs page)
       try {
         await this.db.prisma.logEntry.create({
           data: {

@@ -138,7 +138,7 @@ export default class VerificationCommand extends Command {
         const rawEmoji    = interaction.options.getString('emoji')       ?? '✅';
         // Normalize emoji input
         const emoji = VerificationService.normalizeEmoji(rawEmoji);
-        // Cualquiera que pulse "Verificar" recibe este rol: debe ser seguro
+        // Anyone who presses "Verify" gets this role: it must be safe
         const actor = await interaction.guild!.members.fetch(interaction.user.id).catch(() => null);
         const roleCheck = checkSelfAssignableRole(interaction.guild!, role.id, actor);
         if (!roleCheck.ok) {

@@ -1,27 +1,27 @@
 /**
- * Compatibilidad de los comandos slash con su uso por prefijo.
+ * Compatibility of slash commands with prefix usage.
  *
- * Por defecto TODOS los comandos funcionan con prefijo a través del adaptador
- * (MessageCommandInteraction). Aquí se listan solo las rutas que no pueden
- * funcionar desde un mensaje de texto, para avisar ANTES de ejecutar nada:
+ * By default ALL commands work with a prefix through the adapter
+ * (MessageCommandInteraction). Only the routes that cannot work from a text
+ * message are listed here, to warn BEFORE running anything:
  *
- *  - `modal`:     abren un formulario (modal) directamente desde el comando;
- *                 un mensaje de texto no puede abrir modales.
- *  - `sensitive`: piden datos secretos (claves de API, etc.) que no deben
- *                 escribirse en un canal visible.
+ *  - `modal`:     open a form (modal) directly from the command;
+ *                 a text message cannot open modals.
+ *  - `sensitive`: ask for secret data (API keys, etc.) that must not
+ *                 be typed in a visible channel.
  *
- * Formato de las rutas: '*' (todo el comando), 'sub', 'grupo' o 'grupo sub'.
+ * Route format: '*' (whole command), 'sub', 'group' or 'group sub'.
  *
- * Además de esta lista hay una red de seguridad en tiempo de ejecución: si un
- * comando intenta abrir un modal sobre la interacción de mensaje, el adaptador
- * lanza PrefixUnsupportedError y se responde con el mismo aviso (y se devuelve
- * el cooldown). Las opciones con nombre "sensible" (password, token, clave…)
- * se rechazan siempre, aparezcan en el comando que aparezcan.
+ * Besides this list there is a runtime safety net: if a
+ * command tries to open a modal on the message interaction, the adapter
+ * throws PrefixUnsupportedError and the same notice is sent (and the cooldown
+ * is refunded). Options with a "sensitive" name (password, token, key…)
+ * are always rejected, in whatever command they appear.
  */
 export type PrefixUnsupportedReason = 'modal' | 'sensitive';
 
 export const PREFIX_UNSUPPORTED: Record<string, Partial<Record<PrefixUnsupportedReason, string[]>>> = {
-  // Núcleo
+  // Core
   massban:      { modal: ['*'] },
   autoresponse: { modal: ['create', 'edit'] },
   autoroles:    { modal: ['button'] },
@@ -33,16 +33,16 @@ export const PREFIX_UNSUPPORTED: Record<string, Partial<Record<PrefixUnsupported
   form:         { modal: ['create', 'edit', 'field add'] },
   formpanel:    { modal: ['create'] },
   staffconfig:  { modal: ['setup'] },
-  // `paste edit` captura el fallo del modal y respondería un error genérico
+  // `paste edit` catches the modal failure and would reply with a generic error
   paste:        { modal: ['create', 'edit'] },
   aiconfig:     { sensitive: ['ai-key'] },
 };
 
-/** Opciones cuyo valor no debe escribirse nunca en un canal */
+/** Options whose value must never be typed in a channel */
 export const SENSITIVE_OPTION = /^(password|passwd|contrase(ñ|n)a|clave|secret|secreto|token|api[_-]?key|apikey)$/i;
 
 /**
- * Motivo por el que una ruta no es compatible con prefijo (o null si lo es).
+ * Reason why a route is not prefix-compatible (or null if it is).
  */
 export function getPrefixUnsupportedReason(
   commandName: string,
@@ -61,13 +61,13 @@ export function getPrefixUnsupportedReason(
   return null;
 }
 
-/** El comando entero no se puede usar con prefijo */
+/** The whole command cannot be used with a prefix */
 export function isFullyUnsupported(commandName: string): boolean {
   const entry = PREFIX_UNSUPPORTED[commandName];
   return !!entry && Object.values(entry).some(paths => paths?.includes('*'));
 }
 
-/** El comando tiene alguna ruta no compatible (pero no todas) */
+/** The command has some incompatible routes (but not all) */
 export function isPartiallyUnsupported(commandName: string): boolean {
   return !!PREFIX_UNSUPPORTED[commandName] && !isFullyUnsupported(commandName);
 }

@@ -21,7 +21,7 @@ import { i18n } from '../utils/i18n';
 import { logger } from '../utils/Logger';
 import { CAPTCHA_LENGTH, generateCaptchaCode, normalizeCaptchaInput, renderCaptchaImage } from '../utils/captchaImage';
 
-/** customId del botón "Introducir código" y del modal del captcha */
+/** customId of the "Enter code" button and of the captcha modal */
 export const CAPTCHA_BUTTON_ID = 'verify:captcha';
 export const CAPTCHA_MODAL_ID  = 'verify:captcha_modal';
 const CAPTCHA_INPUT_ID = 'code';
@@ -29,23 +29,23 @@ const CAPTCHA_INPUT_ID = 'code';
 export const VERIFICATION_TYPES = ['button', 'reaction', 'captcha'] as const;
 export const CAPTCHA_FAIL_ACTIONS = ['none', 'kick'] as const;
 
-/** Límites de la configuración (compartidos por el comando y la API) */
+/** Config limits (shared by the command and the API) */
 export const CAPTCHA_LIMITS = {
   maxAttempts:    { min: 1, max: 10 },
-  cooldown:       { min: 1, max: 1440 },   // minutos
-  timeoutMinutes: { min: 0, max: 10080 },  // 0 = desactivado; máx. 7 días
+  cooldown:       { min: 1, max: 1440 },   // minutes
+  timeoutMinutes: { min: 0, max: 10080 },  // 0 = disabled; max 7 days
 } as const;
 
-const CAPTCHA_TTL_SECONDS      = 5 * 60;   // vida de un código
-const CAPTCHA_ATTEMPTS_WINDOW  = 30 * 60;  // los fallos se acumulan aunque se pida otro código
-const CAPTCHA_ISSUE_LIMIT      = 5;        // códigos nuevos por usuario...
-const CAPTCHA_ISSUE_WINDOW     = 10 * 60;  // ...en esta ventana (s)
+const CAPTCHA_TTL_SECONDS      = 5 * 60;   // lifetime of a code
+const CAPTCHA_ATTEMPTS_WINDOW  = 30 * 60;  // failures accumulate even if another code is requested
+const CAPTCHA_ISSUE_LIMIT      = 5;        // new codes per user...
+const CAPTCHA_ISSUE_WINDOW     = 10 * 60;  // ...within this window (s)
 const DEADLINE_SWEEP_MS        = 60_000;
 
 /**
- * Comprobación atómica de un intento: bloqueo activo, código caducado/consumido,
- * acierto (se consume: un solo uso) o fallo (cuenta; al agotar, bloqueo).
- * Devuelve {estado, valor}: 1 ok · 0 fallo (restantes) · -1 caducado · -2 bloqueado (ttl) · -3 recién bloqueado (ttl)
+ * Atomic check of an attempt: active lockout, expired/consumed code,
+ * success (consumed: single use) or failure (counted; when exhausted, lockout).
+ * Returns {status, value}: 1 ok · 0 failure (remaining) · -1 expired · -2 locked (ttl) · -3 just locked (ttl)
  */
 export const CAPTCHA_CHECK_LUA = `
 if redis.call('EXISTS', KEYS[3]) == 1 then return {-2, redis.call('TTL', KEYS[3])} end
@@ -118,7 +118,7 @@ export class VerificationService {
     });
   }
 
-  /** ":white_check_mark:" / "white_check_mark" → "✅"; el resto se deja igual */
+  /** ":white_check_mark:" / "white_check_mark" → "✅"; anything else is left unchanged */
   static normalizeEmoji(raw: string): string {
     let emoji = (raw || '✅').trim();
     if (emoji.startsWith(':') && emoji.endsWith(':')) emoji = emoji.slice(1, -1);
@@ -140,7 +140,7 @@ export class VerificationService {
   }) {
     const parsed = parseInt((opts.color || '').replace('#', ''), 16);
     const hex = /^#?[0-9a-fA-F]{6}$/.test(opts.color || '') && !Number.isNaN(parsed) ? parsed : 0x5865F2;
-    // setTitle/setDescription lanzan con string vacío: usar los textos por defecto
+    // setTitle/setDescription throw on an empty string: use the default texts
     const title = opts.title?.trim() || i18n.t('verification.embed_title_default', lang);
     const description = opts.description?.trim() || i18n.t('verification.embed_desc_default', lang);
 
@@ -190,7 +190,7 @@ export class VerificationService {
         emoji:       cfg.verificationEmoji,
       });
 
-      // Borrar el mensaje anterior (si el canal cambió, el PATCH ya lo borró del canal viejo)
+      // Delete the previous message (if the channel changed, the PATCH already deleted it from the old channel)
       if (cfg.verificationMessageId) {
         const old = await channel.messages.fetch(cfg.verificationMessageId).catch(() => null);
         await old?.delete().catch(() => {});
@@ -242,13 +242,13 @@ export class VerificationService {
         return;
       }
 
-      // Configuraciones antiguas pudieron guardar un rol con permisos peligrosos
+      // Older configs may have saved a role with dangerous permissions
       if (!checkSelfAssignableRole(interaction.guild!, role.id).ok) {
         await interaction.reply({ content: i18n.t('autorole.button.cannot_assign', lang), ephemeral: true });
         return;
       }
 
-      // Modo captcha: el botón entrega un código en vez del rol
+      // Captcha mode: the button hands out a code instead of the role
       if (cfg.verificationType === 'captcha') {
         await this.startCaptcha(interaction, lang);
         return;
@@ -279,7 +279,7 @@ export class VerificationService {
         cfg.verificationMessageId !== reaction.message.id
       ) return;
 
-      // Unicode ("✅") o personalizado ("<:nombre:id>", "<a:nombre:id>", nombre o id)
+      // Unicode ("✅") or custom ("<:name:id>", "<a:name:id>", name or id)
       const { name, id } = reaction.emoji;
       const candidates = [name, id, id && `<:${name}:${id}>`, id && `<a:${name}:${id}>`].filter(Boolean);
       if (!candidates.includes(cfg.verificationEmoji)) return;
@@ -310,7 +310,7 @@ export class VerificationService {
     return `${process.env.REDIS_PREFIX || 'korex:'}verify:captcha:${kind}:${guildId}:${userId}`;
   }
 
-  /** Nunca se guarda el código en claro: hash ligado a servidor + usuario */
+  /** The code is never stored in plain text: hash bound to server + user */
   private hashCode(guildId: string, userId: string, code: string): string {
     return createHash('sha256').update(`${guildId}:${userId}:${code}`).digest('hex');
   }
@@ -320,7 +320,7 @@ export class VerificationService {
     return Math.min(Math.max(n, min), max);
   }
 
-  /** Paso 1: genera un código nuevo y lo muestra (efímero) con el botón para introducirlo */
+  /** Step 1: generates a new code and shows it (ephemeral) with the button to enter it */
   private async startCaptcha(interaction: ButtonInteraction, lang: string): Promise<void> {
     const guildId = interaction.guildId!;
     const userId  = interaction.user.id;
@@ -340,7 +340,7 @@ export class VerificationService {
       return;
     }
 
-    // Límite de códigos nuevos por usuario (evita forzar regeneraciones)
+    // Limit of new codes per user (prevents forcing regenerations)
     const issueKey = this.redisKey('issued', guildId, userId);
     const issued = await redis.incr(issueKey);
     if (issued === 1) await redis.expire(issueKey, CAPTCHA_ISSUE_WINDOW);
@@ -361,7 +361,7 @@ export class VerificationService {
       await interaction.editReply({ content: i18n.t('verification.captcha.unavailable', lang) });
       return;
     }
-    // Un código nuevo invalida el anterior (la clave se sobrescribe)
+    // A new code invalidates the previous one (the key is overwritten)
     await redis.set(codeKey, this.hashCode(guildId, userId, code), 'EX', CAPTCHA_TTL_SECONDS);
 
     const expires = Math.floor(Date.now() / 1000) + CAPTCHA_TTL_SECONDS;
@@ -389,7 +389,7 @@ export class VerificationService {
     });
   }
 
-  /** Paso 2: abre el modal para escribir el código */
+  /** Step 2: opens the modal to type the code */
   async handleCaptchaButton(interaction: ButtonInteraction): Promise<void> {
     const lang = i18n.getGuildLanguage(interaction.guildId!);
     try {
@@ -415,7 +415,7 @@ export class VerificationService {
     }
   }
 
-  /** Paso 3: comprueba el código (sin distinguir mayúsculas, un solo uso, intentos limitados) */
+  /** Step 3: checks the code (case-insensitive, single use, limited attempts) */
   async handleCaptchaModal(interaction: ModalSubmitInteraction): Promise<void> {
     const guildId = interaction.guildId!;
     const userId  = interaction.user.id;
@@ -487,7 +487,7 @@ export class VerificationService {
         return;
       }
 
-      // Acierto: asignar el rol con las mismas garantías que el modo botón
+      // Success: assign the role with the same safeguards as button mode
       const check = checkSelfAssignableRole(guild, cfg.verificationRole);
       if (!check.ok || !check.role) {
         await interaction.editReply({
@@ -514,7 +514,7 @@ export class VerificationService {
     }
   }
 
-  /** Expulsa a un miembro no verificado si el bot puede hacerlo (avisa por MD antes) */
+  /** Kicks an unverified member if the bot is able to (notifies via DM first) */
   private async kickUnverified(member: GuildMember, reason: string, cause: 'captcha' | 'timeout'): Promise<boolean> {
     const me = member.guild.members.me;
     if (!me?.permissions.has(PermissionFlagsBits.KickMembers) || !member.kickable) {
@@ -535,14 +535,14 @@ export class VerificationService {
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // TIEMPO LÍMITE PARA VERIFICARSE (persistido en Redis: sobrevive a reinicios)
+  // VERIFICATION DEADLINE (persisted in Redis: survives restarts)
   // ═══════════════════════════════════════════════════════════════
 
   private deadlinesKey(): string {
     return `${process.env.REDIS_PREFIX || 'korex:'}verify:deadlines`;
   }
 
-  /** Al unirse: programa la expulsión si no se verifica a tiempo (solo si está activado) */
+  /** On join: schedules a kick if not verified in time (only if enabled) */
   async scheduleDeadline(member: GuildMember): Promise<void> {
     if (member.user.bot || !this.redisReady()) return;
     const cfg = await this.getConfig(member.guild.id);
@@ -557,7 +557,7 @@ export class VerificationService {
     await this.client.redis.getClient().zrem(this.deadlinesKey(), `${guildId}:${userId}`).catch(() => {});
   }
 
-  /** Procesa los plazos vencidos de los servidores de este proceso/shard */
+  /** Processes expired deadlines for the servers of this process/shard */
   async processDueDeadlines(): Promise<number> {
     if (!this.redisReady()) return 0;
     const redis = this.client.redis.getClient();
@@ -569,11 +569,11 @@ export class VerificationService {
       if (!guildId || !userId) { await redis.zrem(key, entry); continue; }
       const guild = this.client.guilds.cache.get(guildId);
       if (!guild) {
-        // Sin sharding, un servidor ausente es uno que el bot abandonó
+        // Without sharding, a missing server is one the bot has left
         if (!this.client.shard) await redis.zrem(key, entry);
         continue;
       }
-      // Reclamo atómico: si otro proceso ya lo tomó, se salta
+      // Atomic claim: if another process already took it, skip
       if ((await redis.zrem(key, entry)) !== 1) continue;
       try {
         const cfg = await this.getConfig(guildId);
@@ -591,7 +591,7 @@ export class VerificationService {
 
   private deadlineWorker: NodeJS.Timeout | null = null;
 
-  /** Arranca el barrido de plazos de verificación (cada 60 s). Idempotente. */
+  /** Starts the verification deadline sweep (every 60 s). Idempotent. */
   startDeadlineWorker(): void {
     if (this.deadlineWorker) return;
     const run = () => {

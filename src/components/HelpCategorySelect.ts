@@ -11,8 +11,8 @@ import { Command } from '../client/structures/Command';
 import { chunkArray } from '../utils/helpers';
 
 /**
- * Componente global para manejar el select menu del comando /help
- * Usa patrón wildcard para capturar todos los IDs dinámicos: help_select_*
+ * Global component that handles the /help command's select menu
+ * Uses a wildcard pattern to capture all dynamic IDs: help_select_*
  */
 export default class HelpCategorySelect extends Component {
   constructor(client: KorexClient) {
@@ -29,7 +29,7 @@ export default class HelpCategorySelect extends Component {
 
     const selectInteraction = interaction as StringSelectMenuInteraction;
 
-    // Reconocer la interacción inmediatamente
+    // Acknowledge the interaction immediately
     await selectInteraction.deferUpdate();
 
     const selectedCategory = selectInteraction.values[0];
@@ -41,18 +41,18 @@ export default class HelpCategorySelect extends Component {
       return;
     }
 
-    // Crear embed de la categoría
+    // Create the category embed
     const categoryEmbed = this.createCategoryEmbed(selectedCategory, categoryCommands);
 
-    // Reconstruir el select menu con las categorías actuales
+    // Rebuild the select menu with the current categories
     const selectMenu = new StringSelectMenuBuilder()
-      .setCustomId(selectInteraction.customId) // Mantener el mismo ID
-      .setPlaceholder('📂 Selecciona una categoría para ver comandos')
+      .setCustomId(selectInteraction.customId) // Keep the same ID
+      .setPlaceholder('📂 Select a category to view commands')
       .addOptions(
         Object.entries(categories).map(([category, cmds]) => ({
           label: this.getCategoryDisplayName(category),
           value: category,
-          description: `${cmds.length} comando${cmds.length !== 1 ? 's' : ''} disponible${cmds.length !== 1 ? 's' : ''}`,
+          description: `${cmds.length} command${cmds.length !== 1 ? 's' : ''} available`,
           emoji: this.getCategoryEmoji(category),
           default: category === selectedCategory,
         }))
@@ -60,7 +60,7 @@ export default class HelpCategorySelect extends Component {
 
     const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selectMenu);
 
-    // Actualizar el mensaje
+    // Update the message
     await selectInteraction.editReply({
       embeds: [categoryEmbed],
       components: [row],
@@ -68,7 +68,7 @@ export default class HelpCategorySelect extends Component {
   }
 
   /**
-   * Agrupar comandos por categoría
+   * Group commands by category
    */
   private groupCommandsByCategory(commands: Command[]): Record<string, Command[]> {
     const categories: Record<string, Command[]> = {};
@@ -80,7 +80,7 @@ export default class HelpCategorySelect extends Component {
       categories[command.category].push(command);
     }
 
-    // Ordenar comandos dentro de cada categoría
+    // Sort commands within each category
     for (const category in categories) {
       categories[category].sort((a, b) => a.name.localeCompare(b.name));
     }
@@ -89,19 +89,19 @@ export default class HelpCategorySelect extends Component {
   }
 
   /**
-   * Crear embed para una categoría específica
+   * Create embed for a specific category
    */
   private createCategoryEmbed(category: string, commands: Command[]): EmbedBuilder {
     const embed = new EmbedBuilder()
       .setColor(this.client.config.colors.primary)
       .setTitle(`${this.getCategoryEmoji(category)} ${this.getCategoryDisplayName(category)}`)
       .setDescription(
-        `Comandos disponibles en la categoría **${this.getCategoryDisplayName(category)}**:`
+        `Commands available in the **${this.getCategoryDisplayName(category)}** category:`
       )
-      .setFooter({ text: 'Usa /help <comando> para más información sobre un comando específico' })
+      .setFooter({ text: 'Use /help <command> for more information about a specific command' })
       .setTimestamp();
 
-    // Dividir comandos en chunks para evitar límite de caracteres
+    // Split commands into chunks to avoid the character limit
     const commandChunks = chunkArray(commands, 10);
 
     for (let i = 0; i < commandChunks.length && i < 3; i++) {
@@ -110,7 +110,7 @@ export default class HelpCategorySelect extends Component {
 
       embed.addFields([
         {
-          name: i === 0 ? 'Comandos' : `Comandos (${i + 1})`,
+          name: i === 0 ? 'Commands' : `Commands (${i + 1})`,
           value: commandList,
           inline: false,
         },
@@ -120,8 +120,8 @@ export default class HelpCategorySelect extends Component {
     if (commandChunks.length > 3) {
       embed.addFields([
         {
-          name: 'Y más...',
-          value: `Hay ${commands.length - 30} comandos adicionales en esta categoría.`,
+          name: 'And more...',
+          value: `There are ${commands.length - 30} more commands in this category.`,
           inline: false,
         },
       ]);
@@ -131,20 +131,20 @@ export default class HelpCategorySelect extends Component {
   }
 
   /**
-   * Obtener nombre de display para categoría
+   * Get display name for a category
    */
   private getCategoryDisplayName(category: string): string {
     const names: Record<string, string> = {
-      moderation: 'Moderación',
-      utility: 'Utilidades',
-      economy: 'Economía',
-      levels: 'Niveles',
-      fun: 'Diversión',
-      music: 'Música',
-      admin: 'Administración',
-      giveaway: 'Sorteos',
-      welcome: 'Bienvenida',
-      logging: 'Registros',
+      moderation: 'Moderation',
+      utility: 'Utility',
+      economy: 'Economy',
+      levels: 'Levels',
+      fun: 'Fun',
+      music: 'Music',
+      admin: 'Administration',
+      giveaway: 'Giveaways',
+      welcome: 'Welcome',
+      logging: 'Logging',
       addon: 'Addons',
     };
 
@@ -152,7 +152,7 @@ export default class HelpCategorySelect extends Component {
   }
 
   /**
-   * Obtener emoji para categoría
+   * Get emoji for a category
    */
   private getCategoryEmoji(category: string): string {
     const emojis: Record<string, string> = {

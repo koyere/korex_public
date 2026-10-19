@@ -38,8 +38,8 @@ export interface HealthThresholds {
 }
 
 /**
- * Monitor de Salud del Sistema para Korex
- * Monitorea todos los componentes críticos del sistema
+ * System Health Monitor for Korex
+ * Monitors all critical system components
  */
 export class HealthMonitor extends EventEmitter {
   private client: KorexClient;
@@ -57,7 +57,7 @@ export class HealthMonitor extends EventEmitter {
   private lastCpuSnapshot: NodeJS.CpuUsage | null = null;
   private lastCpuSnapshotTime: number | null = null;
 
-  // Umbrales de salud configurables
+  // Configurable health thresholds
   private thresholds: HealthThresholds = {
     responseTime: {
       healthy: 100, // ms
@@ -87,7 +87,7 @@ export class HealthMonitor extends EventEmitter {
   }
 
   /**
-   * Iniciar monitoreo de salud
+   * Start health monitoring
    */
   startMonitoring(intervalMs: number = 30000): void {
     if (this.isMonitoring) {
@@ -117,7 +117,7 @@ export class HealthMonitor extends EventEmitter {
   }
 
   /**
-   * Detener monitoreo de salud
+   * Stop health monitoring
    */
   stopMonitoring(): void {
     if (this.monitoringInterval) {
@@ -130,13 +130,13 @@ export class HealthMonitor extends EventEmitter {
   }
 
   /**
-   * Realizar todos los health checks
+   * Run all health checks
    */
   async performHealthChecks(): Promise<SystemHealth> {
     const startTime = Date.now();
     
     try {
-      // Ejecutar todos los checks en paralelo
+      // Run all checks in parallel
       const checkPromises = [
         this.checkDiscordConnection(),
         this.checkDatabase(),
@@ -151,13 +151,13 @@ export class HealthMonitor extends EventEmitter {
 
       await Promise.allSettled(checkPromises);
 
-      // Calcular estado general
+      // Calculate overall status
       const systemHealth = this.calculateOverallHealth();
       
-      // Emitir evento de health check
+      // Emit health check event
       this.emit('healthCheck', systemHealth);
       
-      // Log si hay problemas
+      // Log if there are problems
       if (systemHealth.overall !== 'healthy') {
         this.logger.warn(`System health: ${systemHealth.overall}`, {
           unhealthyChecks: systemHealth.checks.filter(c => c.status !== 'healthy').length
@@ -173,7 +173,7 @@ export class HealthMonitor extends EventEmitter {
   }
 
   /**
-   * Verificar estado del nodo de música (Lavalink)
+   * Check music node status (Lavalink)
    */
   private async checkMusicNode(): Promise<void> {
     const startTime = Date.now();
@@ -215,7 +215,7 @@ export class HealthMonitor extends EventEmitter {
   }
 
   /**
-   * Verificar conexión a Discord
+   * Check Discord connection
    */
   private async checkDiscordConnection(): Promise<void> {
     const startTime = Date.now();
@@ -261,13 +261,13 @@ export class HealthMonitor extends EventEmitter {
   }
 
   /**
-   * Verificar base de datos
+   * Check database
    */
   private async checkDatabase(): Promise<void> {
     const startTime = Date.now();
     
     try {
-      // Test de conexión simple
+      // Simple connection test
       await this.client.db.$queryRaw`SELECT 1`;
       const responseTime = Date.now() - startTime;
       
@@ -277,7 +277,7 @@ export class HealthMonitor extends EventEmitter {
         status = responseTime > this.thresholds.database.degraded * 2 ? 'unhealthy' : 'degraded';
       }
 
-      // Obtener estadísticas adicionales
+      // Get additional statistics
       const dbHealth = await this.client.database.healthCheck();
       
       this.updateCheck('database', {
@@ -304,7 +304,7 @@ export class HealthMonitor extends EventEmitter {
   }
 
   /**
-   * Verificar Redis
+   * Check Redis
    */
   private async checkRedis(): Promise<void> {
     const startTime = Date.now();
@@ -345,7 +345,7 @@ export class HealthMonitor extends EventEmitter {
   }
 
   /**
-   * Verificar uso de memoria
+   * Check memory usage
    */
   private async checkMemoryUsage(): Promise<void> {
     const startTime = Date.now();
@@ -388,7 +388,7 @@ export class HealthMonitor extends EventEmitter {
   }
 
   /**
-   * Verificar uso de CPU
+   * Check CPU usage
    *
    * Uses a rolling delta between consecutive snapshots so the reading reflects
    * actual CPU activity during the last interval — not a cumulative average
@@ -449,7 +449,7 @@ export class HealthMonitor extends EventEmitter {
   }
 
   /**
-   * Verificar espacio en disco
+   * Check disk space
    */
   private async checkDiskSpace(): Promise<void> {
     const startTime = Date.now();
@@ -458,7 +458,7 @@ export class HealthMonitor extends EventEmitter {
       const fs = await import('fs');
       const path = await import('path');
       
-      // Verificar espacio en el directorio de logs
+      // Check space in the logs directory
       const logDir = path.join(process.cwd(), 'logs');
       
       let status: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
@@ -467,8 +467,8 @@ export class HealthMonitor extends EventEmitter {
       try {
         const stats = fs.statSync(logDir);
 
-        // En sistemas Unix, podríamos usar statvfs, pero por simplicidad
-        // solo verificamos que el directorio existe
+        // On Unix systems we could use statvfs, but for simplicity
+        // we only check that the directory exists
         details = { 
           logDirExists: true,
           logDirSize: stats.size || 0
@@ -498,13 +498,13 @@ export class HealthMonitor extends EventEmitter {
   }
 
   /**
-   * Verificar salud de shards (si aplica)
+   * Check shard health (if applicable)
    */
   private async checkShardHealth(): Promise<void> {
     const startTime = Date.now();
     
     try {
-      // Si no hay sharding, marcar como healthy
+      // If there is no sharding, mark as healthy
       if (!this.client.shard) {
         this.updateCheck('shards', {
           name: 'Shard Health',
@@ -517,13 +517,13 @@ export class HealthMonitor extends EventEmitter {
         return;
       }
 
-      // Verificar estado del shard actual
+      // Check the current shard status
       const shardId = this.client.shard.ids[0];
       const shardCount = this.client.shard.count;
       
       let status: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
       
-      // Verificar si el shard está respondiendo
+      // Check whether the shard is responding
       const ping = this.client.ws.ping;
 
       if (ping > 1000 || ping === -1) {
@@ -555,13 +555,13 @@ export class HealthMonitor extends EventEmitter {
   }
 
   /**
-   * Verificar salud de la API
+   * Check API health
    */
   private async checkAPIHealth(): Promise<void> {
     const startTime = Date.now();
     
     try {
-      // Verificar si la API está habilitada
+      // Check whether the API is enabled
       // The open-source core does not ship the REST API: report it as disabled
       // unless a host application attaches one to the client.
       if (!(this.client as unknown as { api?: unknown }).api) {
@@ -576,8 +576,8 @@ export class HealthMonitor extends EventEmitter {
         return;
       }
 
-      // La API está habilitada, verificar que esté respondiendo
-      // Por ahora, asumimos que está healthy si existe
+      // The API is enabled, check that it is responding
+      // For now, assume it is healthy if it exists
       this.updateCheck('api', {
         name: 'API Health',
         status: 'healthy',
@@ -601,15 +601,15 @@ export class HealthMonitor extends EventEmitter {
   }
 
   /**
-   * Actualizar un health check
+   * Update a health check
    */
   private updateCheck(key: string, check: HealthCheck): void {
     this.checks.set(key, check);
     
-    // Emitir evento específico del check
+    // Emit the check-specific event
     this.emit('checkUpdate', key, check);
     
-    // Log si el estado cambió a unhealthy
+    // Log if the status changed to unhealthy
     if (check.status === 'unhealthy') {
       this.logger.error(`Health check failed: ${check.name}`, {
         error: check.error,
@@ -620,18 +620,18 @@ export class HealthMonitor extends EventEmitter {
   }
 
   /**
-   * Calcular estado general del sistema
+   * Calculate overall system status
    */
   private calculateOverallHealth(): SystemHealth {
     const checks = Array.from(this.checks.values());
     
     let overall: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
     
-    // Si hay algún check unhealthy, el sistema está unhealthy
+    // If any check is unhealthy, the system is unhealthy
     if (checks.some(check => check.status === 'unhealthy')) {
       overall = 'unhealthy';
     }
-    // Si hay algún check degraded, el sistema está degraded
+    // If any check is degraded, the system is degraded
     else if (checks.some(check => check.status === 'degraded')) {
       overall = 'degraded';
     }
@@ -653,21 +653,21 @@ export class HealthMonitor extends EventEmitter {
   }
 
   /**
-   * Obtener estado actual del sistema
+   * Get current system status
    */
   getCurrentHealth(): SystemHealth {
     return this.calculateOverallHealth();
   }
 
   /**
-   * Obtener un health check específico
+   * Get a specific health check
    */
   getCheck(name: string): HealthCheck | undefined {
     return this.checks.get(name);
   }
 
   /**
-   * Configurar umbrales de salud
+   * Configure health thresholds
    */
   setThresholds(thresholds: Partial<HealthThresholds>): void {
     this.thresholds = { ...this.thresholds, ...thresholds };
@@ -675,21 +675,21 @@ export class HealthMonitor extends EventEmitter {
   }
 
   /**
-   * Obtener umbrales actuales
+   * Get current thresholds
    */
   getThresholds(): HealthThresholds {
     return { ...this.thresholds };
   }
 
   /**
-   * Verificar si el sistema está saludable
+   * Check whether the system is healthy
    */
   isHealthy(): boolean {
     return this.calculateOverallHealth().overall === 'healthy';
   }
 
   /**
-   * Obtener resumen de salud
+   * Get health summary
    */
   getHealthSummary(): {
     status: string;
@@ -713,7 +713,7 @@ export class HealthMonitor extends EventEmitter {
   }
 
   /**
-   * Formatear uptime
+   * Format uptime
    */
   private formatUptime(seconds: number): string {
     const days = Math.floor(seconds / 86400);
@@ -730,7 +730,7 @@ export class HealthMonitor extends EventEmitter {
   }
 
   /**
-   * Destruir el monitor de salud
+   * Destroy the health monitor
    */
   destroy(): void {
     this.stopMonitoring();

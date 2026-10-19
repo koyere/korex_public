@@ -1,10 +1,10 @@
 /**
- * Seed: Catálogo de items de la tienda
- * Ejecutar: node scripts/seed-shop-items.mjs
+ * Seed: shop item catalog
+ * Run: node scripts/seed-shop-items.mjs
  *
- * - Inserta items solo si no existe otro con el mismo nombre en el mismo guild
- * - Seguro para ejecutar múltiples veces (no duplica)
- * - translationKey permite traducir el nombre/descripción en bot y web
+ * - Inserts items only if no other item with the same name exists in the same guild
+ * - Safe to run multiple times (no duplicates)
+ * - translationKey allows translating the name/description in the bot and web
  */
 
 import { PrismaClient } from '@prisma/client';
@@ -64,11 +64,11 @@ async function main() {
   const guilds = await prisma.guild.findMany({ select: { id: true } });
 
   if (guilds.length === 0) {
-    console.log('No hay guilds registrados en la BD. Nada que hacer.');
+    console.log('No guilds registered in the DB. Nothing to do.');
     return;
   }
 
-  console.log(`\nGuilds encontrados: ${guilds.length}`);
+  console.log(`\nGuilds found: ${guilds.length}`);
   let totalInserted = 0;
   let totalUpdated = 0;
   let totalSkipped = 0;
@@ -115,7 +115,7 @@ async function main() {
     }
   }
 
-  console.log(`\n✅ Completado: ${totalInserted} insertados, ${totalUpdated} actualizados con translationKey, ${totalSkipped} omitidos.`);
+  console.log(`\n✅ Done: ${totalInserted} inserted, ${totalUpdated} updated with translationKey, ${totalSkipped} skipped.`);
 }
 
 main()

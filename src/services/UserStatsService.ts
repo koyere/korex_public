@@ -12,15 +12,15 @@ import { DatabaseManager } from '../client/managers/DatabaseManager';
 import { i18n } from '../utils/i18n';
 
 /**
- * Estadísticas de usuarios/servidor a partir de datos REALES:
- *  - log_entries (type 'message' | 'voice' | 'join' | 'leave'), retención 30 días
- *    → todo lo "reciente" es de los últimos 30 días. Fechas/horas en UTC.
- *  - guild_users (messages / voiceMinutes) → contadores históricos (LevelService).
- * El registro de la actividad lo hacen AnalyticsService (mensajes, joins/leaves)
- * y LevelService (sesiones de voz); este servicio solo consulta.
+ * User/server statistics based on REAL data:
+ *  - log_entries (type 'message' | 'voice' | 'join' | 'leave'), 30-day retention
+ *    → everything "recent" covers the last 30 days. Dates/times in UTC.
+ *  - guild_users (messages / voiceMinutes) → all-time counters (LevelService).
+ * Activity is recorded by AnalyticsService (messages, joins/leaves)
+ * and LevelService (voice sessions); this service only queries.
  */
 
-/** Ventana máxima disponible (retención de log_entries) */
+/** Maximum available window (log_entries retention) */
 export const STATS_WINDOW_DAYS = 30;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -29,26 +29,26 @@ export interface UserStats {
   userId: string;
   guildId: string;
   periodDays: number;
-  /** Mensajes en el periodo (log_entries) */
+  /** Messages in the period (log_entries) */
   recentMessages: number;
-  /** Minutos de voz en el periodo (log_entries) */
+  /** Voice minutes in the period (log_entries) */
   recentVoiceMinutes: number;
-  /** Canales de voz distintos usados en el periodo */
+  /** Distinct voice channels used in the period */
   voiceChannels: number;
-  /** Contadores históricos de guild_users (null si no hay registro) */
+  /** All-time counters from guild_users (null if there is no record) */
   lifetimeMessages: number | null;
   lifetimeVoiceMinutes: number | null;
-  /** Días distintos con mensajes en el periodo */
+  /** Distinct days with messages in the period */
   activeDays: number;
-  /** Días consecutivos con mensajes que terminan hoy o ayer (UTC) */
+  /** Consecutive days with messages ending today or yesterday (UTC) */
   currentStreak: number;
-  /** Racha más larga dentro del periodo */
+  /** Longest streak within the period */
   longestStreak: number;
   averageMessagesPerDay: number;
-  /** Hora UTC con más mensajes (null sin mensajes) */
+  /** UTC hour with the most messages (null without messages) */
   peakActivityHour: number | null;
-  activityByHour: Record<number, number>; // hora UTC -> mensajes
-  activityByDay: Record<number, number>; // día semana (0=domingo) -> mensajes
+  activityByHour: Record<number, number>; // UTC hour -> messages
+  activityByDay: Record<number, number>; // weekday (0=Sunday) -> messages
   lastActiveDate: Date | null;
 }
 
@@ -68,7 +68,7 @@ export interface ChannelStats {
 export interface GuildStatsOverview {
   guildId: string;
   totalMessages: number;
-  totalVoiceTime: number; // minutos
+  totalVoiceTime: number; // minutes
   activeUsers: number;
   averageMessagesPerUser: number;
   averageVoiceTimePerUser: number;
@@ -77,7 +77,7 @@ export interface GuildStatsOverview {
   peakActivityHour: number | null;
   joins: number;
   leaves: number;
-  /** % de crecimiento neto sobre los miembros al inicio del periodo (null si no calculable) */
+  /** Net growth % relative to members at the start of the period (null if not computable) */
   growthRate: number | null;
   updatedAt: Date;
 }
@@ -85,7 +85,7 @@ export interface GuildStatsOverview {
 export interface ActivityComparison {
   userRank: number;
   totalUsers: number;
-  /** % de usuarios activos por debajo del usuario */
+  /** % of active users ranked below the user */
   percentile: number;
   /** "Top X%" */
   topPercent: number;
@@ -128,14 +128,14 @@ export class UserStatsService {
     return new Date(Date.now() - days * DAY_MS);
   }
 
-  /** Fecha UTC (YYYY-MM-DD) desplazada `offset` días respecto a hoy */
+  /** UTC date (YYYY-MM-DD) shifted `offset` days from today */
   private utcDay(offset: number = 0): string {
     return new Date(Date.now() + offset * DAY_MS).toISOString().slice(0, 10);
   }
 
   /**
    * El tracking real lo hacen AnalyticsService (log_entries 'message') y
-   * LevelService (log_entries 'voice'). Se mantienen por compatibilidad con los eventos.
+   * LevelService (log_entries 'voice'). Kept for compatibility with the events.
    */
   public async handleMessage(_message: Message): Promise<void> {
     // no-op
@@ -146,8 +146,8 @@ export class UserStatsService {
   }
 
   /**
-   * Estadísticas de un usuario en los últimos `days` días (máx. 30) + totales históricos.
-   * Devuelve null si no hay ningún dato del usuario.
+   * Stats for a user over the last `days` days (max. 30) + all-time totals.
+   * Returns null if there is no data for the user.
    */
   public async getUserStats(userId: string, guildId: string, days: number = STATS_WINDOW_DAYS): Promise<UserStats | null> {
     try {
@@ -233,7 +233,7 @@ export class UserStatsService {
     }
   }
 
-  /** Rachas a partir de días UTC (YYYY-MM-DD) ordenados ascendentemente */
+  /** Streaks from UTC days (YYYY-MM-DD) sorted ascending */
   private computeStreaks(days: string[]): { current: number; longest: number } {
     let longest = 0;
     let run = 0;
@@ -247,7 +247,7 @@ export class UserStatsService {
       prev = t;
     }
 
-    // La racha actual solo cuenta si el último día activo es hoy o ayer
+    // The current streak only counts if the last active day is today or yesterday
     const last = days[days.length - 1];
     const current = last === this.utcDay(0) || last === this.utcDay(-1) ? run : 0;
 
@@ -269,8 +269,8 @@ export class UserStatsService {
   }
 
   /**
-   * Racha actual (días consecutivos con mensajes hasta hoy/ayer, UTC) por usuario.
-   * Gaps-and-islands en SQL; solo devuelve usuarios con racha > 0.
+   * Current streak (consecutive days with messages up to today/yesterday, UTC) per user.
+   * Gaps-and-islands in SQL; only returns users with a streak > 0.
    */
   private async getCurrentStreaks(guildId: string, limit?: number): Promise<Array<{ userId: string; streak: number }>> {
     const since = this.since();
@@ -300,7 +300,7 @@ export class UserStatsService {
   }
 
   /**
-   * Compara al usuario con los usuarios activos (con mensajes) de los últimos 30 días.
+   * Compares the user against active users (with messages) in the last 30 days.
    */
   public async getUserActivityComparison(userId: string, guildId: string): Promise<ActivityComparison | null> {
     try {
@@ -325,7 +325,7 @@ export class UserStatsService {
       const counts = msgGroups.map(g => ({ userId: g.userId as string, count: g._count._all }));
       const mine = counts.find(c => c.userId === userId);
 
-      // Sin mensajes del usuario en la ventana no hay ranking que mostrar
+      // Without messages from the user in the window there is no ranking to show
       if (!mine || counts.length === 0) return null;
 
       const totalUsers = counts.length;
@@ -338,7 +338,7 @@ export class UserStatsService {
       const userVoiceTime = Math.round(Number(voiceAgg[0]?.mine ?? 0));
       const averageVoiceTime = voiceUsers > 0 ? Math.round(voiceTotal / voiceUsers) : 0;
 
-      // Media de racha actual sobre los usuarios activos (los sin racha cuentan 0)
+      // Average current streak over active users (those without a streak count as 0)
       const streakSum = streaks.reduce((s, r) => s + r.streak, 0);
       const userStreak = streaks.find(s => s.userId === userId)?.streak ?? 0;
 
@@ -365,7 +365,7 @@ export class UserStatsService {
   }
 
   /**
-   * Resumen del servidor (últimos 30 días). `memberCount` permite calcular el % de crecimiento.
+   * Server overview (last 30 days). `memberCount` allows computing the growth %.
    */
   public async getGuildStatsOverview(guildId: string, memberCount?: number): Promise<GuildStatsOverview | null> {
     try {
@@ -408,7 +408,7 @@ export class UserStatsService {
 
       for (const r of hourRows) hours[Number(r.k)] = Number(r.c);
 
-      // Crecimiento neto relativo a los miembros que había al inicio de la ventana
+      // Net growth relative to the members at the start of the window
       let growthRate: number | null = null;
 
       if (memberCount !== undefined) {
@@ -442,8 +442,8 @@ export class UserStatsService {
   }
 
   /**
-   * Estadísticas de un canal (últimos 30 días): mensajes y, si aplica, voz.
-   * Devuelve null si el canal no tiene actividad registrada.
+   * Channel stats (last 30 days): messages and, if applicable, voice.
+   * Returns null if the channel has no recorded activity.
    */
   public async getChannelStats(channelId: string, guildId: string): Promise<ChannelStats | null> {
     try {
@@ -479,7 +479,7 @@ export class UserStatsService {
 
       if (totalMessages === 0 && voiceMinutes === 0) return null;
 
-      // Promedio sobre los días cubiertos por los datos (máx. 30)
+      // Average over the days covered by the data (max. 30)
       const first = msgAgg._min.createdAt;
       const spanDays = first
         ? Math.min(STATS_WINDOW_DAYS, Math.max(1, Math.ceil((Date.now() - first.getTime()) / DAY_MS)))
@@ -511,7 +511,7 @@ export class UserStatsService {
   }
 
   /**
-   * Top usuarios por mensajes (últimos 30 días)
+   * Top users by messages (last 30 days)
    */
   public async getTopUsersByMessages(guildId: string, limit: number = 10): Promise<Array<{ userId: string; totalMessages: number; rank: number }>> {
     try {
@@ -532,7 +532,7 @@ export class UserStatsService {
   }
 
   /**
-   * Top usuarios por mensajes enviados hoy (UTC)
+   * Top users by messages sent today (UTC)
    */
   public async getTopUsersToday(guildId: string, limit: number = 10): Promise<Array<{ userId: string; messages: number; rank: number }>> {
     try {
@@ -554,7 +554,7 @@ export class UserStatsService {
   }
 
   /**
-   * Top usuarios por racha actual de días con mensajes
+   * Top users by current streak of days with messages
    */
   public async getTopUsersByStreak(guildId: string, limit: number = 10): Promise<Array<{ userId: string; streak: number; rank: number }>> {
     try {
@@ -569,7 +569,7 @@ export class UserStatsService {
   }
 
   /**
-   * Top usuarios por minutos de voz (últimos 30 días)
+   * Top users by voice minutes (last 30 days)
    */
   public async getTopUsersByVoiceTime(guildId: string, limit: number = 10): Promise<Array<{ userId: string; totalVoiceTime: number; rank: number }>> {
     try {
@@ -592,8 +592,8 @@ export class UserStatsService {
   }
 
   /**
-   * Canales más usados (últimos 30 días): texto por mensajes y voz por minutos.
-   * Con `userId` se limita a la actividad de ese usuario.
+   * Most used channels (last 30 days): text by messages and voice by minutes.
+   * With `userId` it is limited to that user's activity.
    */
   public async getChannelBreakdown(guildId: string, userId: string | null = null, limit: number = 10): Promise<{
     text: Array<{ channelId: string; messages: number }>;
@@ -635,7 +635,7 @@ export class UserStatsService {
   }
 
   /**
-   * Patrón de actividad del servidor (últimos 30 días): mensajes por hora UTC y por día de la semana.
+   * Server activity pattern (last 30 days): messages per UTC hour and per weekday.
    */
   public async getGuildActivityPattern(guildId: string): Promise<{
     totalMessages: number;
@@ -678,7 +678,7 @@ export class UserStatsService {
   }
 
   /**
-   * Altas y bajas por semana (lunes UTC) en los últimos 30 días.
+   * Joins and leaves per week (Monday UTC) over the last 30 days.
    */
   public async getGuildGrowth(guildId: string): Promise<Array<{ week: string; joins: number; leaves: number }>> {
     const rows = await this.prisma.$queryRaw<Array<{ w: string; joins: number; leaves: number }>>`
@@ -870,7 +870,7 @@ export class UserStatsService {
     }
   }
 
-  /** Une líneas no nulas respetando el límite de 1024 caracteres de un field */
+  /** Joins non-null lines respecting the 1024-character field limit */
   private joinLines(lines: Array<string | null>): string {
     const text = lines.filter((l): l is string => !!l).join('\n') || '—';
 
@@ -897,7 +897,7 @@ export class UserStatsService {
   }
 
   /**
-   * Cleanup method for graceful shutdown (sin estado en memoria)
+   * Cleanup method for graceful shutdown (no in-memory state)
    */
   public async cleanup(): Promise<void> {
     this.logger.info('UserStatsService cleanup completed');

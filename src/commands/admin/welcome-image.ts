@@ -54,7 +54,7 @@ export default class WelcomeImageCommand extends Command {
               .setName('template')
               .setDescription('Template ID to preview')
               .setRequired(true)
-              // Generadas de las plantillas que existen de verdad en WelcomeImageService
+              // Generated from the templates that actually exist in WelcomeImageService
               .addChoices(...WelcomeImageService.getInstance().getTemplates().map(tpl => ({ name: tpl.name, value: tpl.id })))
           )
       )
@@ -67,7 +67,7 @@ export default class WelcomeImageCommand extends Command {
               .setName('template')
               .setDescription('Template ID to use')
               .setRequired(true)
-              // Generadas de las plantillas que existen de verdad en WelcomeImageService
+              // Generated from the templates that actually exist in WelcomeImageService
               .addChoices(...WelcomeImageService.getInstance().getTemplates().map(tpl => ({ name: tpl.name, value: tpl.id })))
           )
       )
@@ -173,7 +173,7 @@ export default class WelcomeImageCommand extends Command {
       fetchReply: true
     });
 
-    // Solo los selects de ESTE mensaje (antes capturaba cualquier select del canal)
+    // Only selects from THIS message (it used to capture any select in the channel)
     const collector = reply.createMessageComponentCollector({
       componentType: ComponentType.StringSelect,
       time: 300000 // 5 minutes
@@ -229,7 +229,7 @@ export default class WelcomeImageCommand extends Command {
       .setDescription(i18n.t('welcome_image.templates.description', guildId, { count: templates.length.toString() }));
 
     // Add template information
-    for (const template of templates.slice(0, 25)) { // Límite de campos de un embed
+    for (const template of templates.slice(0, 25)) { // Embed field limit
       embed.addFields({
         name: `${template.name} (${template.id})`,
         value: `${i18n.t(`welcome_image.templates.descriptions.${template.id}`, guildId)}\n📐 ${template.width}x${template.height}px`,

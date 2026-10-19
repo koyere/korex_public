@@ -2,9 +2,9 @@ import { lookup } from 'dns/promises';
 import net from 'net';
 
 /**
- * Protección SSRF para URLs que aporta un usuario (fondos de bienvenida,
- * audio directo en /play...). El bot no debe poder usarse para hacer peticiones
- * a la red interna de la VPS (127.0.0.1, 10.x, metadata de la nube, etc.).
+ * SSRF protection for user-supplied URLs (welcome backgrounds,
+ * direct audio in /play...). The bot must not be usable to make requests
+ * to the VPS internal network (127.0.0.1, 10.x, cloud metadata, etc.).
  */
 
 function isPrivateIPv4(ip: string): boolean {
@@ -17,7 +17,7 @@ function isPrivateIPv4(ip: string): boolean {
     (a === 192 && b === 168) ||
     (a === 192 && b === 0) ||
     (a === 198 && (b === 18 || b === 19)) ||
-    a >= 224                                // multicast / reservado
+    a >= 224                                // multicast / reserved
   );
 }
 
@@ -34,9 +34,9 @@ function isPrivateIP(ip: string): boolean {
 }
 
 /**
- * Comprobación síncrona (sin DNS) del host de una URL: localhost, dominios
- * internos o una IP literal privada/reservada. Útil cuando no se hace ninguna
- * petición (p. ej. un redirector) o antes de resolver.
+ * Synchronous check (no DNS) of a URL's host: localhost, internal
+ * domains or a literal private/reserved IP. Useful when no request is
+ * made (e.g. a redirector) or before resolving.
  */
 export function isPrivateLiteralHost(hostname: string): boolean {
   const host = hostname.toLowerCase().replace(/^\[|\]$/g, '').replace(/\.$/, '');
@@ -45,7 +45,7 @@ export function isPrivateLiteralHost(hostname: string): boolean {
   return false;
 }
 
-/** true si la URL es http(s) y todas sus IPs resueltas son públicas. */
+/** true if the URL is http(s) and all its resolved IPs are public. */
 export async function isPublicHttpUrl(raw: string): Promise<boolean> {
   let url: URL;
   try {
@@ -69,9 +69,9 @@ export async function isPublicHttpUrl(raw: string): Promise<boolean> {
 }
 
 /**
- * Descarga un recurso de una URL pública con límite de tiempo y tamaño.
- * Sigue redirecciones comprobando cada salto (sin seguirlas a ciegas).
- * `acceptType` valida el content-type. Lanza error si algo no cuadra.
+ * Downloads a resource from a public URL with time and size limits.
+ * Follows redirects checking each hop (never following them blindly).
+ * `acceptType` validates the content-type. Throws if anything is off.
  */
 export async function fetchPublicResource(
   raw: string,
@@ -121,7 +121,7 @@ export async function fetchPublicResource(
   throw new Error('Too many redirects');
 }
 
-/** Descarga una imagen de una URL pública (fondos de bienvenida, etc.). */
+/** Downloads an image from a public URL (welcome backgrounds, etc.). */
 export async function fetchPublicImage(raw: string, opts: { maxBytes?: number; timeoutMs?: number } = {}): Promise<Buffer> {
   const { buffer } = await fetchPublicResource(raw, { ...opts, acceptType: (t) => t.startsWith('image/') });
   return buffer;

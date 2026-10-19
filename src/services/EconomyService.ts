@@ -34,12 +34,12 @@ export interface EconomyConfig {
 export interface TransactionResult {
   success: boolean;
   newBalance?: number;
-  /** Cantidad ganada (daily/weekly/work) para mostrarla sin parsear el mensaje */
+  /** Amount earned (daily/weekly/work) so it can be shown without parsing the message */
   amount?: number;
   message: string;
 }
 
-/** Saldo con el que empieza cada usuario en un servidor. */
+/** Starting balance for each user in a server. */
 export const STARTING_BALANCE = 100;
 
 class TransferError extends Error {
@@ -65,15 +65,15 @@ export class EconomyService {
   }
 
   /**
-   * Inicializa la conexión a la base de datos
+   * Initializes the database connection
    */
   public setDatabase(db: DatabaseManager): void {
     this.db = db;
   }
 
   /**
-   * Contador diario de transacciones (dashboard → Economía → "Transacciones hoy").
-   * No hay tabla de transacciones: se cuenta en Redis por servidor y día UTC (TTL 3 días).
+   * Daily transaction counter (dashboard → Economy → "Transactions today").
+   * There is no transactions table: counted in Redis per server and UTC day (TTL 3 days).
    */
   private redis: { incr(key: string): Promise<number>; expire(key: string, seconds: number): Promise<number>; get(key: string): Promise<string | null> } | null = null;
 
@@ -90,10 +90,10 @@ export class EconomyService {
     const key = this.transactionKey(guildId);
     this.redis.incr(key)
       .then((count) => (count === 1 ? this.redis!.expire(key, 3 * 24 * 60 * 60) : 0))
-      .catch(() => { /* el contador es informativo: nunca bloquea una transacción */ });
+      .catch(() => { /* the counter is informational: it never blocks a transaction */ });
   }
 
-  /** Transacciones correctas de hoy (UTC) en el servidor; 0 si Redis no está disponible */
+  /** Successful transactions today (UTC) in the server; 0 if Redis is unavailable */
   public async getTransactionsToday(guildId: string): Promise<number> {
     if (!this.redis) return 0;
     try {
@@ -104,16 +104,16 @@ export class EconomyService {
   }
 
   /**
-   * Obtiene los datos económicos de un usuario
+   * Gets a user's economy data
    */
   public async getUser(guildId: string, userId: string): Promise<EconomyUser> {
     const cacheKey = `${guildId}:${userId}`;
 
-    // Verificar caché primero
+    // Check cache first
     let user = this.userCache.get(cacheKey);
 
     if (!user && this.db) {
-      // Buscar en base de datos
+      // Look up in the database
       const dbUser = await this.db.prisma.guildUser.findUnique({
         where: {
           guildId_userId: {
@@ -135,11 +135,11 @@ export class EconomyService {
           lastWork: dbUser.lastWork || null,
         };
       } else {
-        // Crear usuario nuevo
+        // Create new user
         user = await this.createUser(guildId, userId);
       }
 
-      // Cachear por 5 minutos
+      // Cache for 5 minutes
       this.userCache.set(cacheKey, user);
       setTimeout(() => this.userCache.delete(cacheKey), 5 * 60 * 1000);
     }
@@ -159,14 +159,14 @@ export class EconomyService {
   }
 
   /**
-   * Crea un nuevo usuario en el sistema económico
+   * Creates a new user in the economy system
    */
   private async createUser(guildId: string, userId: string): Promise<EconomyUser> {
     if (!this.db) {
       throw new Error('Database not available');
     }
 
-    // Crear usuario global primero si no existe
+    // Create the global user first if it does not exist
     await this.db.prisma.user.upsert({
       where: { id: userId },
       update: {},
@@ -203,7 +203,7 @@ export class EconomyService {
   }
 
   /**
-   * Obtiene la configuración económica de un servidor
+   * Gets a server's economy configuration
    */
   public async getConfig(guildId: string): Promise<EconomyConfig> {
     if (!this.db) {
@@ -252,22 +252,22 @@ export class EconomyService {
       weeklyReward: 500,
       workMinReward: 50,
       workMaxReward: 200,
-      workCooldown: 3600, // 1 hora en segundos
+      workCooldown: 3600, // 1 hour in seconds
       maxBalance: 1000000,
       maxBank: 5000000,
       robChance: 40,
-      robCooldown: 7200, // 2 horas en segundos
+      robCooldown: 7200, // 2 hours in seconds
       shopEnabled: true,
     };
   }
 
   /**
-   * Añade dinero a un usuario
+   * Adds money to a user
    */
-  // ─── Operaciones atómicas ───────────────────────────────────────────────
-  // Cada movimiento es un único UPDATE condicional (saldo, límites y cooldown
-  // se comprueban en el WHERE) que devuelve la fila resultante. Así dos
-  // operaciones simultáneas nunca se pisan ni dejan saldos negativos.
+  // ─── Atomic operations ──────────────────────────────────────────────────
+  // Each movement is a single conditional UPDATE (balance, limits and cooldown
+  // are checked in the WHERE) that returns the resulting row. This way two
+  // concurrent operations never overwrite each other or leave negative balances.
 
   private toEconomyUser(row: any): EconomyUser {
     return {
@@ -282,14 +282,14 @@ export class EconomyService {
     };
   }
 
-  /** Guarda en caché el estado devuelto por la BD tras una operación. */
+  /** Caches the state returned by the DB after an operation. */
   private remember(row: any): EconomyUser {
     const user = this.toEconomyUser(row);
     this.userCache.set(`${user.guildId}:${user.userId}`, user);
     return user;
   }
 
-  /** Lee el estado real (sin caché) para explicar por qué falló una operación. */
+  /** Reads the real state (uncached) to explain why an operation failed. */
   private async freshUser(guildId: string, userId: string): Promise<EconomyUser> {
     this.userCache.delete(`${guildId}:${userId}`);
     return this.getUser(guildId, userId);
@@ -300,7 +300,7 @@ export class EconomyService {
   }
 
   /**
-   * Añade dinero a un usuario
+   * Adds money to a user
    */
   public async addMoney(
     guildId: string,
@@ -309,7 +309,7 @@ export class EconomyService {
     reason: string = 'Unknown'
   ): Promise<TransactionResult> {
     try {
-      // Un importe negativo invertiría la operación (p. ej. precio < 0 sumaría dinero)
+      // A negative amount would invert the operation (e.g. price < 0 would add money)
       if (this.invalidAmount(amount)) {
         return { success: false, message: i18n.t('economy.errors.invalid_amount', guildId) };
       }
@@ -320,7 +320,7 @@ export class EconomyService {
         return { success: false, message: i18n.t('economy.tx.disabled', guildId) };
       }
 
-      await this.getUser(guildId, userId); // crea la fila si no existe
+      await this.getUser(guildId, userId); // creates the row if it does not exist
       const rows = await this.db!.prisma.$queryRaw<any[]>`
         UPDATE guild_users SET balance = balance + ${amount}, "updatedAt" = NOW()
         WHERE "guildId" = ${guildId} AND "userId" = ${userId} AND balance + ${amount} <= ${config.maxBalance}
@@ -351,7 +351,7 @@ export class EconomyService {
   }
 
   /**
-   * Quita dinero a un usuario
+   * Removes money from a user
    */
   public async removeMoney(
     guildId: string,
@@ -401,7 +401,7 @@ export class EconomyService {
   }
 
   /**
-   * Transfiere dinero entre usuarios (débito y crédito en una sola transacción)
+   * Transfers money between users (debit and credit in a single transaction)
    */
   public async transferMoney(
     guildId: string,
@@ -472,7 +472,7 @@ export class EconomyService {
   }
 
   /**
-   * Reclama recompensa diaria (racha: +1 si la anterior fue hace menos de 48 h)
+   * Claims the daily reward (streak: +1 if the previous one was less than 48 h ago)
    */
   public async claimDaily(guildId: string, userId: string): Promise<TransactionResult> {
     const lang = i18n.getGuildLanguage(guildId);
@@ -485,7 +485,7 @@ export class EconomyService {
       }
 
       await this.getUser(guildId, userId);
-      // Racha y recompensa se calculan dentro del UPDATE (bono = 10 por día, máx. 200)
+      // Streak and reward are calculated inside the UPDATE (bonus = 10 per day, max 200)
       const rows = await this.db!.prisma.$queryRaw<any[]>`
         WITH next AS (
           SELECT CASE WHEN "lastDaily" IS NOT NULL AND "lastDaily" > NOW() - INTERVAL '48 hours'
@@ -535,7 +535,7 @@ export class EconomyService {
   }
 
   /**
-   * Reclama recompensa semanal
+   * Claims the weekly reward
    */
   public async claimWeekly(guildId: string, userId: string): Promise<TransactionResult> {
     const lang = i18n.getGuildLanguage(guildId);
@@ -581,7 +581,7 @@ export class EconomyService {
   }
 
   /**
-   * Trabaja para ganar dinero
+   * Works to earn money
    */
   public async work(guildId: string, userId: string): Promise<TransactionResult> {
     const lang = i18n.getGuildLanguage(guildId);
@@ -631,7 +631,7 @@ export class EconomyService {
   }
 
   /**
-   * Deposita dinero en el banco
+   * Deposits money into the bank
    */
   public async deposit(
     guildId: string,
@@ -683,7 +683,7 @@ export class EconomyService {
   }
 
   /**
-   * Retira dinero del banco
+   * Withdraws money from the bank
    */
   public async withdraw(
     guildId: string,
@@ -735,7 +735,7 @@ export class EconomyService {
   }
 
   /**
-   * Obtiene el leaderboard de dinero
+   * Gets the money leaderboard
    */
   public async getLeaderboard(guildId: string, limit: number = 10, offset: number = 0): Promise<EconomyUser[]> {
     try {
@@ -743,7 +743,7 @@ export class EconomyService {
         return [];
       }
 
-      // Ordenado por riqueza total (cartera + banco); se omiten usuarios sin dinero
+      // Sorted by total wealth (wallet + bank); users without money are omitted
       const users = await this.db.prisma.$queryRaw<Array<{
         guildId: string; userId: string; balance: number; bank: number; dailyStreak: number;
         lastDaily: Date | null; lastWeekly: Date | null; lastWork: Date | null;
@@ -773,7 +773,7 @@ export class EconomyService {
   }
 
   /**
-   * Obtiene estadísticas económicas del servidor
+   * Gets the server's economy statistics
    */
   public async getServerStats(guildId: string): Promise<{
     totalUsers: number;

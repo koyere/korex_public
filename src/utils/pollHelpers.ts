@@ -135,7 +135,7 @@ export function parseOptions(optionsText: string): Array<{ id: string; text: str
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
     if (!line) continue;
-    // Emoji pictográfico (con variantes/ZWJ) o personalizado <:n:id>; \p{Emoji} incluía dígitos, # y *
+    // Pictographic emoji (with variants/ZWJ) or custom <:n:id>; \p{Emoji} included digits, # and *
     const emojiMatch = line.match(/^(<a?:\w+:\d+>|\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic})*)\s*(.+)$/u);
     if (emojiMatch) {
       options.push({ id: `option_${i}`, text: emojiMatch[2].trim(), emoji: emojiMatch[1] });

@@ -22,7 +22,7 @@ async function main() {
 
   const existing = await prisma.adminUser.findUnique({ where: { email } });
   if (existing) {
-    console.log(`⚠️  Ya existe un operador con email ${email} — seed omitido.`);
+    console.log(`⚠️  An operator with email ${email} already exists — seed skipped.`);
     return;
   }
 
@@ -37,18 +37,18 @@ async function main() {
     },
   });
 
-  console.log('✅ Super admin creado:');
+  console.log('✅ Super admin created:');
   console.log(`   ID:       ${user.id}`);
   console.log(`   Email:    ${user.email}`);
-  console.log(`   Nombre:   ${user.name}`);
+  console.log(`   Name:     ${user.name}`);
   console.log('   Password: [set via ADMIN_PASSWORD env var — not logged]');
   console.log('');
-  console.log('⚠️  Cambia la contraseña en el panel lo antes posible.');
+  console.log('⚠️  Change the password in the panel as soon as possible.');
 }
 
 main()
   .catch((e) => {
-    console.error('❌ Error en seed:', e);
+    console.error('❌ Seed error:', e);
     process.exit(1);
   })
   .finally(() => prisma.$disconnect());

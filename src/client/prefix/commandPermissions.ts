@@ -2,21 +2,21 @@ import { ApplicationCommandPermissionType, Guild, PermissionFlagsBits } from 'di
 import { KorexClient } from '../KorexClient';
 
 /**
- * Permisos por comando configurados por el servidor en Discord
- * (Ajustes del servidor → Integraciones → Korex).
+ * Per-command permissions configured by the server in Discord
+ * (Server Settings → Integrations → Korex).
  *
- * En slash los aplica Discord; con prefijo hay que aplicarlos a mano con la
- * misma semántica oficial:
+ * For slash commands Discord applies them; with prefix they must be applied by hand with the
+ * same official semantics:
  *
- *  1. Canal: override del canal (o del canal padre si es un hilo) > override
- *     "todos los canales" (id = guildId - 1). Primero a nivel de comando y, si
- *     el comando no dice nada, a nivel de aplicación (id = applicationId).
- *     Un canal denegado bloquea a todos salvo al propietario del servidor.
- *  2. Miembro (comando y, si no hay nada, aplicación): override de usuario >
- *     overrides de sus roles (basta un rol permitido; si no, uno denegado
- *     deniega) > @everyone (id = guildId).
- *  3. Sin overrides de miembro: `default_member_permissions` del comando.
- *  Propietario y Administrador siempre pueden (como en Discord).
+ *  1. Channel: channel override (or parent channel's if it is a thread) > override
+ *     "all channels" (id = guildId - 1). First at command level and, if
+ *     the command says nothing, at application level (id = applicationId).
+ *     A denied channel blocks everyone except the server owner.
+ *  2. Member (command and, if nothing, application): user override >
+ *     overrides of their roles (one allowed role is enough; otherwise a denied one
+ *     denies) > @everyone (id = guildId).
+ *  3. No member overrides: the command's `default_member_permissions`.
+ *  Owner and Administrator are always allowed (as in Discord).
  */
 export interface CommandPermissionOverride {
   id: string;
@@ -27,18 +27,18 @@ export interface CommandPermissionOverride {
 export interface CommandPermissionContext {
   guildId: string;
   channelId: string;
-  /** Canal padre si el canal es un hilo */
+  /** Parent channel if the channel is a thread */
   parentChannelId?: string | null;
   userId: string;
   roleIds: string[];
   isOwner: boolean;
-  /** Permisos efectivos del miembro en el canal */
+  /** Member's effective permissions in the channel */
   memberPermissions: bigint;
-  /** `default_member_permissions` del comando (null = sin restricción) */
+  /** The command's `default_member_permissions` (null = no restriction) */
   defaultMemberPermissions: string | null | undefined;
-  /** Overrides del comando (null/[] = ninguno) */
+  /** Command overrides (null/[] = none) */
   commandOverrides: CommandPermissionOverride[] | null | undefined;
-  /** Overrides de la aplicación (valor por defecto de todos los comandos) */
+  /** Application overrides (default value for all commands) */
   appOverrides: CommandPermissionOverride[] | null | undefined;
 }
 
@@ -77,7 +77,7 @@ function memberDecision(list: CommandPermissionOverride[] | null | undefined, ct
   return everyone ? everyone.permission : undefined;
 }
 
-/** Comprobación de `default_member_permissions` (como Discord: "0" = solo administradores) */
+/** `default_member_permissions` check (like Discord: "0" = administrators only) */
 export function hasDefaultMemberPermissions(defaultPerms: string | null | undefined, memberPermissions: bigint): boolean {
   if (defaultPerms === null || defaultPerms === undefined) return true;
   if ((memberPermissions & PermissionFlagsBits.Administrator) === PermissionFlagsBits.Administrator) return true;
@@ -101,7 +101,7 @@ export function evaluateCommandPermission(ctx: CommandPermissionContext): boolea
   return hasDefaultMemberPermissions(ctx.defaultMemberPermissions, ctx.memberPermissions);
 }
 
-/** Overrides de un servidor: por nombre de comando + los de la aplicación */
+/** A server's overrides: by command name + the application's */
 export interface GuildCommandPermissions {
   fetchedAt: number;
   app: CommandPermissionOverride[];
@@ -113,15 +113,15 @@ const STALE_TTL_S = 86_400;
 const LOCAL_TTL_MS = 60_000;
 
 /**
- * Obtiene (con caché) los overrides del servidor:
- * memoria 60 s → Redis 5 min → API de Discord. Guarda además una copia
- * "última conocida" (24 h) para fallar cerrado si Discord no responde.
+ * Gets (with caching) the server's overrides:
+ * memory 60 s → Redis 5 min → Discord API. Also stores a
+ * "last known" copy (24 h) to fail closed if Discord does not respond.
  */
 export class CommandPermissionService {
   private readonly local = new Map<string, { data: GuildCommandPermissions; expires: number }>();
   private readonly inflight = new Map<string, Promise<GuildCommandPermissions | null>>();
   private readonly warned = new Set<string>();
-  /** Tras un fallo no se reintenta durante un rato (evita martillear la API) */
+  /** After a failure, do not retry for a while (avoids hammering the API) */
   private readonly failedUntil = new Map<string, number>();
 
   constructor(private readonly client: KorexClient) {}
@@ -136,8 +136,8 @@ export class CommandPermissionService {
   }
 
   /**
-   * Overrides actuales. `stale: true` = no se pudo consultar Discord y se
-   * devuelve la última copia conocida (o null si nunca se obtuvo).
+   * Current overrides. `stale: true` = Discord could not be queried and the
+   * last known copy is returned (or null if it was never fetched).
    */
   async get(guild: Guild): Promise<{ data: GuildCommandPermissions | null; stale: boolean }> {
     const now = Date.now();
@@ -183,7 +183,7 @@ export class CommandPermissionService {
       const all = await guild.commands.permissions.fetch({});
       const data: GuildCommandPermissions = { fetchedAt: Date.now(), app: [], byName: {} };
       if (all.size) {
-        // Nombres de los comandos: globales + del servidor (addons)
+        // Command names: global + server-specific (addons)
         const names = new Map<string, string>();
         const globals = this.client.application?.commands.cache.size
           ? this.client.application.commands.cache
@@ -215,16 +215,16 @@ export class CommandPermissionService {
       if (!this.warned.has(guild.id)) {
         this.warned.add(guild.id);
         if (this.warned.size > 10_000) this.warned.clear();
-        this.client.logger.warn(`[Prefix] No se pudieron obtener los permisos de comandos de ${guild.id}:`, error);
+        this.client.logger.warn(`[Prefix] Could not fetch command permissions for ${guild.id}:`, error);
       }
       return null;
     }
   }
 
   /**
-   * ¿Puede este miembro usar el comando aquí? Si Discord no responde:
-   * falla cerrado para los comandos con overrides conocidos y aplica
-   * `default_member_permissions` al resto.
+   * Can this member use the command here? If Discord does not respond:
+   * fails closed for commands with known overrides and applies
+   * `default_member_permissions` to the rest.
    */
   async canUse(
     guild: Guild,
@@ -234,7 +234,7 @@ export class CommandPermissionService {
     const commandOverrides = data?.byName[params.commandName] ?? null;
     const appOverrides = data?.app ?? null;
 
-    // Sin respuesta de Discord y con overrides conocidos para este comando: cerrado
+    // No response from Discord and known overrides for this command: closed
     if (stale && (commandOverrides?.length ?? 0) > 0) return params.isOwner;
 
     return evaluateCommandPermission({ ...params, guildId: guild.id, commandOverrides, appOverrides });

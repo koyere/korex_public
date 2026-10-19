@@ -12,9 +12,9 @@ export interface BackupConfig {
   enabled: boolean;
   schedule: string; // Cron expression
   retention: {
-    daily: number; // Días
-    weekly: number; // Semanas
-    monthly: number; // Meses
+    daily: number; // Days
+    weekly: number; // Weeks
+    monthly: number; // Months
   };
   compression: boolean;
   encryption: boolean;
@@ -55,8 +55,8 @@ export interface BackupInfo {
 }
 
 /**
- * Gestor de Backups Automáticos para Korex
- * Maneja respaldos programados de base de datos y archivos críticos
+ * Automatic Backup Manager for Korex
+ * Handles scheduled backups of the database and critical files
  */
 export class BackupManager {
   private client: KorexClient;
@@ -65,14 +65,14 @@ export class BackupManager {
   private scheduledJobs: Map<string, cron.ScheduledTask> = new Map();
   private isRunning = false;
 
-  // Configuración por defecto
+  // Default configuration
   private defaultConfig: BackupConfig = {
     enabled: true,
-    schedule: '0 2 * * *', // Diario a las 2 AM
+    schedule: '0 2 * * *', // Daily at 2 AM
     retention: {
-      daily: 7,   // 7 días
-      weekly: 4,  // 4 semanas
-      monthly: 3  // 3 meses
+      daily: 7,   // 7 days
+      weekly: 4,  // 4 weeks
+      monthly: 3  // 3 months
     },
     compression: true,
     encryption: false,
@@ -88,12 +88,12 @@ export class BackupManager {
     this.client = client;
     this.config = { ...this.defaultConfig, ...config };
     
-    // Crear directorio de backups si no existe
+    // Create backups directory if it does not exist
     this.ensureBackupDirectory();
   }
 
   /**
-   * Iniciar el sistema de backups
+   * Start the backup system
    */
   async start(): Promise<void> {
     if (!this.config.enabled) {
@@ -111,10 +111,10 @@ export class BackupManager {
     this.logger.info('Starting backup system...');
 
     try {
-      // Programar backup automático
+      // Schedule automatic backup
       this.scheduleBackups();
       
-      // Limpiar backups antiguos al inicio
+      // Clean old backups on startup
       await this.cleanupOldBackups();
       
       this.isRunning = true;
@@ -127,12 +127,12 @@ export class BackupManager {
   }
 
   /**
-   * Detener el sistema de backups
+   * Stop the backup system
    */
   stop(): void {
     this.logger.info('Stopping backup system...');
     
-    // Detener trabajos programados
+    // Stop scheduled jobs
     for (const [name, job] of this.scheduledJobs) {
       job.stop();
       this.logger.debug(`Stopped scheduled job: ${name}`);
@@ -145,10 +145,10 @@ export class BackupManager {
   }
 
   /**
-   * Programar backups automáticos
+   * Schedule automatic backups
    */
   private scheduleBackups(): void {
-    // Backup completo diario
+    // Daily full backup
     const dailyJob = cron.schedule(this.config.schedule, async () => {
       this.logger.info('Starting scheduled backup...');
       try {
@@ -162,7 +162,7 @@ export class BackupManager {
       timezone: process.env.TZ || 'UTC'
     });
 
-    // Backup de base de datos cada 6 horas
+    // Database backup every 6 hours
     const dbJob = cron.schedule('0 */6 * * *', async () => {
       this.logger.info('Starting scheduled database backup...');
       try {
@@ -176,7 +176,7 @@ export class BackupManager {
       timezone: process.env.TZ || 'UTC'
     });
 
-    // Limpieza semanal
+    // Weekly cleanup
     const cleanupJob = cron.schedule('0 3 * * 0', async () => {
       this.logger.info('Starting scheduled cleanup...');
       try {
@@ -190,7 +190,7 @@ export class BackupManager {
       timezone: process.env.TZ || 'UTC'
     });
 
-    // Iniciar trabajos
+    // Start jobs
     dailyJob.start();
     dbJob.start();
     cleanupJob.start();
@@ -203,7 +203,7 @@ export class BackupManager {
   }
 
   /**
-   * Crear backup completo
+   * Create full backup
    */
   async createFullBackup(): Promise<BackupResult> {
     const backupId = this.generateBackupId('full');
@@ -212,10 +212,10 @@ export class BackupManager {
     this.logger.info(`Creating full backup: ${backupId}`);
 
     try {
-      // Crear backup de base de datos
+      // Create database backup
       const dbResult = await this.createDatabaseBackup();
       
-      // Crear backup de archivos críticos
+      // Create critical files backup
       const filesResult = await this.createFilesBackup();
       
       const duration = Date.now() - startTime;
@@ -256,7 +256,7 @@ export class BackupManager {
   }
 
   /**
-   * Crear backup de base de datos
+   * Create database backup
    */
   async createDatabaseBackup(): Promise<BackupResult> {
     const backupId = this.generateBackupId('database');
@@ -271,21 +271,21 @@ export class BackupManager {
         `${backupId}.sql`
       );
 
-      // Crear directorio si no existe
+      // Create directory if it does not exist
       await fs.mkdir(path.dirname(backupPath), { recursive: true });
 
-      // Ejecutar pg_dump
+      // Run pg_dump
       await this.executePgDump(backupPath);
 
-      // Comprimir si está habilitado
+      // Compress if enabled
       let finalPath = backupPath;
 
       if (this.config.compression) {
         finalPath = await this.compressFile(backupPath);
-        await fs.unlink(backupPath); // Eliminar archivo sin comprimir
+        await fs.unlink(backupPath); // Remove uncompressed file
       }
 
-      // Obtener tamaño del archivo
+      // Get file size
       const stats = await fs.stat(finalPath);
       const duration = Date.now() - startTime;
 
@@ -324,7 +324,7 @@ export class BackupManager {
   }
 
   /**
-   * Crear backup de archivos críticos
+   * Create critical files backup
    */
   async createFilesBackup(): Promise<BackupResult> {
     const backupId = this.generateBackupId('files');
@@ -339,31 +339,31 @@ export class BackupManager {
         `${backupId}.tar`
       );
 
-      // Crear directorio si no existe
+      // Create directory if it does not exist
       await fs.mkdir(path.dirname(backupPath), { recursive: true });
 
-      // Archivos y directorios críticos a respaldar
+      // Critical files and directories to back up
       const criticalPaths = [
-        'src/languages', // Traducciones
-        'src/addons/*/addon.config.ts', // Configuraciones de addons
+        'src/languages', // Translations
+        'src/addons/*/addon.config.ts', // Addon configurations
         '.env.example',
         'package.json',
         'tsconfig.json',
-        'logs/production' // Logs de producción recientes
+        'logs/production' // Recent production logs
       ];
 
-      // Crear archivo tar
+      // Create tar file
       await this.createTarArchive(backupPath, criticalPaths);
 
-      // Comprimir si está habilitado
+      // Compress if enabled
       let finalPath = backupPath;
 
       if (this.config.compression) {
         finalPath = await this.compressFile(backupPath);
-        await fs.unlink(backupPath); // Eliminar archivo sin comprimir
+        await fs.unlink(backupPath); // Remove uncompressed file
       }
 
-      // Obtener tamaño del archivo
+      // Get file size
       const stats = await fs.stat(finalPath);
       const duration = Date.now() - startTime;
 
@@ -402,7 +402,7 @@ export class BackupManager {
   }
 
   /**
-   * Ejecutar pg_dump
+   * Run pg_dump
    */
   private async executePgDump(outputPath: string): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -414,7 +414,7 @@ export class BackupManager {
         return;
       }
 
-      // Parsear URL de la base de datos
+      // Parse database URL
       const url = new URL(databaseUrl);
       
       const pgDump = spawn('pg_dump', [
@@ -455,7 +455,7 @@ export class BackupManager {
   }
 
   /**
-   * Crear archivo tar
+   * Create tar file
    */
   private async createTarArchive(outputPath: string, paths: string[]): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -463,7 +463,7 @@ export class BackupManager {
         '-cf', outputPath,
         ...paths.filter(p => {
           try {
-            // Verificar que el path existe antes de agregarlo
+            // Check the path exists before adding it
             require('fs').accessSync(p);
 
             return true;
@@ -494,7 +494,7 @@ export class BackupManager {
   }
 
   /**
-   * Comprimir archivo
+   * Compress file
    */
   private async compressFile(filePath: string): Promise<string> {
     const compressedPath = `${filePath}.gz`;
@@ -509,7 +509,7 @@ export class BackupManager {
   }
 
   /**
-   * Descomprimir archivo
+   * Decompress file
    */
   async decompressFile(compressedPath: string): Promise<string> {
     const decompressedPath = compressedPath.replace(/\.gz$/, '');
@@ -524,7 +524,7 @@ export class BackupManager {
   }
 
   /**
-   * Limpiar backups antiguos
+   * Clean old backups
    */
   async cleanupOldBackups(): Promise<void> {
     this.logger.info('Starting backup cleanup...');
@@ -542,7 +542,7 @@ export class BackupManager {
         
         let shouldDelete = false;
 
-        // Aplicar políticas de retención
+        // Apply retention policies
         if (backup.type === 'database' && ageDays > this.config.retention.daily) {
           shouldDelete = true;
         } else if (backup.type === 'files' && ageDays > this.config.retention.weekly * 7) {
@@ -570,14 +570,14 @@ export class BackupManager {
   }
 
   /**
-   * Listar backups disponibles
+   * List available backups
    */
   async listBackups(): Promise<BackupInfo[]> {
     const backups: BackupInfo[] = [];
     const backupDir = this.config.destinations.local.path;
 
     try {
-      // Buscar en subdirectorios
+      // Search subdirectories
       const subdirs = ['database', 'files'];
       
       for (const subdir of subdirs) {
@@ -590,7 +590,7 @@ export class BackupManager {
             const filePath = path.join(subdirPath, file);
             const stats = await fs.stat(filePath);
             
-            // Parsear información del backup desde el nombre del archivo
+            // Parse backup info from the file name
             const backupInfo = this.parseBackupFilename(file, filePath, stats);
 
             if (backupInfo) {
@@ -598,11 +598,11 @@ export class BackupManager {
             }
           }
         } catch {
-          // Subdirectorio no existe, continuar
+          // Subdirectory does not exist, continue
         }
       }
 
-      // Ordenar por timestamp (más reciente primero)
+      // Sort by timestamp (newest first)
       backups.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 
     } catch (error) {
@@ -613,10 +613,10 @@ export class BackupManager {
   }
 
   /**
-   * Parsear nombre de archivo de backup
+   * Parse backup file name
    */
   private parseBackupFilename(filename: string, fullPath: string, stats: any): BackupInfo | null {
-    // Formato esperado: backup_YYYYMMDD_HHMMSS_type.ext
+    // Expected format: backup_YYYYMMDD_HHMMSS_type.ext
     const match = filename.match(/^backup_(\d{8})_(\d{6})_(\w+)\.(sql|tar)(\.gz)?$/);
     
     if (!match) {
@@ -625,9 +625,9 @@ export class BackupManager {
 
     const [, dateStr, timeStr, type, , compressed] = match;
     
-    // Parsear fecha y hora
+    // Parse date and time
     const year = parseInt(dateStr.substring(0, 4));
-    const month = parseInt(dateStr.substring(4, 6)) - 1; // Mes base 0
+    const month = parseInt(dateStr.substring(4, 6)) - 1; // Zero-based month
     const day = parseInt(dateStr.substring(6, 8));
     const hour = parseInt(timeStr.substring(0, 2));
     const minute = parseInt(timeStr.substring(2, 4));
@@ -641,13 +641,13 @@ export class BackupManager {
       type: type as 'database' | 'files' | 'full',
       size: stats.size,
       compressed: !!compressed,
-      encrypted: false, // TODO: Implementar encriptación si es necesario
+      encrypted: false, // TODO: Implement encryption if needed
       path: fullPath
     };
   }
 
   /**
-   * Restaurar backup
+   * Restore backup
    */
   async restoreBackup(backupId: string): Promise<boolean> {
     this.logger.info(`Starting backup restore: ${backupId}`);
@@ -678,17 +678,17 @@ export class BackupManager {
   }
 
   /**
-   * Restaurar backup de base de datos
+   * Restore database backup
    */
   private async restoreDatabaseBackup(backup: BackupInfo): Promise<void> {
     let sqlFile = backup.path;
 
-    // Descomprimir si es necesario
+    // Decompress if needed
     if (backup.compressed) {
       sqlFile = await this.decompressFile(backup.path);
     }
 
-    // Ejecutar psql para restaurar
+    // Run psql to restore
     return new Promise((resolve, reject) => {
       const databaseUrl = process.env.DATABASE_URL;
 
@@ -720,12 +720,12 @@ export class BackupManager {
       });
 
       psql.on('close', async (code) => {
-        // Limpiar archivo descomprimido temporal
+        // Clean up temporary decompressed file
         if (backup.compressed && sqlFile !== backup.path) {
           try {
             await fs.unlink(sqlFile);
           } catch {
-            // Ignorar errores de limpieza
+            // Ignore cleanup errors
           }
         }
 
@@ -743,7 +743,7 @@ export class BackupManager {
   }
 
   /**
-   * Generar ID de backup
+   * Generate backup ID
    */
   private generateBackupId(type: string): string {
     const now = new Date();
@@ -754,7 +754,7 @@ export class BackupManager {
   }
 
   /**
-   * Asegurar que el directorio de backups existe
+   * Ensure the backups directory exists
    */
   private async ensureBackupDirectory(): Promise<void> {
     try {
@@ -768,7 +768,7 @@ export class BackupManager {
   }
 
   /**
-   * Formatear tamaño de archivo
+   * Format file size
    */
   private formatSize(bytes: number): string {
     const units = ['B', 'KB', 'MB', 'GB'];
@@ -784,7 +784,7 @@ export class BackupManager {
   }
 
   /**
-   * Obtener estadísticas de backups
+   * Get backup statistics
    */
   async getBackupStats(): Promise<{
     totalBackups: number;
@@ -803,7 +803,7 @@ export class BackupManager {
       backupsByType: {} as Record<string, number>
     };
 
-    // Contar por tipo
+    // Count by type
     for (const backup of backups) {
       stats.backupsByType[backup.type] = (stats.backupsByType[backup.type] || 0) + 1;
     }
@@ -812,12 +812,12 @@ export class BackupManager {
   }
 
   /**
-   * Actualizar configuración
+   * Update configuration
    */
   updateConfig(newConfig: Partial<BackupConfig>): void {
     this.config = { ...this.config, ...newConfig };
     
-    // Reiniciar si está corriendo
+    // Restart if running
     if (this.isRunning) {
       this.stop();
       this.start();
@@ -827,7 +827,7 @@ export class BackupManager {
   }
 
   /**
-   * Obtener configuración actual
+   * Get current configuration
    */
   getConfig(): BackupConfig {
     return { ...this.config };

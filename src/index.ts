@@ -2,39 +2,39 @@ import 'dotenv/config';
 import { KorexClient } from './client/KorexClient';
 import { logger } from './utils/Logger';
 
-// Verificar Node.js version
+// Check Node.js version
 const nodeVersion = process.version;
 const requiredVersion = 'v18.0.0';
 
 if (nodeVersion < requiredVersion) {
   logger.error(
-    `❌ Node.js ${requiredVersion} o superior requerido. Versión actual: ${nodeVersion}`
+    `❌ Node.js ${requiredVersion} or higher required. Current version: ${nodeVersion}`
   );
   process.exit(1);
 }
 
-// Crear instancia del cliente
+// Create client instance
 const client = new KorexClient();
 
-// Función principal
+// Main function
 async function main() {
   try {
-    // Mostrar banner
+    // Show banner
     showBanner();
 
-    // Iniciar el bot
+    // Start the bot
     await client.start();
 
-    // Configurar handlers de proceso
+    // Set up process handlers
     setupProcessHandlers();
   } catch (error) {
-    logger.error('❌ Error fatal durante la inicialización:', error);
+    logger.error('❌ Fatal error during initialization:', error);
     process.exit(1);
   }
 }
 
 /**
- * Mostrar banner de inicio
+ * Show startup banner
  */
 function showBanner() {
   const banner = `
@@ -59,62 +59,62 @@ function showBanner() {
 }
 
 /**
- * Configurar handlers de señales del proceso
+ * Set up process signal handlers
  */
 function setupProcessHandlers() {
-  // Graceful shutdown en SIGINT (Ctrl+C)
+  // Graceful shutdown on SIGINT (Ctrl+C)
   process.on('SIGINT', async () => {
-    logger.info('📡 Señal SIGINT recibida, iniciando apagado graceful...');
+    logger.info('📡 SIGINT received, starting graceful shutdown...');
     await client.shutdown(0);
   });
 
-  // Graceful shutdown en SIGTERM
+  // Graceful shutdown on SIGTERM
   process.on('SIGTERM', async () => {
-    logger.info('📡 Señal SIGTERM recibida, iniciando apagado graceful...');
+    logger.info('📡 SIGTERM received, starting graceful shutdown...');
     await client.shutdown(0);
   });
 
-  // Manejar excepciones no capturadas
+  // Handle uncaught exceptions
   process.on('uncaughtException', (error) => {
-    logger.error('💥 Excepción no capturada:', error);
+    logger.error('💥 Uncaught exception:', error);
 
-    // Intentar apagado graceful, pero con timeout
+    // Try graceful shutdown, but with a timeout
     const shutdownTimeout = setTimeout(() => {
-      logger.error('⏰ Timeout en apagado graceful, forzando salida');
+      logger.error('⏰ Graceful shutdown timed out, forcing exit');
       process.exit(1);
-    }, 10000); // 10 segundos
+    }, 10000); // 10 seconds
 
     client.shutdown(1).finally(() => {
       clearTimeout(shutdownTimeout);
     });
   });
 
-  // Manejar promesas rechazadas no manejadas
+  // Handle unhandled promise rejections
   process.on('unhandledRejection', (reason, promise) => {
-    logger.error('🚫 Promesa rechazada no manejada:', reason);
-    logger.error('En promesa:', promise);
+    logger.error('🚫 Unhandled promise rejection:', reason);
+    logger.error('In promise:', promise);
 
-    // No salir inmediatamente, solo loggear
-    // En producción podrías querer salir dependiendo de la severidad
+    // Don't exit immediately, just log
+    // In production you may want to exit depending on severity
   });
 
-  // Manejar advertencias
+  // Handle warnings
   process.on('warning', (warning) => {
-    logger.warn('⚠️ Advertencia del proceso:', {
+    logger.warn('⚠️ Process warning:', {
       name: warning.name,
       message: warning.message,
       stack: warning.stack,
     });
   });
 
-  // Información de memoria cada 30 minutos en desarrollo
+  // Memory info every 30 minutes in development
   if (process.env.NODE_ENV === 'development') {
     setInterval(
       () => {
         const memUsage = process.memoryUsage();
         const formatBytes = (bytes: number) => `${(bytes / 1024 / 1024).toFixed(2)} MB`;
 
-        logger.debug('📊 Uso de memoria:', {
+        logger.debug('📊 Memory usage:', {
           rss: formatBytes(memUsage.rss),
           heapTotal: formatBytes(memUsage.heapTotal),
           heapUsed: formatBytes(memUsage.heapUsed),
@@ -122,17 +122,17 @@ function setupProcessHandlers() {
         });
       },
       30 * 60 * 1000
-    ); // 30 minutos
+    ); // 30 minutes
   }
 
-  logger.info('✅ Handlers de proceso configurados');
+  logger.info('✅ Process handlers configured');
 }
 
-// Ejecutar función principal
+// Run main function
 main().catch((error) => {
-  logger.error('💀 Error fatal en función principal:', error);
+  logger.error('💀 Fatal error in main function:', error);
   process.exit(1);
 });
 
-// Exportar cliente para uso en tests o scripts
+// Export client for use in tests or scripts
 export { client };

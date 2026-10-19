@@ -16,18 +16,18 @@ import { isCoreModuleEnabled } from '../config/coreModules';
 import { claimJoinAction } from '../utils/joinActionClaim';
 
 /**
- * Anti-raid de Moderación (Moderación → AutoMod → Anti-Raid).
+ * Moderation anti-raid (Moderation → AutoMod → Anti-Raid).
  *
- * - Detección: ventana deslizante de entradas en Redis (script Lua atómico,
- *   válido con varios shards). N entradas en T segundos activan el modo raid;
- *   opcionalmente solo cuentan las cuentas más nuevas que X días.
- * - Acciones: aviso en el canal de logs de moderación y, si la config lo pide,
- *   aislar (timeout) / expulsar / banear a quienes entran durante el raid, y
- *   modo bloqueo (verificación máxima y/o @everyone sin enviar mensajes).
- * - Fin: automático tras la duración configurada (barrido periódico) o manual
- *   (/antiraid end o el panel). El estado previo se guarda en BD
- *   (moderation_raid_states) y se restaura exactamente aunque el bot se reinicie.
- * - Coordinación con Honeypot: una sola sanción por entrada (joinActionClaim).
+ * - Detection: sliding window of joins in Redis (atomic Lua script,
+ *   safe across multiple shards). N joins within T seconds trigger raid mode;
+ *   optionally only accounts newer than X days are counted.
+ * - Actions: alert in the moderation log channel and, if configured,
+ *   timeout / kick / ban whoever joins during the raid, plus
+ *   lockdown mode (maximum verification and/or @everyone unable to send messages).
+ * - End: automatic after the configured duration (periodic sweep) or manual
+ *   (/antiraid end or the dashboard). The previous state is stored in the DB
+ *   (moderation_raid_states) and restored exactly even if the bot restarts.
+ * - Coordination with Honeypot: a single sanction per join (joinActionClaim).
  */
 
 export type RaidAction = 'alert' | 'timeout' | 'kick' | 'ban';
@@ -46,17 +46,17 @@ interface AntiRaidConfig {
   durationSecs: number;
 }
 
-/** Permisos que se deniegan a @everyone en el bloqueo de canales. */
+/** Permissions denied to @everyone during channel lockdown. */
 const LOCK_BITS = ['SendMessages', 'SendMessagesInThreads', 'CreatePublicThreads'] as const;
 type LockBit = typeof LOCK_BITS[number];
 
 interface OverwriteSnapshot {
   id: string;
-  existed: boolean;                            // ¿había overwrite antes?
-  bits: Partial<Record<LockBit, boolean | null>>; // estado previo: true=allow, false=deny, null=heredado
+  existed: boolean;                            // was there an overwrite before?
+  bits: Partial<Record<LockBit, boolean | null>>; // previous state: true=allow, false=deny, null=inherited
 }
 
-/** Overwrite de @everyone del canal + overwrites (allow) añadidos a los roles de moderación. */
+/** The channel's @everyone overwrite + overwrites (allow) added to moderation roles. */
 interface ChannelSnapshot extends OverwriteSnapshot {
   roles?: OverwriteSnapshot[];
 }
@@ -67,20 +67,20 @@ const LOCKABLE_TYPES = new Set<ChannelType>([ChannelType.GuildText, ChannelType.
 const LOCK_VERIFICATION = GuildVerificationLevel.VeryHigh;
 
 const WINDOW_KEY = (g: string) => `modraid:joins:${g}`;
-const ACTIVE_KEY = (g: string) => `modraid:active:${g}`; // valor = endsAt (ms)
+const ACTIVE_KEY = (g: string) => `modraid:active:${g}`; // value = endsAt (ms)
 const ENDING_KEY = (g: string) => `modraid:ending:${g}`;
 
 const CONFIG_TTL_MS = 30_000;
 const SWEEP_INTERVAL_MS = 30_000;
-const MAX_RAID_MS = 24 * 3600_000;    // tope de extensión del modo raid
-const EXTEND_STEP_MS = 30_000;        // no reescribir endsAt por menos de 30 s
-const MAX_RETRO_TARGETS = 100;        // miembros de la ventana sancionados al detectar el raid
+const MAX_RAID_MS = 24 * 3600_000;    // maximum extension of raid mode
+const EXTEND_STEP_MS = 30_000;        // don't rewrite endsAt for less than 30 s
+const MAX_RETRO_TARGETS = 100;        // window members sanctioned when the raid is detected
 const MAX_TIMEOUT_MS = 28 * 24 * 3600_000;
-const MAX_MOD_ROLES = 10;             // roles de moderación que siguen escribiendo en canales bloqueados
+const MAX_MOD_ROLES = 10;             // moderation roles that can still write in locked channels
 
 /**
- * KEYS[1]=ventana, KEYS[2]=activo · ARGV: now, windowMs, threshold, member, durationMs
- * Devuelve { count, started(0|1), endsAt|'' , miembros de la ventana si started }
+ * KEYS[1]=window, KEYS[2]=active · ARGV: now, windowMs, threshold, member, durationMs
+ * Returns { count, started(0|1), endsAt|'' , window members if started }
  */
 const JOIN_SCRIPT = `
 local now = tonumber(ARGV[1])
@@ -107,7 +107,7 @@ return { count, started, active or '', members }
 export class AntiRaidService {
   private client: KorexClient;
   private configCache = new Map<string, { data: AntiRaidConfig | null; exp: number }>();
-  /** Arranques en curso (bloqueo de canales) para que un fin manual espere a que terminen. */
+  /** Starts in progress (channel lockdown) so a manual end waits for them to finish. */
   private starting = new Map<string, Promise<void>>();
 
   constructor(client: KorexClient) {
@@ -152,9 +152,9 @@ export class AntiRaidService {
   // ─── guildMemberAdd ───────────────────────────────────────────────────────
 
   /**
-   * Cuenta la entrada y, si hay raid, aplica la acción configurada.
-   * `alreadyRemoved`: Honeypot ya expulsó/baneó a este miembro (se cuenta pero no se actúa).
-   * Devuelve true si este servicio expulsó o baneó al miembro.
+   * Counts the join and, if there is a raid, applies the configured action.
+   * `alreadyRemoved`: Honeypot already kicked/banned this member (counted but no action taken).
+   * Returns true if this service kicked or banned the member.
    */
   async handleMemberJoin(member: GuildMember, alreadyRemoved = false): Promise<boolean> {
     if (member.user.bot) return false;
@@ -164,7 +164,7 @@ export class AntiRaidService {
       const config = await this.getConfig(guildId);
       if (!config?.enabled) return false;
 
-      // Filtro opcional de cuentas nuevas: las cuentas más antiguas no cuentan
+      // Optional new-account filter: older accounts are not counted
       if (config.accountAgeDays > 0) {
         const ageDays = (Date.now() - member.user.createdTimestamp) / 86_400_000;
         if (ageDays >= config.accountAgeDays) return false;
@@ -176,7 +176,7 @@ export class AntiRaidService {
         JOIN_SCRIPT, 2, WINDOW_KEY(guildId), ACTIVE_KEY(guildId),
         now, config.windowSecs * 1000, config.threshold, `${member.id}:${member.joinedTimestamp ?? now}`, config.durationSecs * 1000,
       ).catch(() => null) as [number, number, string, string[]] | null;
-      if (!res) return false; // sin Redis no se bloquea a nadie
+      if (!res) return false; // without Redis nobody is blocked
       const [count, started, activeRaw, members] = res;
       if (!activeRaw) return false;
 
@@ -203,12 +203,12 @@ export class AntiRaidService {
     }
   }
 
-  /** Mientras siga entrando gente al ritmo del raid, se aplaza el final (tope 24 h). */
+  /** While people keep joining at raid pace, the end is postponed (24 h cap). */
   private async extendRaid(guildId: string, currentEndsAt: number, config: AntiRaidConfig): Promise<void> {
     const wanted = Date.now() + config.durationSecs * 1000;
     if (wanted - currentEndsAt < EXTEND_STEP_MS) return;
     const state = await this.client.db.moderationRaidState.findUnique({ where: { guildId }, select: { active: true, startedAt: true, endedBy: true } });
-    // endedBy ya fijado = fin manual pendiente (otro shard): no se aplaza
+    // endedBy already set = pending manual end (another shard): not postponed
     if (!state?.active || state.endedBy) return;
     const endsAt = Math.min(wanted, state.startedAt.getTime() + MAX_RAID_MS);
     if (endsAt <= currentEndsAt) return;
@@ -217,16 +217,16 @@ export class AntiRaidService {
     await this.client.db.moderationRaidState.updateMany({ where: { guildId, active: true, endedBy: null }, data: { endsAt: new Date(endsAt) } });
   }
 
-  // ─── Inicio del modo raid ─────────────────────────────────────────────────
+  // ─── Raid mode start ──────────────────────────────────────────────────────
 
   private async startRaid(guild: Guild, config: AntiRaidConfig, endsAt: number, count: number, recentIds: string[]): Promise<void> {
     const guildId = guild.id;
 
-    // Si la BD ya tiene un raid activo (p. ej. Redis se reinició), es una
-    // continuación: no se vuelve a tomar la instantánea (capturaría el bloqueo).
+    // If the DB already has an active raid (e.g. Redis restarted), this is a
+    // continuation: the snapshot is not taken again (it would capture the lockdown).
     const existing = await this.client.db.moderationRaidState.findUnique({ where: { guildId } });
     if (existing?.active) {
-      if (existing.endedBy) return; // fin manual ya solicitado
+      if (existing.endedBy) return; // manual end already requested
       await this.client.db.moderationRaidState.update({
         where: { guildId },
         data: { endsAt: new Date(Math.max(endsAt, existing.endsAt.getTime())), joinCount: { increment: 1 } },
@@ -245,7 +245,7 @@ export class AntiRaidService {
     const lockVerification = config.lockdown === 'verification' || config.lockdown === 'both';
     const lockChannels = config.lockdown === 'channels' || config.lockdown === 'both';
 
-    // 1. Verificación máxima (se guarda el nivel previo ANTES de cambiarlo)
+    // 1. Maximum verification (the previous level is saved BEFORE changing it)
     let verificationLocked = false;
     if (lockVerification && guild.verificationLevel < LOCK_VERIFICATION) {
       const me = guild.members.me;
@@ -261,11 +261,11 @@ export class AntiRaidService {
       }
     }
 
-    // 2. Bloqueo de canales: instantánea persistida y después se aplica
+    // 2. Channel lockdown: snapshot persisted, then applied
     let lockedChannels = 0;
     const modRoles = lockChannels ? this.pickModRoles(guild) : [];
     if (lockChannels) {
-      // Los canales con un /lockdown manual activo se dejan tal cual
+      // Channels with an active manual /lockdown are left as they are
       const manualLocked = await this.getManualLockdowns(guildId);
       const snapshot = this.buildChannelSnapshot(guild, modRoles, manualLocked);
       if (snapshot.length > 0) {
@@ -274,7 +274,7 @@ export class AntiRaidService {
           const channel = guild.channels.cache.get(snap.id);
           if (!channel || !('permissionOverwrites' in channel)) continue;
           const overwrites = (channel as any).permissionOverwrites;
-          // Primero el permiso de los roles de moderación, para que nunca queden sin poder escribir
+          // Moderation roles' permission first, so they are never left unable to write
           for (const role of snap.roles ?? []) {
             const allow: Partial<Record<LockBit, boolean>> = {};
             for (const bit of Object.keys(role.bits) as LockBit[]) allow[bit] = true;
@@ -298,7 +298,7 @@ export class AntiRaidService {
       ends: `<t:${Math.floor(endsAt / 1000)}:R>`,
     });
 
-    // 3. Acción retroactiva sobre quienes entraron en la ventana que disparó el raid
+    // 3. Retroactive action on those who joined in the window that triggered the raid
     if (config.action !== 'alert') {
       for (const id of recentIds.slice(0, MAX_RETRO_TARGETS)) {
         const target = await guild.members.fetch(id).catch(() => null);
@@ -308,10 +308,10 @@ export class AntiRaidService {
   }
 
   /**
-   * Roles de moderación que siguen pudiendo escribir durante el bloqueo. La config
-   * de moderación no define roles de moderador, así que se usan los roles con
-   * Gestionar mensajes o Aislar miembros (los de Administrador ya ignoran los
-   * overwrites y no hace falta tocarlos). Máximo MAX_MOD_ROLES, los más altos primero.
+   * Moderation roles that can still write during the lockdown. The moderation
+   * config does not define moderator roles, so roles with
+   * Manage Messages or Timeout Members are used (Administrator roles already ignore
+   * overwrites and need no changes). At most MAX_MOD_ROLES, highest first.
    */
   private pickModRoles(guild: Guild) {
     return [...guild.roles.cache.values()]
@@ -322,7 +322,7 @@ export class AntiRaidService {
       .slice(0, MAX_MOD_ROLES);
   }
 
-  /** Canales con un /lockdown manual activo (tabla channel_lockdowns del comando). */
+  /** Channels with an active manual /lockdown (the command's channel_lockdowns table). */
   private async getManualLockdowns(guildId: string): Promise<Set<string>> {
     const rows = await this.client.db.channelLockdown.findMany({ where: { guildId }, select: { channelId: true } }).catch(() => []);
     return new Set(rows.map((r) => r.channelId));
@@ -337,7 +337,7 @@ export class AntiRaidService {
     for (const channel of guild.channels.cache.values()) {
       if (!LOCKABLE_TYPES.has(channel.type) || !('permissionOverwrites' in channel)) continue;
       if (manualLocked.has(channel.id)) continue;
-      // Solo canales que @everyone ve (los privados ya no son alcanzables por quien acaba de entrar)
+      // Only channels @everyone can see (private ones are already unreachable for newcomers)
       if (!channel.permissionsFor(everyone)?.has(PermissionFlagsBits.ViewChannel)) continue;
       const myPerms = channel.permissionsFor(me);
       if (!myPerms?.has([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.ManageRoles])) continue;
@@ -346,16 +346,16 @@ export class AntiRaidService {
       const bits: ChannelSnapshot['bits'] = {};
       for (const bit of LOCK_BITS) {
         const flag = PermissionsBitField.Flags[bit];
-        // El bot solo puede denegar permisos que él mismo tiene en el canal
+        // The bot can only deny permissions it has itself in the channel
         if (!myPerms.has(flag)) continue;
         const prev = ow?.deny.has(flag) ? false : ow?.allow.has(flag) ? true : null;
-        if (prev === false) continue; // ya denegado: nada que cambiar ni restaurar
+        if (prev === false) continue; // already denied: nothing to change or restore
         bits[bit] = prev;
       }
       if (Object.keys(bits).length === 0) continue;
 
-      // Roles de moderación: allow solo donde hoy heredan (null). Un allow previo no
-      // necesita cambio y un deny explícito del rol en ese canal se respeta.
+      // Moderation roles: allow only where they currently inherit (null). A previous allow
+      // needs no change and an explicit deny for the role in that channel is respected.
       const roles: OverwriteSnapshot[] = [];
       for (const role of modRoles) {
         const row = (channel as any).permissionOverwrites.cache.get(role.id) as OverwriteLike | undefined;
@@ -371,7 +371,7 @@ export class AntiRaidService {
     return out;
   }
 
-  // ─── Acción sobre miembros ────────────────────────────────────────────────
+  // ─── Member action ────────────────────────────────────────────────────────
 
   private isStaff(member: GuildMember): boolean {
     return member.permissions.any([
@@ -380,11 +380,11 @@ export class AntiRaidService {
     ]);
   }
 
-  /** Devuelve lo ocurrido: logged | skipped | timed_out | kicked | banned | failed. */
+  /** Returns what happened: logged | skipped | timed_out | kicked | banned | failed. */
   private async applyRaidAction(member: GuildMember, config: AntiRaidConfig): Promise<string> {
     if (config.action === 'alert') return 'logged';
     if (member.user.bot || this.isStaff(member)) return 'skipped';
-    // Honeypot ya actuó sobre esta entrada: no se sanciona dos veces
+    // Honeypot already acted on this join: no double sanction
     if (!(await claimJoinAction(this.client.redis.getClient(), member, 'antiraid'))) return 'skipped';
 
     const guild = member.guild;
@@ -435,12 +435,12 @@ export class AntiRaidService {
     return applied;
   }
 
-  // ─── Fin del modo raid ────────────────────────────────────────────────────
+  // ─── Raid mode end ────────────────────────────────────────────────────────
 
   /**
-   * Termina el modo raid y restaura el estado previo.
-   * - 'ended': restaurado en este proceso.
-   * - 'scheduled': el servidor está en otro shard; se adelanta endsAt y su barrido lo termina.
+   * Ends raid mode and restores the previous state.
+   * - 'ended': restored in this process.
+   * - 'scheduled': the server is on another shard; endsAt is moved forward and its sweep ends it.
    * - 'not_active' | 'busy'
    */
   async endRaid(guildId: string, endedBy: string): Promise<'ended' | 'scheduled' | 'not_active' | 'busy'> {
@@ -453,7 +453,7 @@ export class AntiRaidService {
 
     const guild = this.client.guilds.cache.get(guildId);
     if (!guild) {
-      // Otro shard: que nadie más entre en modo raid y que su barrido restaure ya
+      // Another shard: prevent anyone else from entering raid mode and let its sweep restore now
       await redis.del(ACTIVE_KEY(guildId), WINDOW_KEY(guildId)).catch(() => null);
       await this.client.db.moderationRaidState.updateMany({
         where: { guildId, active: true }, data: { endsAt: new Date(), endedBy },
@@ -496,15 +496,15 @@ export class AntiRaidService {
 
   private async restoreVerification(guild: Guild, state: ModerationRaidState, reason: string): Promise<void> {
     if (state.verificationBefore === null || state.verificationSet === null) return;
-    // Si alguien cambió el nivel durante el raid, se respeta su cambio
+    // If someone changed the level during the raid, their change is respected
     if (guild.verificationLevel !== state.verificationSet) return;
     await guild.setVerificationLevel(state.verificationBefore as GuildVerificationLevel, reason).catch((err) =>
       this.client.logger.warn(`[AntiRaid] Could not restore verification level in ${guild.id}:`, err?.message ?? err));
   }
 
   /**
-   * Restaura los canales bloqueados por el raid. Devuelve cuántos se dejan
-   * bloqueados porque un admin les aplicó /lockdown durante el raid.
+   * Restores the channels locked by the raid. Returns how many are left
+   * locked because an admin applied /lockdown to them during the raid.
    */
   private async restoreChannels(guild: Guild, state: ModerationRaidState, reason: string): Promise<number> {
     const snapshot = (Array.isArray(state.channelSnapshot) ? state.channelSnapshot : []) as unknown as ChannelSnapshot[];
@@ -517,21 +517,21 @@ export class AntiRaidService {
       if (!channel || !('permissionOverwrites' in channel)) continue;
       const overwrites = (channel as any).permissionOverwrites;
 
-      // 1. Roles de moderación: se quita el allow añadido (solo si sigue en allow)
+      // 1. Moderation roles: remove the added allow (only if still allow)
       for (const role of snap.roles ?? []) {
         await this.restoreOverwrite(overwrites, role, true, reason).catch((err: any) =>
           this.client.logger.warn(`[AntiRaid] Could not restore role ${role.id} in channel ${snap.id}:`, err?.message ?? err));
       }
 
-      // 2. /lockdown manual activo: el canal sigue bloqueado; se corrige el estado
-      //    original que guardó el comando para que su unlock no herede el bloqueo del raid
+      // 2. Active manual /lockdown: the channel stays locked; fix the original state
+      //    saved by the command so its unlock doesn't inherit the raid lockdown
       if (manualLocked.has(snap.id)) {
         await this.fixManualLockdownOriginal(snap).catch(() => null);
         kept++;
         continue;
       }
 
-      // 3. @everyone: solo los bits que siguen denegados por el bloqueo
+      // 3. @everyone: only the bits still denied by the lockdown
       await this.restoreOverwrite(overwrites, { ...snap, id: everyoneId }, false, reason).catch((err: any) =>
         this.client.logger.warn(`[AntiRaid] Could not restore channel ${snap.id} in ${guild.id}:`, err?.message ?? err));
     }
@@ -539,13 +539,13 @@ export class AntiRaidService {
   }
 
   /**
-   * Devuelve un overwrite a su estado previo para los bits que aún tienen el valor
-   * que puso el raid (`setValue`: true = allow, false = deny). Si antes no existía
-   * y queda vacío, se elimina.
+   * Returns an overwrite to its previous state for the bits that still have the value
+   * set by the raid (`setValue`: true = allow, false = deny). If it did not exist before
+   * and ends up empty, it is deleted.
    */
   private async restoreOverwrite(overwrites: any, snap: OverwriteSnapshot, setValue: boolean, reason: string): Promise<void> {
     const ow = overwrites.cache.get(snap.id) as OverwriteLike | undefined;
-    if (!ow) return; // alguien quitó el overwrite: nada que restaurar
+    if (!ow) return; // someone removed the overwrite: nothing to restore
     const patch: Partial<Record<LockBit, boolean | null>> = {};
     for (const bit of LOCK_BITS) {
       if (!(bit in (snap.bits ?? {}))) continue;
@@ -561,9 +561,9 @@ export class AntiRaidService {
   }
 
   /**
-   * /lockdown guardó como "original" el overwrite de @everyone que tenía el canal
-   * en ese momento, que ya incluía el bloqueo del raid. Se sustituyen esos bits por
-   * su estado previo al raid para que /lockdown unlock deje el canal como antes del raid.
+   * /lockdown saved as "original" the channel's @everyone overwrite at that
+   * moment, which already included the raid lockdown. Those bits are replaced with
+   * their pre-raid state so /lockdown unlock leaves the channel as it was before the raid.
    */
   private async fixManualLockdownOriginal(snap: ChannelSnapshot): Promise<void> {
     const row = await this.client.db.channelLockdown.findUnique({ where: { channelId: snap.id } });
@@ -574,7 +574,7 @@ export class AntiRaidService {
     for (const bit of Object.keys(snap.bits ?? {}) as LockBit[]) {
       if (!LOCK_BITS.includes(bit)) continue;
       const flag = PermissionsBitField.Flags[bit];
-      if ((deny & flag) !== flag) continue; // ya no era el deny del raid
+      if ((deny & flag) !== flag) continue; // no longer the raid's deny
       deny &= ~flag;
       if (snap.bits[bit] === true) allow |= flag;
       changed = true;
@@ -587,7 +587,7 @@ export class AntiRaidService {
     });
   }
 
-  /** Barrido periódico: termina los raids vencidos de los servidores de este shard. */
+  /** Periodic sweep: ends expired raids for this shard's servers. */
   private async sweep(): Promise<void> {
     if (!this.client.isReady()) return;
     const due = await this.client.db.moderationRaidState.findMany({
@@ -601,14 +601,14 @@ export class AntiRaidService {
     }
   }
 
-  // ─── Estado (panel y comando) ─────────────────────────────────────────────
+  // ─── Status (dashboard and command)────────────────────────────────────────
 
   async getStatus(guildId: string): Promise<ModerationRaidState | null> {
     const state = await this.client.db.moderationRaidState.findUnique({ where: { guildId } });
     return state?.active ? state : null;
   }
 
-  // ─── Aviso en el canal de logs de moderación ─────────────────────────────
+  // ─── Alert in the moderation log channel ─────────────────────────────────
 
   private describeLockdown(guildId: string, verification: boolean, channels: number, mode: RaidLockdown, modRoleIds: string[] = []): string {
     const parts: string[] = [];
@@ -648,7 +648,7 @@ export class AntiRaidService {
       }
       await channel.send({ embeds: [embed], allowedMentions: { parse: [] } });
     } catch {
-      // Silencioso: el aviso no debe interrumpir la protección
+      // Silent: the alert must not interrupt protection
     }
   }
 }

@@ -336,7 +336,7 @@ export default class LockdownCommand extends Command {
       });
     }
 
-    // Store lockdown data (memoria + BD, para poder desbloquear tras un reinicio)
+    // Store lockdown data (memory + DB, so it can be unlocked after a restart)
     await this.saveLockdown({
       channelId,
       guildId,
@@ -523,7 +523,7 @@ export default class LockdownCommand extends Command {
           });
         }
 
-        // Store lockdown data (memoria + BD)
+        // Store lockdown data (memory + DB)
         await this.saveLockdown({
           channelId: channel.id,
           guildId,
@@ -584,7 +584,7 @@ export default class LockdownCommand extends Command {
         const channel = interaction.guild!.channels.cache.get(lockdownData.channelId);
 
         if (!channel || !('permissionOverwrites' in channel)) {
-          // Canal borrado mientras estaba bloqueado: limpiar el registro
+          // Channel deleted while locked: clean up the record
           await this.removeLockdown(lockdownData.channelId);
           continue;
         }
@@ -698,9 +698,9 @@ export default class LockdownCommand extends Command {
   }
 
   /**
-   * Restaura exactamente el overwrite de @everyone previo al lockdown.
-   * Borrarlo sin más hacía público un canal privado (ViewChannel denegado), y
-   * permissionOverwrites.edit() ignora bitfields allow/deny (solo acepta flags).
+   * Restores exactly the @everyone overwrite that existed before the lockdown.
+   * Simply deleting it made a private channel public (ViewChannel denied), and
+   * permissionOverwrites.edit() ignores allow/deny bitfields (it only accepts flags).
    */
   private async restoreEveryoneOverwrite(
     channel: { id: string; permissionOverwrites: any },
@@ -716,10 +716,10 @@ export default class LockdownCommand extends Command {
     });
   }
 
-  // ─── Persistencia (tabla channel_lockdowns) ──────────────────────────────
+  // ─── Persistence (channel_lockdowns table) ───────────────────────────────
   private loaded: Promise<void> | null = null;
 
-  /** Carga una vez los bloqueos guardados (sobreviven a reinicios del bot). */
+  /** Loads the saved lockdowns once (they survive bot restarts). */
   private ensureLoaded(): Promise<void> {
     if (!this.loaded) {
       this.loaded = this.client.db.channelLockdown.findMany().then((rows) => {
@@ -748,7 +748,7 @@ export default class LockdownCommand extends Command {
 
   private async saveLockdown(data: LockdownData): Promise<void> {
     this.lockdowns.set(data.channelId, data);
-    // Solo hace falta el overwrite de @everyone (id del rol = id del servidor)
+    // Only the @everyone overwrite is needed (role id = guild id)
     const everyone = data.originalPermissions.get(data.guildId) as { allow: string; deny: string } | undefined;
     await this.client.db.channelLockdown.upsert({
       where: { channelId: data.channelId },
@@ -766,9 +766,9 @@ export default class LockdownCommand extends Command {
   }
 
   /**
-   * Overwrite original guardado en BD. El anti-raid de Moderación lo corrige si el
-   * lockdown se aplicó durante un raid (para no heredar su bloqueo), así que la BD
-   * manda sobre la copia en memoria; sin fila se usa la memoria.
+   * Original overwrite stored in the DB. The Moderation anti-raid corrects it if the
+   * lockdown was applied during a raid (so as not to inherit its lock), so the DB
+   * takes precedence over the in-memory copy; without a row, memory is used.
    */
   private async storedOriginal(
     channelId: string,

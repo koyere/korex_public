@@ -23,9 +23,9 @@ import { KorexClient } from '../KorexClient';
 import { ParsedOption, PrefixOptionDef } from './ArgumentParser';
 
 /**
- * El comando hace algo que un mensaje de texto no puede hacer (abrir un modal,
- * esperar el envío de un modal…). El manejador de prefijo lo convierte en un
- * aviso "usa la versión slash" y devuelve el cooldown.
+ * The command does something a text message cannot do (open a modal,
+ * await a modal submission…). The prefix handler turns it into a
+ * "use the slash version" notice and refunds the cooldown.
  */
 export class PrefixUnsupportedError extends Error {
   constructor(public readonly feature: string) {
@@ -34,7 +34,7 @@ export class PrefixUnsupportedError extends Error {
   }
 }
 
-/** Errores equivalentes a los de discord.js para respuestas duplicadas */
+/** Errors equivalent to discord.js ones for duplicate replies */
 class PrefixInteractionStateError extends Error {
   constructor(public readonly code: 'InteractionAlreadyReplied' | 'InteractionNotReplied') {
     super(code === 'InteractionAlreadyReplied'
@@ -44,13 +44,13 @@ class PrefixInteractionStateError extends Error {
   }
 }
 
-/** Menciones seguras: nunca @everyone/@here ni roles; sin ping al autor de la orden */
+/** Safe mentions: never @everyone/@here or roles; no ping to the command author */
 export const SAFE_ALLOWED_MENTIONS: MessageMentionOptions = { parse: ['users'], repliedUser: false };
 
-/** Las respuestas "efímeras" (sin componentes) se borran del canal pasado este tiempo */
+/** "Ephemeral" replies (without components) are deleted from the channel after this time */
 const EPHEMERAL_DELETE_MS = 60_000;
 
-/** Flags de mensaje que se pueden conservar al pasar de interacción a mensaje */
+/** Message flags that can be kept when converting from interaction to message */
 const KEEP_FLAGS = MessageFlags.SuppressEmbeds | MessageFlags.SuppressNotifications | MessageFlags.IsComponentsV2;
 
 function sanitizeMentions(input?: MessageMentionOptions): MessageMentionOptions {
@@ -71,8 +71,8 @@ interface NormalizedPayload {
 }
 
 /**
- * Convierte las opciones de reply/editReply/followUp de una interacción en
- * opciones de mensaje normal (sin efímero, sin TTS, menciones seguras).
+ * Converts an interaction's reply/editReply/followUp options into
+ * regular message options (no ephemeral, no TTS, safe mentions).
  */
 export function normalizeReplyOptions(options: unknown): NormalizedPayload {
   let raw: Record<string, any>;
@@ -110,20 +110,20 @@ export interface MessageInteractionInit {
   client: KorexClient;
   message: Message<true>;
   commandName: string;
-  /** Texto con el que se invocó (para logs/toString) */
+  /** Text it was invoked with (for logs/toString) */
   invokedWith: string;
 }
 
 /**
- * "Interacción de mensaje": implementa la parte de ChatInputCommandInteraction
- * que usan los comandos, a partir de un mensaje con prefijo. Las respuestas se
- * traducen en mensajes del canal (respuesta al mensaje original).
+ * "Message interaction": implements the part of ChatInputCommandInteraction
+ * that commands use, starting from a prefixed message. Replies are
+ * translated into channel messages (replying to the original message).
  *
- *  - reply/editReply/followUp/fetchReply/deleteReply → mensajes del canal.
- *  - deferReply → indicador "escribiendo…".
- *  - Efímero → por MD al usuario (✉️ en el mensaje original). Si los MD están
- *    cerrados, o la respuesta lleva componentes, en el canal: se borra sola al
- *    minuto si no lleva componentes (si los lleva se conserva para los botones).
+ *  - reply/editReply/followUp/fetchReply/deleteReply → channel messages.
+ *  - deferReply → "typing…" indicator.
+ *  - Ephemeral → via DM to the user (✉️ on the original message). If DMs are
+ *    closed, or the reply has components, in the channel: it deletes itself after
+ *    a minute if it has no components (if it has them, it is kept for the buttons).
  *  - showModal/awaitModalSubmit → PrefixUnsupportedError.
  */
 export class MessageCommandInteraction {
@@ -149,7 +149,7 @@ export class MessageCommandInteraction {
   public readonly createdTimestamp: number;
   public readonly token = '';
   public readonly version = 1;
-  /** Marca para que cualquier código pueda distinguir el origen */
+  /** Marker so any code can tell where it came from */
   public readonly isPrefixCommand = true;
 
   public options: CommandInteractionOptionResolver;
@@ -160,7 +160,7 @@ export class MessageCommandInteraction {
   private readonly invokedWith: string;
   private replyMessage: Message | null = null;
   private deleteTimers = new Map<string, NodeJS.Timeout>();
-  /** El MD al usuario falló (MD cerrados…): el resto de efímeras van al canal */
+  /** The DM to the user failed (DMs closed…): remaining ephemerals go to the channel */
   private dmFailed = false;
   private dmNotified = false;
 
@@ -194,7 +194,7 @@ export class MessageCommandInteraction {
     return null;
   }
 
-  // ── Type guards (como en discord.js) ──────────────────────────────────────
+  // ── Type guards (as in discord.js) ──────────────────────────────────────
   isChatInputCommand(): boolean { return true; }
   isCommand(): boolean { return true; }
   isRepliable(): boolean { return true; }
@@ -221,8 +221,8 @@ export class MessageCommandInteraction {
     return this.invokedWith;
   }
 
-  // ── Opciones ──────────────────────────────────────────────────────────────
-  /** Crea un CommandInteractionOptionResolver real de discord.js */
+  // ── Options ──────────────────────────────────────────────────────────────
+  /** Creates a real discord.js CommandInteractionOptionResolver */
   static buildResolver(client: KorexClient, data: CommandInteractionOption[], resolved: Record<string, unknown>): CommandInteractionOptionResolver {
     const Resolver = CommandInteractionOptionResolver as unknown as new (
       c: unknown, o: CommandInteractionOption[], r: Record<string, unknown>
@@ -231,9 +231,9 @@ export class MessageCommandInteraction {
   }
 
   /**
-   * Resuelve las opciones parseadas (IDs → User/GuildMember/Role/Canal,
-   * índices → Attachment) y monta el resolver. Todo acotado a este servidor.
-   * Devuelve la opción que no se pudo resolver, o null si todo fue bien.
+   * Resolves the parsed options (IDs → User/GuildMember/Role/Channel,
+   * indexes → Attachment) and builds the resolver. Everything scoped to this server.
+   * Returns the option that could not be resolved, or null if all went well.
    */
   async applyOptions(
     group: string | null,
@@ -328,12 +328,12 @@ export class MessageCommandInteraction {
   }
 
   private async fetchRole(id: string): Promise<Role | null> {
-    // Solo roles de ESTE servidor
+    // Only roles from THIS server
     return this.guild.roles.cache.get(id) ?? await this.guild.roles.fetch(id).catch(() => null);
   }
 
   private async fetchChannel(id: string): Promise<GuildBasedChannel | null> {
-    // Solo canales (e hilos) de ESTE servidor
+    // Only channels (and threads) from THIS server
     const cached = this.guild.channels.cache.get(id);
     if (cached) return cached;
     const fetched = await this.guild.channels.fetch(id).catch(() => null);
@@ -344,12 +344,12 @@ export class MessageCommandInteraction {
       : null;
   }
 
-  // ── Respuestas ────────────────────────────────────────────────────────────
+  // ── Replies ────────────────────────────────────────────────────────────
   private canReplyReference(): boolean {
     return this.appPermissions.has(PermissionFlagsBits.ReadMessageHistory);
   }
 
-  /** Mensaje en el canal (respuesta al mensaje original si se puede) */
+  /** Message in the channel (as a reply to the original message when possible) */
   private async sendInitial(payload: Record<string, any>): Promise<Message> {
     if (this.canReplyReference()) {
       return this.message.reply({ ...payload, failIfNotExists: false } as any);
@@ -362,10 +362,10 @@ export class MessageCommandInteraction {
   }
 
   /**
-   * Entrega una respuesta. Las efímeras sin componentes van por MD al usuario
-   * (los manejadores de componentes necesitan el contexto del servidor, que en
-   * un MD no existe, así que las que llevan componentes se quedan en el canal).
-   * Si el MD falla (50007: MD cerrados, u otro error) → canal, como antes.
+   * Delivers a reply. Ephemerals without components go via DM to the user
+   * (component handlers need the server context, which does not exist
+   * in a DM, so those with components stay in the channel).
+   * If the DM fails (50007: DMs closed, or another error) → channel, as before.
    */
   private async deliver(payload: Record<string, any>, ephemeral: boolean, initial: boolean): Promise<Message> {
     if (ephemeral && !hasComponents(payload) && !this.dmFailed) {
@@ -380,7 +380,7 @@ export class MessageCommandInteraction {
     return initial ? this.sendInitial(payload) : (this.channel as any).send(payload);
   }
 
-  /** Aviso discreto en el mensaje original: ✉️ (una sola vez) */
+  /** Discreet notice on the original message: ✉️ (only once) */
   private markDmSent(): void {
     if (this.dmNotified) return;
     this.dmNotified = true;
@@ -393,7 +393,7 @@ export class MessageCommandInteraction {
     const existing = this.deleteTimers.get(msg.id);
     if (existing) clearTimeout(existing);
     this.deleteTimers.delete(msg.id);
-    // En el MD no se borra nada; en el canal, solo lo efímero sin componentes
+    // Nothing is deleted in the DM; in the channel, only ephemerals without components
     if (!ephemeral || this.isDm(msg) || hasComponents(payload, msg)) return;
     const timer = setTimeout(() => {
       this.deleteTimers.delete(msg.id);
@@ -440,13 +440,13 @@ export class MessageCommandInteraction {
     const ephemeral = this.ephemeral === true;
     let msg: Message;
     if (this.replyMessage && this.isDm(this.replyMessage) && hasComponents(normalized.payload)) {
-      // La respuesta del MD pasa a llevar componentes: se mueve al canal
+      // The DM reply now has components: move it to the channel
       const previous = this.replyMessage;
       msg = await this.sendInitial(normalized.payload);
       previous.delete().catch(() => {});
     } else if (this.replyMessage) {
       const editPayload = { ...normalized.payload };
-      // En edición los flags solo admiten SuppressEmbeds/IsComponentsV2
+      // On edit, flags only allow SuppressEmbeds/IsComponentsV2
       if (editPayload.flags !== undefined) editPayload.flags = Number(editPayload.flags) & (MessageFlags.SuppressEmbeds | MessageFlags.IsComponentsV2);
       delete editPayload.poll;
       msg = await this.replyMessage.edit(editPayload as any);
@@ -462,7 +462,7 @@ export class MessageCommandInteraction {
   async fetchReply(): Promise<Message> {
     if (this.replyMessage) return this.replyMessage;
     if (!this.deferred) throw new PrefixInteractionStateError('InteractionNotReplied');
-    // Diferida sin respuesta todavía: crear el mensaje que luego se editará
+    // Deferred with no reply yet: create the message that will be edited later
     const msg = await this.deliver({ content: '⏳', allowedMentions: SAFE_ALLOWED_MENTIONS }, this.ephemeral === true, true);
     this.replyMessage = msg;
     return msg;
@@ -481,7 +481,7 @@ export class MessageCommandInteraction {
   async followUp(options: unknown): Promise<any> {
     if (!this.replied && !this.deferred) throw new PrefixInteractionStateError('InteractionNotReplied');
     const normalized = normalizeReplyOptions(options);
-    // Diferida sin respuesta: el primer followUp hace de respuesta (como en Discord)
+    // Deferred with no reply: the first followUp acts as the reply (as in Discord)
     const initial = !this.replyMessage;
     const msg = await this.deliver(normalized.payload, normalized.ephemeral, initial);
     if (initial) {
@@ -492,7 +492,7 @@ export class MessageCommandInteraction {
     return this.responseFor(msg, normalized);
   }
 
-  // ── No disponibles desde un mensaje ───────────────────────────────────────
+  // ── Not available from a message ───────────────────────────────────────
   async showModal(): Promise<never> {
     throw new PrefixUnsupportedError('modal');
   }
@@ -511,9 +511,9 @@ export class MessageCommandInteraction {
 }
 
 /**
- * Interacción de autocompletado sintética: permite reutilizar el
- * `executeAutocomplete` del comando para traducir lo que escribió el usuario
- * (p. ej. un nombre) al valor que espera el comando (p. ej. un ID).
+ * Synthetic autocomplete interaction: allows reusing the command's
+ * `executeAutocomplete` to translate what the user typed
+ * (e.g. a name) into the value the command expects (e.g. an ID).
  */
 export class MessageAutocompleteInteraction {
   public readonly type = InteractionType.ApplicationCommandAutocomplete;

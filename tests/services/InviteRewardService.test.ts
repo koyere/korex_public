@@ -1,6 +1,6 @@
 import { InviteRewardService } from '../../src/services/InviteRewardService';
 
-/** Simula lo mínimo de Prisma/Discord que usa la sincronización de recompensas. */
+/** Mocks the minimum Prisma/Discord surface used by reward synchronization. */
 function setup(opts: {
   tiers: Array<{ requiredInvites: number; roleId: string }>;
   valid: number;
@@ -88,7 +88,7 @@ const TIERS = [
 ];
 
 describe('InviteRewardService.syncMember', () => {
-  it('apila los roles alcanzados (válidas + bonus)', async () => {
+  it('stacks the reached roles (valid + bonus)', async () => {
     const { service, guild, memberRoles, grants } = setup({ tiers: TIERS, valid: 8, bonus: 2 });
     const res = await service.syncMember(guild, 'u1', { announce: false });
     expect(res.added.sort()).toEqual(['r10', 'r5']);
@@ -96,7 +96,7 @@ describe('InviteRewardService.syncMember', () => {
     expect([...grants].sort()).toEqual(['r10', 'r5']);
   });
 
-  it('modo "solo el más alto" sustituye el rol inferior', async () => {
+  it('"highest only" mode replaces the lower role', async () => {
     const { service, guild, memberRoles } = setup({
       tiers: TIERS, valid: 12, stackRoles: false, memberRoles: ['r5'], grants: ['r5'],
     });
@@ -104,7 +104,7 @@ describe('InviteRewardService.syncMember', () => {
     expect([...memberRoles]).toEqual(['r10']);
   });
 
-  it('es idempotente: una segunda pasada no cambia nada', async () => {
+  it('is idempotent: a second pass changes nothing', async () => {
     const { service, guild, member } = setup({ tiers: TIERS, valid: 10 });
     await service.syncMember(guild, 'u1', { announce: false });
     const second = await service.syncMember(guild, 'u1', { announce: false });
@@ -112,17 +112,17 @@ describe('InviteRewardService.syncMember', () => {
     expect(member.roles.add).toHaveBeenCalledTimes(2);
   });
 
-  it('retira al bajar del umbral solo los roles que entregó el bot', async () => {
+  it('when dropping below the threshold, removes only the roles the bot granted', async () => {
     const { service, guild, memberRoles } = setup({
       tiers: TIERS, valid: 6, memberRoles: ['r5', 'r10', 'r20'], grants: ['r5', 'r10'],
     });
     const res = await service.syncMember(guild, 'u1', { announce: false });
     expect(res.removed).toEqual(['r10']);
-    // r20 lo dio un administrador a mano: no se toca
+    // r20 was given manually by an administrator: left untouched
     expect([...memberRoles].sort()).toEqual(['r20', 'r5']);
   });
 
-  it('sin retirada por bajada conserva los roles ya entregados', async () => {
+  it('without removal on drop, keeps the roles already granted', async () => {
     const { service, guild, memberRoles } = setup({
       tiers: TIERS, valid: 1, removeOnDrop: false, memberRoles: ['r5', 'r10'], grants: ['r5', 'r10'],
     });
@@ -131,14 +131,14 @@ describe('InviteRewardService.syncMember', () => {
     expect([...memberRoles].sort()).toEqual(['r10', 'r5']);
   });
 
-  it('no asigna roles peligrosos aunque estén configurados', async () => {
+  it('does not assign dangerous roles even if configured', async () => {
     const { service, guild, memberRoles } = setup({ tiers: TIERS, valid: 30, dangerousRoles: ['r20'] });
     await service.syncMember(guild, 'u1', { announce: false });
     expect(memberRoles.has('r20')).toBe(false);
     expect(memberRoles.has('r10')).toBe(true);
   });
 
-  it('serializa sincronizaciones concurrentes del mismo miembro', async () => {
+  it('serializes concurrent synchronizations of the same member', async () => {
     const { service, guild, member } = setup({ tiers: TIERS, valid: 5 });
     await Promise.all([
       service.syncMember(guild, 'u1', { announce: false }),

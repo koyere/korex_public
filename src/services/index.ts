@@ -1,11 +1,11 @@
-// Servicios Base del Bot KOREX
+// KOREX Bot core services
 export { LicenseService } from './LicenseService';
 export { ErrorHandler } from './ErrorHandler';
 export { ModerationService } from './ModerationService';
 export { EconomyService } from './EconomyService';
 export { LevelService } from './LevelService';
 
-// Tipos exportados
+// Exported types
 export type { LicenseInfo, LicenseValidationResult } from './LicenseService';
 
 export type { ErrorContext, ErrorReport } from './ErrorHandler';

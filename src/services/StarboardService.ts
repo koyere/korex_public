@@ -15,9 +15,9 @@ import { i18n } from '../utils/i18n';
 
 export class StarboardService {
   private client: KorexClient;
-  // Caché corta de la config (se consulta en cada reacción de cualquier servidor)
+  // Short-lived config cache (queried on every reaction in any server)
   private configCache = new Map<string, { config: any; expires: number }>();
-  // Serializa el procesamiento por mensaje: evita publicar dos veces en una ráfaga de reacciones
+  // Serializes processing per message: avoids posting twice during a burst of reactions
   private locks = new Map<string, Promise<void>>();
 
   constructor(client: KorexClient) {
@@ -43,7 +43,7 @@ export class StarboardService {
     await this.process(reaction);
   }
 
-  /** Recalcula el conteo del mensaje y crea/actualiza/atenúa su entrada. */
+  /** Recalculates the message count and creates/updates/dims its entry. */
   private async process(reaction: MessageReaction | PartialMessageReaction): Promise<void> {
     const messageId = reaction.message.id;
     const previous = this.locks.get(messageId) ?? Promise.resolve();
@@ -71,7 +71,7 @@ export class StarboardService {
     const message = reaction.message as Message;
     if (!message?.channel) return;
 
-    // Mismos filtros al añadir y al quitar estrellas
+    // Same filters when adding and removing stars
     if (message.channel.id === config.channelId) return;
     if (config.ignoreBots && message.author?.bot) return;
     if (config.ignoreNsfw && (message.channel as TextChannel).nsfw) return;
@@ -87,7 +87,7 @@ export class StarboardService {
     }
   }
 
-  /** Unicode por nombre; personalizados (también animados) por ID. */
+  /** Unicode by name; custom ones (animated too) by ID. */
   private emojiMatches(reaction: MessageReaction | PartialMessageReaction, configured: string): boolean {
     const customId = configured.match(/(\d{15,})>?$/)?.[1];
     if (customId) return reaction.emoji.id === customId;
@@ -121,7 +121,7 @@ export class StarboardService {
     // Re-fetch to get accurate count
     const fresh = await reaction.fetch().catch(() => reaction);
     const count = fresh.count ?? 0;
-    // Sin autoestrella: no cuenta la reacción del autor, la pusiera cuando la pusiera
+    // No self-star: the author's reaction does not count, whenever it was added
     if (!config.selfStar && authorId && count > 0) {
       const users = await fresh.users.fetch({ limit: 100 }).catch(() => null);
       if (users?.has(authorId)) return Math.max(0, count - 1);

@@ -13,16 +13,16 @@ export default class GuildMemberAddEvent extends Event<'guildMemberAdd'> {
   public async execute(...args: [GuildMember]): Promise<void> {
     const [member] = args;
 
-    // Cada paso es independiente: un fallo no debe impedir los siguientes
+    // Each step is independent: a failure must not prevent the following ones
     const step = (name: string, fn: () => Promise<unknown>) =>
       fn().catch((error) => this.client.logger.error(`Error in guildMemberAdd (${name}):`, error));
 
     try {
-      // Honeypot primero (anti-raid y cuentas nuevas) y después el anti-raid de
-      // Moderación: si alguno expulsa o banea, no se da la bienvenida ni los roles automáticos.
+      // Honeypot first (anti-raid and new accounts) and then the Moderation
+      // anti-raid: if either kicks or bans, no welcome or auto-roles are given.
       const honeypotRemoved = await this.client.honeypot.handleMemberJoin(member).catch(() => false);
-      // Anti-raid de Moderación: cuenta siempre la entrada; no actúa si Honeypot
-      // ya expulsó/baneó o ya sancionó esta misma entrada (claim en Redis).
+      // Moderation anti-raid: always counts the join; does not act if Honeypot
+      // already kicked/banned or already sanctioned this same join (claim in Redis).
       const raidRemoved = await this.client.antiRaid.handleMemberJoin(member, honeypotRemoved).catch(() => false);
       const removed = honeypotRemoved || raidRemoved;
 
@@ -46,7 +46,7 @@ export default class GuildMemberAddEvent extends Event<'guildMemberAdd'> {
       // Handle auto-roles
       await step('autoroles', () => this.client.autoRole.handleMemberJoin(member));
 
-      // Plazo para verificarse (si el servidor lo tiene activado)
+      // Verification deadline (if the server has it enabled)
       await step('verification-deadline', () => this.client.verificationService.scheduleDeadline(member));
     } catch (error) {
       this.client.logger.error('Error handling guild member add event:', error);

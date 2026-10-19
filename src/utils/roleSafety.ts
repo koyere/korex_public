@@ -2,8 +2,8 @@ import type { Guild, GuildMember, PermissionResolvable, Role } from 'discord.js'
 import { PermissionFlagsBits } from 'discord.js';
 
 /**
- * Permisos que un rol "autoasignable" (paneles, verificación, tienda) nunca
- * debe tener: cualquiera de ellos convierte el panel en una escalada.
+ * Permissions that a "self-assignable" role (panels, verification, shop) must
+ * never have: any of them turns the panel into a privilege escalation.
  */
 export const DANGEROUS_ROLE_PERMISSIONS: PermissionResolvable[] = [
   PermissionFlagsBits.Administrator,
@@ -29,9 +29,9 @@ export const DANGEROUS_ROLE_PERMISSIONS: PermissionResolvable[] = [
 export type SelfAssignableRoleProblem = 'not_found' | 'everyone' | 'managed' | 'dangerous' | 'above_bot' | 'above_actor';
 
 /**
- * Valida que un rol se pueda entregar a cualquier miembro sin riesgo:
- * existe, no es @everyone ni gestionado por una integración, no tiene permisos
- * peligrosos y el bot lo puede asignar (está por debajo de su rol más alto).
+ * Validates that a role can be given to any member safely:
+ * it exists, is not @everyone nor managed by an integration, has no dangerous
+ * permissions and the bot can assign it (it is below the bot's highest role).
  */
 export interface SelfAssignableRoleCheck {
   ok: boolean;
@@ -49,7 +49,7 @@ export function checkSelfAssignableRole(guild: Guild, roleId: string, actor?: Gu
   }
   const botTop = guild.members.me?.roles.highest;
   if (botTop && role.comparePositionTo(botTop) >= 0) return { ok: false, problem: 'above_bot' };
-  // Quien configura no puede repartir un rol igual o superior al suyo
+  // The configuring user cannot hand out a role equal to or higher than their own
   if (actor && actor.id !== guild.ownerId && role.comparePositionTo(actor.roles.highest) >= 0) {
     return { ok: false, problem: 'above_actor' };
   }

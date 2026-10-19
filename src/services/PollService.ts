@@ -210,7 +210,7 @@ export class PollService {
     member: GuildMember,
     optionIds: string[]
   ): Promise<{ success: boolean; reason?: string; results?: PollResults | null }> {
-    // Un voto a la vez por encuesta: evita perder votos o votar dos veces con clics rápidos
+    // One vote at a time per poll: avoids losing votes or double-voting on rapid clicks
     const previous = this.voteLocks.get(pollId) ?? Promise.resolve();
     const run = previous.catch(() => undefined).then(() => this.voteLocked(pollId, user, member, optionIds));
     this.voteLocks.set(pollId, run);
@@ -268,8 +268,8 @@ export class PollService {
         const option = poll.options.find(o => o.id === optionId);
 
         if (option) {
-          // Los votantes se guardan siempre (para poder cambiar el voto y evitar
-          // votos duplicados); el anonimato se aplica al mostrar/exportar.
+          // Voters are always stored (so the vote can be changed and duplicate
+          // votes avoided); anonymity is applied when displaying/exporting.
           option.voters.push(user.id);
           option.votes++;
         }
@@ -301,7 +301,7 @@ export class PollService {
   /**
    * End a poll and show final results
    */
-  /** Cancela el temporizador de cierre de una encuesta. */
+  /** Cancels a poll's closing timer. */
   clearSchedule(pollId: string): void {
     this.activePolls.get(pollId)?.clear();
     this.activePolls.delete(pollId);
@@ -826,7 +826,7 @@ export class PollService {
         voters: Array.isArray(o.voters) ? o.voters : [],
       })),
       settings: {
-        ...settings, // conserva imageUrl, footerText, color, etc.
+        ...settings, // keeps imageUrl, footerText, color, etc.
         anonymous: settings.anonymous ?? row.anonymous ?? false,
         multipleChoice: settings.multipleChoice ?? false,
         maxChoices: settings.maxChoices,

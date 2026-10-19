@@ -72,7 +72,7 @@ export default class LanguageCommand extends Command {
         return;
       }
 
-      // Guardar en guilds.language: lo leen el dashboard (Ajustes) y la carga al arrancar
+      // Save to guilds.language: read by the dashboard (Settings) and by the startup load
       await this.client.db.guild.upsert({
         where: { id: guildId },
         update: { language: newLanguage },

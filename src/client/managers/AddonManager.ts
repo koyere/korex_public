@@ -272,21 +272,21 @@ export class AddonManager {
 
     const enabledAddons = await this.getEnabledAddonNames(guildId);
 
-    // Core modules: sin fila o array vacío → activos (ver config/coreModules.ts)
+    // Core modules: no row or empty array → enabled (see config/coreModules.ts)
     if (!addon) {
       return isCoreModuleEnabled(enabledAddons, addonName);
     }
 
-    // Addons de pago: opt-in explícito Y licencia (o bundle) vigente.
-    // enabledAddons no siempre se limpia (kickout, bundle vencido, suspensión),
-    // así que la licencia se comprueba en cada uso. Fail-closed si no se puede verificar.
+    // Paid addons: explicit opt-in AND a valid license (or bundle).
+    // enabledAddons is not always cleaned up (kickout, expired bundle, suspension),
+    // so the license is checked on every use. Fail-closed if it cannot be verified.
     if (!enabledAddons?.includes(addonName)) return false;
     if (!this.client.addonSync) return false;
 
     return this.client.addonSync.isAddonActive(guildId, addonName);
   }
 
-  /** enabledAddons del guild con caché en memoria muy corta (se llama en cada mensaje). */
+  /** Guild enabledAddons with a very short in-memory cache (called on every message). */
   private enabledCache = new Map<string, { value: string[] | undefined; expires: number }>();
   private static readonly ENABLED_TTL_MS = 15_000;
 
@@ -304,7 +304,7 @@ export class AddonManager {
     return value;
   }
 
-  /** Invalida la caché tras cambiar enabledAddons fuera de enable/disableAddon. */
+  /** Invalidates the cache after enabledAddons changes outside enable/disableAddon. */
   invalidateEnabledCache(guildId: string): void {
     this.enabledCache.delete(guildId);
   }
@@ -330,8 +330,8 @@ export class AddonManager {
 
       // Always update the database regardless of whether the addon is currently in memory.
       // This ensures courtesy/reactivation flows work even if the addon hasn't loaded yet.
-      // Un guild antiguo con enabledAddons=[] tiene los módulos core activos
-      // implícitamente: hacer push dejaría ['addon'] y los apagaría todos.
+      // A legacy guild with enabledAddons=[] has the core modules implicitly
+      // enabled: pushing would leave ['addon'] and turn them all off.
       const current = await this.client.db.guild.findUnique({
         where: { id: guildId },
         select: { enabledAddons: true },

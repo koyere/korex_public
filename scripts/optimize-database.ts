@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 /**
- * Script de Optimización de Base de Datos para Korex
- * Ejecuta optimizaciones de BD para mejorar el rendimiento
+ * Database Optimization Script for Korex
+ * Runs DB optimizations to improve performance
  */
 
 import { PrismaClient } from '@prisma/client';
@@ -17,10 +17,10 @@ async function optimizeDatabase() {
   const optimizer = new DatabaseOptimizer(prisma);
 
   try {
-    // Ejecutar optimizaciones completas
+    // Run full optimizations
     const results = await optimizer.optimizeDatabase();
     
-    // Mostrar resultados
+    // Show results
     logger.info('📊 Optimization Results:');
     
     let successCount = 0;
@@ -42,7 +42,7 @@ async function optimizeDatabase() {
       }
     });
 
-    // Ejecutar VACUUM ANALYZE
+    // Run VACUUM ANALYZE
     logger.info('🧹 Running VACUUM ANALYZE...');
     const vacuumResults = await optimizer.vacuumAnalyze();
     
@@ -54,7 +54,7 @@ async function optimizeDatabase() {
       }
     });
 
-    // Verificar salud de la BD
+    // Check DB health
     logger.info('🏥 Checking database health...');
     const health = await optimizer.checkDatabaseHealth();
     
@@ -81,7 +81,7 @@ async function optimizeDatabase() {
   }
 }
 
-// Ejecutar si es llamado directamente
+// Run if called directly
 if (require.main === module) {
   optimizeDatabase();
 }

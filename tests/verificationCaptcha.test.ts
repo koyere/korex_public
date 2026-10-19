@@ -33,7 +33,7 @@ describe('captcha image utils', () => {
   });
 });
 
-// Requiere un Redis desechable: REDIS_TEST_URL=redis://127.0.0.1:6399 npx jest tests/verificationCaptcha.test.ts
+// Requires a disposable Redis: REDIS_TEST_URL=redis://127.0.0.1:6399 npx jest tests/verificationCaptcha.test.ts
 const redisUrl = process.env.REDIS_TEST_URL;
 (redisUrl ? describe : describe.skip)('captcha check script (Redis)', () => {
   let redis: Redis;
@@ -56,7 +56,7 @@ const redisUrl = process.env.REDIS_TEST_URL;
     expect(await check('bad')).toEqual([0, 2]);
     expect(await check('bad')).toEqual([0, 1]);
     expect(await check('bad')).toEqual([-3, 60]);
-    // Bloqueado: ni siquiera el código correcto (ya borrado) pasa
+    // Locked: not even the correct code (already deleted) passes
     await redis.set('t:code', 'h1', 'EX', 300);
     const [status] = await check('h1');
     expect(status).toBe(-2);

@@ -39,13 +39,13 @@ export interface AutoResponseAction {
 export class AutoResponseService {
   private client: KorexClient;
   private cooldowns: Map<string, Map<string, number>> = new Map(); // guildId -> userId -> timestamp
-  // Caché por servidor: processMessage se ejecuta en cada mensaje
+  // Per-server cache: processMessage runs on every message
   private responseCache = new Map<string, { data: AutoResponseTrigger[]; expires: number }>();
   private regexCache = new Map<string, RegExp | null>();
 
   /**
-   * Regex de un admin evaluada en cada mensaje: se rechazan patrones con
-   * cuantificadores anidados (p. ej. (a+)+) que pueden bloquear el bot (ReDoS).
+   * Admin-provided regex evaluated on every message: patterns with nested
+   * quantifiers (e.g. (a+)+) that can hang the bot (ReDoS) are rejected.
    */
   static isSafeRegex(pattern: string): boolean {
     if (pattern.length > 200) return false;
@@ -142,7 +142,7 @@ export class AutoResponseService {
           if (messageContent.endsWith(triggerText)) return true;
           break;
         case 'regex': {
-          // Patrón original (sin pasar a minúsculas) y texto acotado
+          // Original pattern (not lowercased) and bounded text
           const regex = this.getRegex(trigger, autoResponse.caseSensitive);
           if (regex && regex.test(content.slice(0, 2000))) return true;
           break;

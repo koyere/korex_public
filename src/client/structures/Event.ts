@@ -5,7 +5,7 @@ export interface EventOptions<K extends keyof ClientEvents> {
   name: K;
   once?: boolean;
   enabled?: boolean;
-  addon?: string | null; // Si pertenece a un addon
+  addon?: string | null; // If it belongs to an addon
 }
 
 export abstract class Event<K extends keyof ClientEvents = keyof ClientEvents> {
@@ -24,20 +24,20 @@ export abstract class Event<K extends keyof ClientEvents = keyof ClientEvents> {
   }
 
   /**
-   * Ejecutar el evento
+   * Execute the event
    */
   abstract execute(...args: ClientEvents[K]): Promise<void> | void;
 
   /**
-   * Verificar si el evento puede ejecutarse
+   * Check whether the event can run
    */
   async canExecute(): Promise<boolean> {
-    // Verificar si el evento está habilitado
+    // Check whether the event is enabled
     if (!this.enabled) {
       return false;
     }
 
-    // Si pertenece a un addon, verificar que esté cargado
+    // If it belongs to an addon, check that it is loaded
     if (this.addon) {
       const addon = this.client.addons.getAddon(this.addon);
 
@@ -50,7 +50,7 @@ export abstract class Event<K extends keyof ClientEvents = keyof ClientEvents> {
   }
 
   /**
-   * Wrapper para ejecutar el evento con verificaciones
+   * Wrapper to execute the event with checks
    */
   async safeExecute(...args: ClientEvents[K]): Promise<void> {
     try {
@@ -62,9 +62,9 @@ export abstract class Event<K extends keyof ClientEvents = keyof ClientEvents> {
 
       await this.execute(...args);
     } catch (error) {
-      this.client.logger.error(`Error en evento ${this.name}:`, error);
+      this.client.logger.error(`Error in event ${this.name}:`, error);
 
-      // Reportar error crítico si es necesario
+      // Report critical error if needed
       if (this.client.errorHandler) {
         const errorContext: any = {
           eventName: this.name as string,
@@ -81,7 +81,7 @@ export abstract class Event<K extends keyof ClientEvents = keyof ClientEvents> {
   }
 
   /**
-   * Obtener información del evento
+   * Get event information
    */
   getInfo(): {
     name: string;

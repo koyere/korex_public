@@ -12,9 +12,9 @@ import {
 } from '../utils/statsEmbeds';
 
 /**
- * Botones de /stats user (stats_activity_<id>, stats_channels_<id>, stats_compare_<id>)
- * y /stats server (stats_server_detailed | channels | growth).
- * Responden en efímero con datos reales de UserStatsService.
+ * Buttons of /stats user (stats_activity_<id>, stats_channels_<id>, stats_compare_<id>)
+ * and /stats server (stats_server_detailed | channels | growth).
+ * They reply ephemerally with real data from UserStatsService.
  */
 export default class StatsComponents extends Component {
   constructor(client: KorexClient) {

@@ -40,7 +40,7 @@ import { CommandPermissionService, hasDefaultMemberPermissions } from './command
 
 export interface PrefixSettings {
   prefix: string;
-  /** Comandos con prefijo/mención activados en el servidor */
+  /** Prefix/mention commands enabled in the server */
   enabled: boolean;
 }
 
@@ -51,33 +51,33 @@ interface CommandJson {
   nsfw?: boolean;
 }
 
-/** Caché local del prefijo (por proceso/shard) */
+/** Local prefix cache (per process/shard) */
 const LOCAL_PREFIX_TTL_MS = 60_000;
 const LOCAL_PREFIX_MAX = 20_000;
-/** Caché compartida en Redis */
+/** Shared cache in Redis */
 const REDIS_PREFIX_TTL_S = 600;
-/** Rate limit por usuario y servidor */
+/** Rate limit per user and server */
 const RATE_LIMIT_MAX = 5;
 const RATE_LIMIT_WINDOW_S = 10;
-/** Longitud máxima del texto que se intenta interpretar */
+/** Maximum length of the text we try to parse */
 const MAX_CONTENT_LENGTH = 4000;
-/** Tiempo máximo para el autocompletado sintético */
+/** Maximum time for the synthetic autocomplete */
 const AUTOCOMPLETE_TIMEOUT_MS = 2500;
 
 /**
- * Comandos con prefijo.
+ * Prefix commands.
  *
- * Detecta `<prefijo>comando args` (o `@Korex comando args`) en los mensajes y
- * ejecuta el comando SLASH correspondiente a través de MessageCommandInteraction
- * y del mismo pipeline que `interactionCreate` (mismos permisos, cooldowns,
- * comprobaciones de addon/licencia/módulo y analíticas).
+ * Detects `<prefix>command args` (or `@Korex command args`) in messages and
+ * runs the corresponding SLASH command through MessageCommandInteraction
+ * and the same pipeline as `interactionCreate` (same permissions, cooldowns,
+ * addon/license/module checks and analytics).
  */
 export class PrefixCommandHandler {
   private readonly client: KorexClient;
   private readonly localPrefixes = new Map<string, { settings: PrefixSettings; expires: number }>();
   private readonly memoryRate = new Map<string, { count: number; resetAt: number }>();
   private readonly jsonCache = new WeakMap<Command, CommandJson | null>();
-  /** Permisos por comando configurados en Discord (Integraciones) */
+  /** Per-command permissions configured in Discord (Integrations) */
   public readonly commandPermissions: CommandPermissionService;
 
   constructor(client: KorexClient) {
@@ -86,7 +86,7 @@ export class PrefixCommandHandler {
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // PREFIJO POR SERVIDOR (caché local → Redis → BD → por defecto)
+  // PER-SERVER PREFIX (local cache → Redis → DB → default)
   // ═══════════════════════════════════════════════════════════════
 
   private get defaultPrefix(): string {
@@ -98,12 +98,12 @@ export class PrefixCommandHandler {
     return `guild:${guildId}:prefix`;
   }
 
-  /** Prefijo del servidor (compatibilidad) */
+  /** Server prefix (compatibility) */
   async getPrefix(guildId: string): Promise<string> {
     return (await this.getSettings(guildId)).prefix;
   }
 
-  /** Prefijo e interruptor de comandos con prefijo del servidor */
+  /** Server prefix and prefix-commands toggle */
   async getSettings(guildId: string): Promise<PrefixSettings> {
     const now = Date.now();
     const local = this.localPrefixes.get(guildId);
@@ -115,7 +115,7 @@ export class PrefixCommandHandler {
       if (cached && typeof cached === 'object' && typeof cached.prefix === 'string' && typeof cached.enabled === 'boolean') {
         settings = cached;
       }
-    } catch { /* Redis caído: se consulta la BD */ }
+    } catch { /* Redis down: query the DB */ }
 
     if (!settings) {
       let fromDb = false;
@@ -124,7 +124,7 @@ export class PrefixCommandHandler {
         settings = { prefix: guild?.prefix ?? this.defaultPrefix, enabled: guild?.prefixEnabled ?? true };
         fromDb = true;
       } catch (error) {
-        this.client.logger.warn(`[Prefix] No se pudo leer el prefijo de ${guildId}:`, error);
+        this.client.logger.warn(`[Prefix] Could not read the prefix for ${guildId}:`, error);
       }
       if (settings && !PREFIX_PATTERN.test(settings.prefix)) settings.prefix = this.defaultPrefix;
       if (settings && fromDb) {
@@ -132,12 +132,12 @@ export class PrefixCommandHandler {
       }
     }
 
-    // BD inaccesible: valores por defecto (sin cachear en Redis)
+    // DB unreachable: default values (not cached in Redis)
     if (!settings) settings = { prefix: this.defaultPrefix, enabled: true };
     if (!PREFIX_PATTERN.test(settings.prefix)) settings = { ...settings, prefix: this.defaultPrefix };
 
     if (this.localPrefixes.size >= LOCAL_PREFIX_MAX) {
-      // Expulsar la entrada más antigua (orden de inserción del Map)
+      // Evict the oldest entry (Map insertion order)
       const oldest = this.localPrefixes.keys().next().value;
       if (oldest !== undefined) this.localPrefixes.delete(oldest);
     }
@@ -146,17 +146,17 @@ export class PrefixCommandHandler {
     return settings;
   }
 
-  /** Invalidar tras cambiar el prefijo o su interruptor (panel web) */
+  /** Invalidate after changing the prefix or its toggle (web panel) */
   async invalidatePrefix(guildId: string): Promise<void> {
     this.localPrefixes.delete(guildId);
     await this.client.redis.del(this.redisKey(guildId)).catch(() => false);
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // RATE LIMIT (Redis INCR+EXPIRE, con respaldo en memoria)
+  // RATE LIMIT (Redis INCR+EXPIRE, with in-memory fallback)
   // ═══════════════════════════════════════════════════════════════
 
-  /** allowed: puede ejecutar; notify: primera vez que se pasa del límite en la ventana */
+  /** allowed: may run; notify: first time the limit is exceeded in the window */
   private async checkRateLimit(guildId: string, userId: string): Promise<{ allowed: boolean; notify: boolean }> {
     const key = `${process.env.REDIS_PREFIX || 'korex:'}prefixrl:${guildId}:${userId}`;
     try {
@@ -165,7 +165,7 @@ export class PrefixCommandHandler {
       if (count === 1) {
         await redis.expire(key, RATE_LIMIT_WINDOW_S);
       } else if (count > RATE_LIMIT_MAX) {
-        // Autocorrección: si una caída dejó la clave sin TTL, nunca se liberaría
+        // Self-healing: if a crash left the key without a TTL, it would never be released
         const ttl = await redis.ttl(key);
         if (ttl < 0) await redis.expire(key, RATE_LIMIT_WINDOW_S);
       }
@@ -184,12 +184,12 @@ export class PrefixCommandHandler {
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // ENTRADA DESDE messageCreate
+  // ENTRY FROM messageCreate
   // ═══════════════════════════════════════════════════════════════
 
   /**
-   * Devuelve true si el mensaje era un comando con prefijo (ya se encarga él);
-   * la ejecución del comando continúa en segundo plano.
+   * Returns true if the message was a prefix command (it handles it);
+   * the command execution continues in the background.
    */
   async handle(message: Message): Promise<boolean> {
     if (!message.inGuild() || message.author.bot || message.webhookId || message.system) return false;
@@ -204,7 +204,7 @@ export class PrefixCommandHandler {
     const guildId = message.guildId;
     const body = stripped.body;
 
-    // Mención sola al bot: indicar el prefijo (o que están desactivados)
+    // Bare mention of the bot: show the prefix (or that they are disabled)
     if (!body) {
       if (!stripped.viaMention) return false;
       if (!this.botCanSpeak(message)) return true;
@@ -217,17 +217,17 @@ export class PrefixCommandHandler {
       return true;
     }
 
-    // Interruptor del panel apagado: ni prefijo ni mención ejecutan comandos
-    // (el mensaje sigue su curso normal: autorespuestas, XP…)
+    // Panel toggle off: neither prefix nor mention runs commands
+    // (the message follows its normal flow: auto-responses, XP…)
     if (!enabled) return false;
 
-    // Identificar el comando ANTES de nada: si no es un comando, se ignora en silencio
+    // Identify the command BEFORE anything else: if it is not a command, ignore it silently
     const firstSpace = body.search(/\s/);
     const name = (firstSpace === -1 ? body : body.slice(0, firstSpace)).toLowerCase();
     let rest = firstSpace === -1 ? '' : body.slice(firstSpace + 1);
     let command = this.client.commands.getCommand(name);
 
-    // `!music play canción`: nombre de categoría seguido de un comando de esa categoría
+    // `!music play song`: category name followed by a command of that category
     if (!command && name && name !== 'help') {
       const next = rest.trimStart().split(/\s+/)[0]?.toLowerCase();
       const candidate = next ? this.client.commands.getCommand(next) : undefined;
@@ -246,16 +246,16 @@ export class PrefixCommandHandler {
       return true;
     }
 
-    // Idioma del servidor en caché antes de traducir nada
+    // Server language cached before translating anything
     await i18n.getGuildLanguageAsync(this.client.db as any, guildId).catch(() => null);
 
     void this.run(message as Message<true>, command, rest, prefix, `${prefix}${name}`).catch(error => {
-      this.client.logger.error(`[Prefix] Error ejecutando ${command!.name}:`, error);
+      this.client.logger.error(`[Prefix] Error executing ${command!.name}:`, error);
     });
     return true;
   }
 
-  /** El bot puede ver el canal y escribir en él */
+  /** The bot can view the channel and write in it */
   private botCanSpeak(message: Message): boolean {
     const me = message.guild?.members.me;
     if (!me || !message.channel || !('permissionsFor' in message.channel)) return false;
@@ -272,11 +272,11 @@ export class PrefixCommandHandler {
         const timer = setTimeout(() => { msg.delete().catch(() => {}); }, 15_000);
         timer.unref?.();
       }
-    } catch { /* sin permisos para responder: se ignora */ }
+    } catch { /* no permission to reply: ignore */ }
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // EJECUCIÓN
+  // EXECUTION
   // ═══════════════════════════════════════════════════════════════
 
   private getJson(command: Command): CommandJson | null {
@@ -285,7 +285,7 @@ export class PrefixCommandHandler {
     try {
       json = command.data().toJSON() as unknown as CommandJson;
     } catch (error) {
-      this.client.logger.warn(`[Prefix] No se pudo construir el JSON de ${command.name}:`, error);
+      this.client.logger.warn(`[Prefix] Could not build the JSON for ${command.name}:`, error);
     }
     this.jsonCache.set(command, json);
     return json;
@@ -314,8 +314,8 @@ export class PrefixCommandHandler {
         return false;
       }
 
-      // Permisos del comando en Discord (en slash los aplica Discord; aquí a mano):
-      // overrides de Integraciones y, si no hay, default_member_permissions
+      // Command permissions in Discord (for slash Discord applies them; here by hand):
+      // Integrations overrides and, if none, default_member_permissions
       if (!(await this.canUseInDiscord(message, command, json, interaction.memberPermissions.bitfield))) {
         await replyCommandError(this.client, asSlash, i18n.t('command_errors.missing_permissions', guildId));
         return false;
@@ -346,7 +346,7 @@ export class PrefixCommandHandler {
         return false;
       }
 
-      // Opciones sensibles: nunca por un canal visible
+      // Sensitive options: never through a visible channel
       const rejectSensitive = async (option: string): Promise<false> => {
         const deleted = await message.delete().then(() => true).catch(() => false);
         const note = deleted ? ` ${i18n.t('prefix_commands.message_deleted', guildId)}` : '';
@@ -359,7 +359,7 @@ export class PrefixCommandHandler {
 
       const parsed = parseOptions(path.options, path.rest, message.attachments.size);
       if (parsed.ok) {
-        // También si el valor llegó por posición
+        // Also if the value arrived positionally
         const positionalSecret = parsed.options.find(o => o.type === ApplicationCommandOptionType.String && SENSITIVE_OPTION.test(o.name));
         if (positionalSecret) return rejectSensitive(positionalSecret.name);
       }
@@ -368,7 +368,7 @@ export class PrefixCommandHandler {
         return false;
       }
 
-      // Autocompletado: traducir lo escrito al valor que espera el comando
+      // Autocomplete: translate the typed text into the value the command expects
       const options = await this.applyAutocomplete(interaction, command, path.group, path.subcommand, path.options, parsed.options);
 
       const unresolved = await interaction.applyOptions(path.group, path.subcommand, path.options, options);
@@ -381,7 +381,7 @@ export class PrefixCommandHandler {
 
     const onError = async (error: unknown): Promise<boolean> => {
       if (!(error instanceof PrefixUnsupportedError)) return false;
-      // No cobrar el cooldown por algo que no se pudo hacer
+      // Do not charge the cooldown for something that could not be done
       this.client.cooldowns.removeCooldown(command.name, message.author.id);
       const reason: PrefixUnsupportedReason = 'modal';
       const group = interaction.options.getSubcommandGroup(false);
@@ -391,8 +391,8 @@ export class PrefixCommandHandler {
     };
 
     const afterExecute = (): void => {
-      // Paridad con los listeners de interactionCreate de addons que reaccionan
-      // al slash /stop (Music Pro: el 24/7 no debe volver a conectar)
+      // Parity with addon interactionCreate listeners that react
+      // to the /stop slash command (Music Pro: 24/7 must not reconnect)
       if (command.name === 'stop') {
         (this.client as any)._musicProService?.markManualStop?.(guildId);
       }
@@ -401,7 +401,7 @@ export class PrefixCommandHandler {
     await runChatInputCommand(this.client, asSlash, { beforeExecute, onError, afterExecute }, command);
   }
 
-  /** Permisos de Discord para el comando: Integraciones + default_member_permissions */
+  /** Discord permissions for the command: Integrations + default_member_permissions */
   private async canUseInDiscord(message: Message<true>, command: Command, json: CommandJson, memberPermissions: bigint): Promise<boolean> {
     const channel: any = message.channel;
     const params = {
@@ -417,7 +417,7 @@ export class PrefixCommandHandler {
     try {
       return await this.commandPermissions.canUse(message.guild, params);
     } catch (error) {
-      this.client.logger.warn(`[Prefix] Error evaluando permisos de ${command.name}:`, error);
+      this.client.logger.warn(`[Prefix] Error evaluating permissions for ${command.name}:`, error);
       return hasDefaultMemberPermissions(params.defaultMemberPermissions, memberPermissions);
     }
   }
@@ -431,7 +431,7 @@ export class PrefixCommandHandler {
   private findSensitiveOption(defs: PrefixOptionDef[], tokens: PrefixToken[]): string | null {
     const sensitive = defs.filter(d => d.type === ApplicationCommandOptionType.String && SENSITIVE_OPTION.test(d.name));
     if (!sensitive.length) return null;
-    // Por nombre (password:xxx); los posicionales se revisan tras el parseo
+    // By name (password:xxx); positional ones are checked after parsing
     for (const token of tokens) {
       const hit = token.key && sensitive.find(d => d.name.toLowerCase() === token.key!.toLowerCase());
       if (hit) return hit.name;
@@ -442,9 +442,9 @@ export class PrefixCommandHandler {
   }
 
   /**
-   * Para opciones con autocompletado, ejecuta el autocompletado del comando con
-   * lo escrito y, si hay una coincidencia exacta (o una única coincidencia
-   * parcial), usa su valor. Si no, se deja el texto tal cual.
+   * For options with autocomplete, runs the command's autocomplete with
+   * the typed text and, if there is an exact match (or a single partial
+   * match), uses its value. Otherwise the text is left as is.
    */
   private async applyAutocomplete(
     interaction: MessageCommandInteraction,
@@ -483,7 +483,7 @@ export class PrefixCommandHandler {
           executeAutocomplete.call(command, auto),
           new Promise(resolve => setTimeout(resolve, AUTOCOMPLETE_TIMEOUT_MS).unref?.()),
         ]);
-      } catch { /* el autocompletado nunca bloquea el comando */ }
+      } catch { /* autocomplete never blocks the command */ }
 
       const raw = opt.raw.toLowerCase();
       const exact = auto.choices.find(c => String(c.value).toLowerCase() === raw || c.name.toLowerCase() === raw);
@@ -540,10 +540,10 @@ export class PrefixCommandHandler {
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // AYUDA (<prefijo>help [comando])
+  // HELP (<prefix>help [command])
   // ═══════════════════════════════════════════════════════════════
 
-  /** Comandos que este usuario puede usar con prefijo aquí */
+  /** Commands this user can use with prefix here */
   private async availableCommands(message: Message<true>): Promise<Command[]> {
     const member = message.member!;
     const perms = member.permissionsIn(message.channel.id);

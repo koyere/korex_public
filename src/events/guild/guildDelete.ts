@@ -13,19 +13,19 @@ export default class GuildDeleteEvent extends Event<'guildDelete'> {
   }
 
   async execute(guild: Guild): Promise<void> {
-    this.client.logger.info(`📤 Bot removido del servidor: ${guild.name} (${guild.id})`);
+    this.client.logger.info(`📤 Bot removed from server: ${guild.name} (${guild.id})`);
 
     try {
-      // 1. Suspender todo acceso premium con estado KICKOUT (periodo de gracia)
+      // 1. Suspend all premium access with KICKOUT status (grace period)
       await this.client.kickoutService.handleGuildLeft(guild.id);
 
-      // 2. Invalidar caché de configuración del servidor
+      // 2. Invalidate the server configuration cache
       await this.client.cache.invalidateGuildConfig(guild.id);
 
-      // 3. Notificar al owner del servidor si hay licencias activas
+      // 3. Notify the server owner if there are active licenses
       await this.notifyGuildOwner(guild);
 
-      // 4. Actualizar presencia del bot
+      // 4. Update bot presence
       this.updateBotPresence();
 
       this.client.logger.info(
@@ -33,21 +33,21 @@ export default class GuildDeleteEvent extends Event<'guildDelete'> {
       );
     } catch (error) {
       this.client.logger.error(
-        `Error procesando salida del servidor ${guild.id}:`,
+        `Error processing departure from server ${guild.id}:`,
         error
       );
     }
   }
 
   /**
-   * Notifica al owner que sus licencias están en periodo de gracia.
-   * Solo envía DM si el servidor tenía al menos una licencia o premium activo.
+   * Notifies the owner that their licenses are in the grace period.
+   * Only sends a DM if the server had at least one active license or premium.
    */
   private async notifyGuildOwner(guild: Guild): Promise<void> {
     try {
       const guildId = guild.id;
 
-      // Verificar si había licencias o premium activos antes del kickout
+      // Check whether there were active licenses or premium before the kickout
       const [licenseCount, premiumCount] = await Promise.all([
         this.client.db.addonLicense.count({
           where: { guildId, status: 'KICKOUT' },
@@ -67,7 +67,7 @@ export default class GuildDeleteEvent extends Event<'guildDelete'> {
       );
       const deadlineStr = `<t:${Math.floor(graceDeadline.getTime() / 1000)}:F>`;
 
-      // Idioma del servidor (el registro sigue en BD durante la gracia)
+      // Server language (the record stays in the DB during the grace period)
       const lang = await i18n.getGuildLanguageAsync(this.client.db as any, guildId);
       const vars = { server: guild.name, deadline: deadlineStr, days: String(KICKOUT_GRACE_DAYS) };
 
@@ -89,12 +89,12 @@ export default class GuildDeleteEvent extends Event<'guildDelete'> {
         .setTimestamp();
 
       await owner.send({ embeds: [embed], allowedMentions: { parse: [] } }).catch(() => {
-        // Owner tiene DMs cerrados — no hay nada que hacer
-        this.client.logger.debug(`No se pudo enviar DM al owner de ${guild.id} (${guild.ownerId})`);
+        // Owner has DMs closed — nothing to do
+        this.client.logger.debug(`Could not send DM to the owner of ${guild.id} (${guild.ownerId})`);
       });
     } catch (error) {
       this.client.logger.error(
-        `Error notificando al owner de ${guild.id}:`,
+        `Error notifying the owner of ${guild.id}:`,
         error
       );
     }

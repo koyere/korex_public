@@ -93,7 +93,7 @@ export class MusicControlsComponent extends Component {
 
     if (!queue || !queue.currentTrack) return;
 
-    // togglePause devuelve "sigue sonando": al pausar es false y no es un error
+    // togglePause returns "still playing": when pausing it is false and that is not an error
     await this.client.music.togglePause(interaction.guildId!);
     const success = !!this.client.music.getQueue(interaction.guildId!);
 
@@ -215,7 +215,7 @@ export class MusicControlsComponent extends Component {
   }
 }
 
-/** Paginación de /queue: actualiza el mismo mensaje con la página pedida. */
+/** /queue pagination: updates the same message with the requested page. */
 export class MusicQueuePageComponent extends Component {
   constructor(client: KorexClient) {
     super(client, { customId: 'queue_page_*', type: 'button' });

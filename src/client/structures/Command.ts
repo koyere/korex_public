@@ -24,7 +24,7 @@ export interface CommandOptions {
   guildOnly?: boolean;
   nsfw?: boolean;
   enabled?: boolean;
-  addon?: string | null; // Si pertenece a un addon
+  addon?: string | null; // If it belongs to an addon
 }
 
 export type CommandCategory =
@@ -76,7 +76,7 @@ export abstract class Command {
   }
 
   /**
-   * Builder para Slash Commands
+   * Builder for Slash Commands
    */
   abstract data():
     | SlashCommandBuilder
@@ -85,44 +85,44 @@ export abstract class Command {
     | Omit<SlashCommandBuilder, 'addSubcommand' | 'addSubcommandGroup'>;
 
   /**
-   * Ejecutar como Slash Command
+   * Execute as a Slash Command
    */
   abstract executeSlash(interaction: ChatInputCommandInteraction): Promise<void>;
 
   /**
-   * Ejecutar como comando de prefijo (opcional)
+   * Execute as a prefix command (optional)
    */
   async executePrefix?(message: Message, args: string[]): Promise<void>;
 
   /**
-   * Verificar si el usuario puede usar este comando
+   * Check whether the user can use this command
    */
   async canExecute(
     userId: string,
     guildId?: string,
     memberPermissions?: Readonly<bigint>
   ): Promise<{ canExecute: boolean; reason?: string }> {
-    // Verificar si el comando está habilitado
+    // Check whether the command is enabled
     if (!this.enabled) {
       return { canExecute: false, reason: i18n.t('command_errors.disabled', guildId || 'global') };
     }
 
-    // Verificar owner only
+    // Check owner only
     if (this.ownerOnly && !this.client.isOwner(userId)) {
       return { canExecute: false, reason: i18n.t('command_errors.owner_only', guildId || 'global') };
     }
 
-    // Verificar guild only
+    // Check guild only
     if (this.guildOnly && !guildId) {
       return { canExecute: false, reason: i18n.t('command_errors.guild_only', 'global') };
     }
 
-    // Verificar addon habilitado
+    // Check addon enabled
     if (this.addon && guildId) {
       const addonEnabled = await this.client.addons.isEnabled(guildId, this.addon);
 
       if (!addonEnabled) {
-        // Módulos gratuitos (Ajustes) y addons de pago tienen mensajes distintos
+        // Free modules (Settings) and paid addons have different messages
         const isCore = isCoreModule(this.addon);
         return {
           canExecute: false,
@@ -132,12 +132,12 @@ export abstract class Command {
         };
       }
 
-      // Interruptor propio del addon (configuración del servidor)
+      // The addon's own switch (server configuration)
       const blocked = await this.client.addons.getAddon(this.addon)?.commandBlockedReason(guildId, this.name).catch(() => null);
       if (blocked) return { canExecute: false, reason: blocked };
     }
 
-    // Verificar permisos del usuario (usando operaciones de bits con bigint)
+    // Check user permissions (using bigint bitwise operations)
     if (this.permissions.user.length > 0 && memberPermissions) {
       const missingPerms = this.permissions.user.filter(
         (perm) => (memberPermissions & perm) !== perm
@@ -152,21 +152,21 @@ export abstract class Command {
   }
 
   /**
-   * Verificar cooldown del comando
+   * Check the command cooldown
    */
   checkCooldown(userId: string): number | null {
     return this.client.cooldowns.checkCooldown(this.name, userId);
   }
 
   /**
-   * Aplicar cooldown al comando
+   * Apply the command cooldown
    */
   applyCooldown(userId: string): void {
     this.client.cooldowns.applyCooldown(this.name, userId, this.cooldown);
   }
 
   /**
-   * Obtener información del comando para help
+   * Get command info for help
    */
   getInfo(): {
     name: string;

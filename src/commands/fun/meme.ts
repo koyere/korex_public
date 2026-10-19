@@ -73,11 +73,11 @@ export default class MemeCommand extends Command {
         return;
 
       } catch {
-        // Se reintenta; si fallan los 3 intentos se muestra el error abajo
+        // Retry; if all 3 attempts fail the error is shown below
       }
     }
 
-    // 3 intentos fallidos o solo posts NSFW/spoiler: respuesta de error
+    // 3 failed attempts or only NSFW/spoiler posts: error response
     const embed = new EmbedBuilder()
       .setColor(botConfig.colors.error ?? '#ff0000')
       .setTitle(i18n.t('fun.meme.title', guildId))

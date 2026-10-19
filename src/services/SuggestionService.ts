@@ -45,12 +45,12 @@ export interface SuggestionConfig {
   channelId?: string;
   staffRoleIds: string[];
   voterRoleIds: string[];
-  cooldown: number; // en segundos
+  cooldown: number; // in seconds
   requireApproval: boolean;
   autoCreateThreads: boolean;
   voteThreshold: number;
   notifyAuthor: boolean;
-  // Último canal usado: permite reactivar el sistema (botón de /suggestions config) tras desactivarlo
+  // Last channel used: allows re-enabling the system (/suggestions config button) after disabling it
   lastChannelId?: string;
 }
 
@@ -58,7 +58,7 @@ export class SuggestionService {
   private client: KorexClient;
   private configs: Map<string, SuggestionConfig> = new Map();
   private cooldowns: Map<string, number> = new Map();
-  // Serializa votos/acciones por sugerencia (evita perder votos con clics simultáneos)
+  // Serializes votes/actions per suggestion (avoids losing votes on simultaneous clicks)
   private locks = new Map<string, Promise<unknown>>();
 
   constructor(client: KorexClient) {
@@ -108,7 +108,7 @@ export class SuggestionService {
     return run;
   }
 
-  // ─── Persistencia (la BD es la fuente de verdad) ──────────────────────────
+  // ─── Persistence (the DB is the source of truth) ──────────────────────────
 
   private rowToSuggestion(row: any): Suggestion {
     const meta = (row.meta && typeof row.meta === 'object' ? row.meta : {}) as {
@@ -157,7 +157,7 @@ export class SuggestionService {
         meta: {
           votes: { up: suggestion.votes.upvotes, down: suggestion.votes.downvotes, neutral: suggestion.votes.neutral },
           priority: suggestion.priority,
-          // Estados sin equivalente en la BD (p. ej. "en consideración")
+          // Statuses with no DB equivalent (e.g. "considering")
           displayStatus: ['considering', 'reviewing', 'in_progress'].includes(suggestion.status) ? suggestion.status : undefined,
         } as any,
         ...extra,
@@ -178,7 +178,7 @@ export class SuggestionService {
         });
         this.configs.set(guildId, this.buildConfig(guildId, row?.suggestionChannelId ?? undefined, row?.suggestionSettings));
       } catch {
-        // Fallo de BD: no se cachea, se reintenta en la siguiente llamada
+        // DB failure: not cached, retried on the next call
         return this.defaultConfig(guildId);
       }
     }
@@ -186,7 +186,7 @@ export class SuggestionService {
     return this.configs.get(guildId)!;
   }
 
-  /** Config efectiva: canal (suggestionChannelId) + ajustes guardados en suggestionSettings. */
+  /** Effective config: channel (suggestionChannelId) + settings stored in suggestionSettings. */
   private buildConfig(guildId: string, channelId: string | undefined, raw: unknown): SuggestionConfig {
     const settings = (raw && typeof raw === 'object' ? raw : {}) as Partial<SuggestionConfig>;
     const base = this.defaultConfig(guildId, channelId);
@@ -239,7 +239,7 @@ export class SuggestionService {
       return null;
     }
 
-    // Verificar cooldown
+    // Check cooldown
     const cooldownKey = `${guild.id}-${author.id}`;
     const lastSuggestion = this.cooldowns.get(cooldownKey);
 
@@ -283,7 +283,7 @@ export class SuggestionService {
       return null;
     }
 
-    // Enviar al canal de sugerencias
+    // Send to the suggestions channel
     if (config.channelId) {
       await this.postSuggestion(guild, suggestion);
     }
@@ -317,12 +317,12 @@ export class SuggestionService {
       console.error('Error updating suggestion messageId in DB:', error);
     }
 
-    // Crear thread si está habilitado
+    // Create thread if enabled
     if (config.autoCreateThreads) {
       try {
         const thread = await message.startThread({
           name: `💬 ${suggestion.title.substring(0, 90)}`,
-          autoArchiveDuration: 1440 // 24 horas
+          autoArchiveDuration: 1440 // 24 hours
         });
         suggestion.threadId = thread.id;
       } catch {
@@ -332,7 +332,7 @@ export class SuggestionService {
 
   }
 
-  /** Embed + botones de una sugerencia (publicación y actualizaciones). */
+  /** Embed + buttons of a suggestion (posting and updates). */
   private async buildMessage(guild: Guild, suggestion: Suggestion) {
     const author = await this.client.users.fetch(suggestion.authorId).catch(() => null);
     const t = (key: string, vars?: Record<string, string>) => i18n.t(key, guild.id, vars);
@@ -383,7 +383,7 @@ export class SuggestionService {
       const suggestion = await this.loadSuggestion(suggestionId, guildId);
       if (!suggestion) return null;
 
-      // Pulsar el mismo voto otra vez lo retira; uno distinto lo cambia
+      // Pressing the same vote again withdraws it; a different one changes it
       const lists = { up: suggestion.votes.upvotes, down: suggestion.votes.downvotes, neutral: suggestion.votes.neutral };
       const target = lists[voteType as keyof typeof lists];
       if (!target) return null;
@@ -426,7 +426,7 @@ export class SuggestionService {
       return;
     }
 
-    // Mostrar modal para razón
+    // Show modal for the reason
     const modal = new ModalBuilder()
       .setCustomId(`suggestion_${action}_modal_${suggestionId}`)
       .setTitle(i18n.t(`suggestions.modals.${action}.title`, guildId));
@@ -484,7 +484,7 @@ export class SuggestionService {
   }
 
   private async updateSuggestionMessage(guild: Guild, suggestion: Suggestion): Promise<void> {
-    // Canal donde se publicó (aunque después se haya cambiado el canal de sugerencias)
+    // Channel where it was posted (even if the suggestions channel was changed later)
     const config = await this.getConfig(guild.id);
     const channelId = suggestion.channelId || config.channelId;
     const channel = channelId ? guild.channels.cache.get(channelId) as TextChannel : undefined;
@@ -521,7 +521,7 @@ export class SuggestionService {
 
       await author.send({ embeds: [embed] });
     } catch (error) {
-      // DMs cerrados
+      // DMs closed
     }
   }
 
@@ -548,13 +548,13 @@ export class SuggestionService {
 
   private getStatusColor(status: Suggestion['status']): number {
     const colors = {
-      new: 0x3498db,        // Azul
-      reviewing: 0xf39c12,  // Naranja
-      approved: 0x2ecc71,   // Verde
-      rejected: 0xe74c3c,   // Rojo
-      considering: 0x9b59b6, // Púrpura
-      in_progress: 0xf1c40f, // Amarillo
-      completed: 0x27ae60   // Verde oscuro
+      new: 0x3498db,        // Blue
+      reviewing: 0xf39c12,  // Orange
+      approved: 0x2ecc71,   // Green
+      rejected: 0xe74c3c,   // Red
+      considering: 0x9b59b6, // Purple
+      in_progress: 0xf1c40f, // Yellow
+      completed: 0x27ae60   // Dark green
     };
 
     return colors[status] || 0x95a5a6;
@@ -592,14 +592,14 @@ export class SuggestionService {
   }
 
   /**
-   * Cambio de estado desde el dashboard: actualiza el mensaje (conservando los
-   * votos) y avisa al autor si cambió el estado.
+   * Status change from the dashboard: updates the message (keeping the
+   * votes) and notifies the author if the status changed.
    */
   async syncSuggestionMessage(suggestionId: string, opts: { notify?: boolean } = {}): Promise<void> {
     const row = await this.client.db.suggestion.findUnique({ where: { id: suggestionId } });
     if (!row) return;
 
-    // El estado del dashboard sustituye a "en consideración"
+    // The dashboard status replaces "considering"
     const meta = (row.meta && typeof row.meta === 'object' ? row.meta : {}) as Record<string, unknown>;
     if (meta.displayStatus) {
       await this.client.db.suggestion.update({

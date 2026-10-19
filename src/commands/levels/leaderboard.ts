@@ -31,7 +31,7 @@ export default class LeaderboardCommand extends Command {
         option
           .setName('type')
           .setDescription(i18n.t('levels.leaderboard.type_option', 'global'))
-          .addChoices({ name: 'Levels', value: 'levels' }, { name: 'Economy', value: 'economy' }) // nombres localizados en el registro
+          .addChoices({ name: 'Levels', value: 'levels' }, { name: 'Economy', value: 'economy' }) // names localized at registration
       );
   }
 
@@ -42,7 +42,7 @@ export default class LeaderboardCommand extends Command {
       const lang = i18n.getGuildLanguage(guildId);
       const t = (key: string, vars?: Record<string, string>) => i18n.t(key, lang, vars);
 
-      // Cada ranking respeta el toggle de su módulo
+      // Each ranking respects its module toggle
       const moduleName = type === 'levels' ? 'levels' : 'economy';
       if (!(await this.client.addons.isEnabled(guildId, moduleName))) {
         await interaction.reply({ content: t('common.module_disabled'), ephemeral: true });
@@ -100,7 +100,7 @@ export default class LeaderboardCommand extends Command {
       let page = 0;
       const message = await interaction.reply({ ...(await showPage(page)), fetchReply: true });
 
-      // Paginación: solo quien ejecutó el comando, 2 minutos
+      // Pagination: only the command invoker, 2 minutes
       const collector = message.createMessageComponentCollector({
         componentType: ComponentType.Button,
         time: 120_000,

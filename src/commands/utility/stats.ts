@@ -148,7 +148,7 @@ export default class StatsCommand extends Command {
     }
   }
 
-  /** Miembro desde caché o, si no está, desde la API */
+  /** Member from cache or, if missing, from the API */
   private async resolveMember(interaction: ChatInputCommandInteraction, userId: string): Promise<GuildMember | null> {
     const guild = interaction.guild!;
 
@@ -159,7 +159,7 @@ export default class StatsCommand extends Command {
     return i18n.t('stats.window_footer', guildId, { days: days.toString() });
   }
 
-  /** Une líneas no nulas respetando el límite de 1024 caracteres de un field */
+  /** Joins non-null lines respecting a field's 1024-character limit */
   private joinLines(lines: Array<string | null>): string {
     const text = lines.filter((l): l is string => !!l).join('\n') || '—';
 
@@ -193,7 +193,7 @@ export default class StatsCommand extends Command {
     try {
       const statsEmbed = await this.client.userStats.generateUserStatsReport(member);
 
-      // Botones con más detalle (StatsComponents)
+      // Buttons with more detail (StatsComponents)
       await interaction.editReply({
         embeds: [statsEmbed],
         components: [buildUserStatsButtons(guildId, user.id)]
@@ -214,7 +214,7 @@ export default class StatsCommand extends Command {
     try {
       const statsEmbed = await this.client.userStats.generateGuildStatsReport(guild);
 
-      // Botones de navegación (StatsComponents)
+      // Navigation buttons (StatsComponents)
       await interaction.editReply({
         embeds: [statsEmbed],
         components: [buildServerStatsButtons(guild.id)]
@@ -436,7 +436,7 @@ export default class StatsCommand extends Command {
 
   private async handleActivity(interaction: ChatInputCommandInteraction): Promise<void> {
     const user = interaction.options.getUser('user') || interaction.user;
-    // log_entries guarda 30 días: 90d / all añaden los totales históricos (ver buildActivityEmbed)
+    // log_entries keeps 30 days: 90d / all add the historical totals (see buildActivityEmbed)
     const period = normalizeStatsPeriod(interaction.options.getString('period'));
     const guildId = interaction.guild!.id;
     const member = await this.resolveMember(interaction, user.id);

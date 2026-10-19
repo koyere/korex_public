@@ -24,10 +24,10 @@ interface StickyMessage {
 }
 
 export default class StickyCommand extends Command {
-  // Caché de la tabla sticky_messages (se carga una vez y se mantiene en cada cambio)
+  // Cache of the sticky_messages table (loaded once and kept up to date on every change)
   private stickyMessages: Map<string, StickyMessage> = new Map();
   private loaded: Promise<void> | null = null;
-  // Un repost a la vez por canal; si llegan más mensajes mientras tanto, se repite una vez
+  // One repost at a time per channel; if more messages arrive meanwhile, it repeats once
   private reposting = new Set<string>();
   private pendingRepost = new Set<string>();
 
@@ -503,7 +503,7 @@ export default class StickyCommand extends Command {
         fetchReply: true
       });
 
-      // Botón "Refrescar": vuelve a publicar el sticky al final del canal
+      // "Refresh" button: re-posts the sticky at the bottom of the channel
       const collector = reply.createMessageComponentCollector({
         componentType: ComponentType.Button,
         time: 120_000,
@@ -546,7 +546,7 @@ export default class StickyCommand extends Command {
     }
   }
 
-  /** Borra el sticky anterior y lo vuelve a publicar al final del canal. */
+  /** Deletes the previous sticky and re-posts it at the bottom of the channel. */
   private async repost(channel: TextChannel, guildId: string): Promise<void> {
     const stickyMessage = this.stickyMessages.get(channel.id);
     if (!stickyMessage) return;

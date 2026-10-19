@@ -17,7 +17,7 @@ export interface LogMetrics {
 }
 
 export interface AlertConfig {
-  errorThreshold: number; // Errores por minuto
+  errorThreshold: number; // Errors per minute
   memoryThreshold: number; // MB
   responseTimeThreshold: number; // ms
   webhookUrl?: string;
@@ -25,8 +25,8 @@ export interface AlertConfig {
 }
 
 /**
- * Sistema de Logging de Producción para Korex
- * Manejo avanzado de logs, métricas y alertas
+ * Production logging system for Korex
+ * Advanced handling of logs, metrics and alerts
  */
 export class ProductionLogger {
   private client: KorexClient;
@@ -35,7 +35,7 @@ export class ProductionLogger {
   private errorLogger!: winston.Logger;
   private baseLogger = createLogger('production-logger');
   
-  // Métricas en memoria
+  // In-memory metrics
   private logCounts = {
     total: 0,
     error: 0,
@@ -48,11 +48,11 @@ export class ProductionLogger {
   private recentErrors: Array<{ timestamp: Date; level: string; message: string; source?: string }> = [];
   private logTimestamps: number[] = [];
   
-  // Configuración de alertas
+  // Alert configuration
   private alertConfig: AlertConfig = {
-    errorThreshold: 10, // 10 errores por minuto
+    errorThreshold: 10, // 10 errors per minute
     memoryThreshold: 1024, // 1GB
-    responseTimeThreshold: 5000 // 5 segundos
+    responseTimeThreshold: 5000 // 5 seconds
   };
 
   constructor(client: KorexClient, alertConfig?: Partial<AlertConfig>) {
@@ -68,17 +68,17 @@ export class ProductionLogger {
   }
 
   /**
-   * Configurar loggers especializados
+   * Set up specialized loggers
    */
   private setupLoggers(): void {
     const logDir = path.join(process.cwd(), 'logs', 'production');
     
-    // Crear directorio si no existe
+    // Create directory if it does not exist
     if (!fs.existsSync(logDir)) {
       fs.mkdirSync(logDir, { recursive: true });
     }
 
-    // Logger principal con rotación diaria
+    // Main logger with daily rotation
     this.logger = winston.createLogger({
       level: process.env.LOG_LEVEL || 'info',
       format: winston.format.combine(
@@ -99,7 +99,7 @@ export class ProductionLogger {
         })
       ),
       transports: [
-        // Archivo principal con rotación
+        // Main file with rotation
         new DailyRotateFile({
           filename: path.join(logDir, 'korex-%DATE%.log'),
           datePattern: 'YYYY-MM-DD',
@@ -108,7 +108,7 @@ export class ProductionLogger {
           zippedArchive: true
         }),
         
-        // Console para desarrollo
+        // Console for development
         ...(process.env.NODE_ENV !== 'production' ? [
           new winston.transports.Console({
             format: winston.format.combine(
@@ -120,7 +120,7 @@ export class ProductionLogger {
       ]
     });
 
-    // Logger específico para errores
+    // Dedicated error logger
     this.errorLogger = winston.createLogger({
       level: 'error',
       format: winston.format.combine(
@@ -139,7 +139,7 @@ export class ProductionLogger {
       ]
     });
 
-    // Logger para métricas
+    // Metrics logger
     this.metricsLogger = winston.createLogger({
       level: 'info',
       format: winston.format.combine(
@@ -161,15 +161,15 @@ export class ProductionLogger {
   }
 
   /**
-   * Configurar recolección de métricas
+   * Set up metrics collection
    */
   private setupMetricsCollection(): void {
-    // Recopilar métricas cada minuto
+    // Collect metrics every minute
     setInterval(() => {
       this.collectSystemMetrics();
     }, 60000);
 
-    // Limpiar métricas antiguas cada hora
+    // Clean old metrics every hour
     setInterval(() => {
       this.cleanupMetrics();
     }, 3600000);
@@ -178,10 +178,10 @@ export class ProductionLogger {
   }
 
   /**
-   * Configurar sistema de alertas
+   * Set up the alert system
    */
   private setupAlerts(): void {
-    // Verificar alertas cada 30 segundos
+    // Check alerts every 30 seconds
     setInterval(() => {
       this.checkAlerts();
     }, 30000);
@@ -190,7 +190,7 @@ export class ProductionLogger {
   }
 
   /**
-   * Log con tracking de métricas
+   * Log with metrics tracking
    */
   log(level: string, message: string, meta?: any, source?: string): void {
     const logEntry = {
@@ -201,19 +201,19 @@ export class ProductionLogger {
       ...meta
     };
 
-    // Enviar a logger apropiado
+    // Send to the appropriate logger
     this.logger.log(level, message, meta);
     
     if (level === 'error') {
       this.errorLogger.error(message, meta);
     }
 
-    // Actualizar métricas
+    // Update metrics
     this.updateMetrics(level, message, source);
   }
 
   /**
-   * Actualizar métricas internas
+   * Update internal metrics
    */
   private updateMetrics(level: string, message: string, source?: string): void {
     this.logCounts.total++;
@@ -234,20 +234,20 @@ export class ProductionLogger {
         break;
     }
 
-    // Registrar timestamp para cálculo de rate
+    // Record timestamp for rate calculation
     this.logTimestamps.push(Date.now());
     
-    // Mantener solo los últimos 1000 timestamps
+    // Keep only the last 1000 timestamps
     if (this.logTimestamps.length > 1000) {
       this.logTimestamps = this.logTimestamps.slice(-1000);
     }
   }
 
   /**
-   * Rastrear errores para análisis
+   * Track errors for analysis
    */
   private trackError(message: string, source?: string): void {
-    // Agregar a errores recientes
+    // Add to recent errors
     this.recentErrors.push({
       timestamp: new Date(),
       level: 'error',
@@ -255,19 +255,19 @@ export class ProductionLogger {
       ...(source && { source })
     });
 
-    // Mantener solo los últimos 100 errores
+    // Keep only the last 100 errors
     if (this.recentErrors.length > 100) {
       this.recentErrors = this.recentErrors.slice(-100);
     }
 
-    // Contar por fuente
+    // Count by source
     if (source) {
       this.errorSources.set(source, (this.errorSources.get(source) || 0) + 1);
     }
   }
 
   /**
-   * Recopilar métricas del sistema
+   * Collect system metrics
    */
   private collectSystemMetrics(): void {
     const metrics = {
@@ -280,25 +280,25 @@ export class ProductionLogger {
       },
       bot: this.client.getBotInfo(),
       logs: this.getLogMetrics(),
-      database: null as any, // Se llenará si está disponible
-      redis: null as any // Se llenará si está disponible
+      database: null as any, // Filled in if available
+      redis: null as any // Filled in if available
     };
 
-    // Agregar métricas de base de datos si está disponible
+    // Add database metrics if available
     if (this.client.database) {
       this.client.database.getStats().then(dbStats => {
         metrics.database = dbStats;
       }).catch(() => {
-        // Ignorar errores de DB stats
+        // Ignore DB stats errors
       });
     }
 
-    // Agregar métricas de Redis si está disponible
+    // Add Redis metrics if available
     if (this.client.redis) {
       this.client.redis.healthCheck().then(redisHealth => {
         metrics.redis = redisHealth;
       }).catch(() => {
-        // Ignorar errores de Redis stats
+        // Ignore Redis stats errors
       });
     }
 
@@ -306,13 +306,13 @@ export class ProductionLogger {
   }
 
   /**
-   * Verificar condiciones de alerta
+   * Check alert conditions
    */
   private async checkAlerts(): Promise<void> {
     const now = Date.now();
     const oneMinuteAgo = now - 60000;
 
-    // Verificar rate de errores
+    // Check error rate
     const recentErrorCount = this.recentErrors.filter(
       error => error.timestamp.getTime() > oneMinuteAgo
     ).length;
@@ -325,7 +325,7 @@ export class ProductionLogger {
       });
     }
 
-    // Verificar uso de memoria
+    // Check memory usage
     const memoryUsage = process.memoryUsage();
     const memoryMB = memoryUsage.heapUsed / 1024 / 1024;
 
@@ -337,7 +337,7 @@ export class ProductionLogger {
       });
     }
 
-    // Verificar tiempo de respuesta del bot
+    // Check bot response time
     if (this.client.ws.ping > this.alertConfig.responseTimeThreshold) {
       await this.sendAlert('HIGH_RESPONSE_TIME', {
         currentPing: this.client.ws.ping,
@@ -348,7 +348,7 @@ export class ProductionLogger {
   }
 
   /**
-   * Enviar alerta
+   * Send alert
    */
   private async sendAlert(type: string, data: any): Promise<void> {
     const alert = {
@@ -359,14 +359,14 @@ export class ProductionLogger {
       botInfo: {
         guilds: this.client.guilds.cache.size,
         users: this.client.users.cache.size,
-        uptime: Math.round(process.uptime() / 60) // minutos
+        uptime: Math.round(process.uptime() / 60) // minutes
       }
     };
 
-    // Log la alerta
+    // Log the alert
     this.errorLogger.error('ALERT_TRIGGERED', alert);
 
-    // Enviar a Discord si está configurado
+    // Send to Discord if configured
     if (this.alertConfig.discordChannelId) {
       try {
         const channel = await this.client.channels.fetch(this.alertConfig.discordChannelId);
@@ -391,7 +391,7 @@ export class ProductionLogger {
       }
     }
 
-    // Enviar webhook si está configurado
+    // Send webhook if configured
     if (this.alertConfig.webhookUrl) {
       try {
         const fetch = (await import('node-fetch')).default;
@@ -408,17 +408,17 @@ export class ProductionLogger {
   }
 
   /**
-   * Obtener métricas de logs
+   * Get log metrics
    */
   getLogMetrics(): LogMetrics {
     const now = Date.now();
     const oneMinuteAgo = now - 60000;
     
-    // Calcular logs por minuto
+    // Calculate logs per minute
     const recentLogs = this.logTimestamps.filter(timestamp => timestamp > oneMinuteAgo);
     const averageLogsPerMinute = recentLogs.length;
 
-    // Top fuentes de errores
+    // Top error sources
     const topErrorSources = Array.from(this.errorSources.entries())
       .sort((a, b) => b[1] - a[1])
       .slice(0, 10)
@@ -432,20 +432,20 @@ export class ProductionLogger {
       debugCount: this.logCounts.debug,
       averageLogsPerMinute,
       topErrorSources,
-      recentErrors: this.recentErrors.slice(-20) // Últimos 20 errores
+      recentErrors: this.recentErrors.slice(-20) // Last 20 errors
     };
   }
 
   /**
-   * Limpiar métricas antiguas
+   * Clean old metrics
    */
   private cleanupMetrics(): void {
     const oneHourAgo = Date.now() - 3600000;
     
-    // Limpiar timestamps antiguos
+    // Clean old timestamps
     this.logTimestamps = this.logTimestamps.filter(timestamp => timestamp > oneHourAgo);
     
-    // Limpiar errores antiguos (mantener últimas 24 horas)
+    // Clean old errors (keep last 24 hours)
     const oneDayAgo = Date.now() - 86400000;
 
     this.recentErrors = this.recentErrors.filter(
@@ -456,7 +456,7 @@ export class ProductionLogger {
   }
 
   /**
-   * Exportar logs para análisis
+   * Export logs for analysis
    */
   async exportLogs(
     startDate: Date,
@@ -475,15 +475,15 @@ export class ProductionLogger {
       `export-${startDate.toISOString().split('T')[0]}-to-${endDate.toISOString().split('T')[0]}.json`
     );
 
-    // Implementar exportación de logs
-    // Por ahora, retornar la ruta del archivo
+    // Implement log export
+    // For now, return the file path
     this.baseLogger.info(`Log export requested: ${exportFile}`);
     
     return exportFile;
   }
 
   /**
-   * Configurar nivel de log dinámicamente
+   * Set log level dynamically
    */
   setLogLevel(level: string): void {
     this.logger.level = level;
@@ -491,7 +491,7 @@ export class ProductionLogger {
   }
 
   /**
-   * Obtener estadísticas de archivos de log
+   * Get log file statistics
    */
   getLogFileStats(): {
     totalSize: number;
@@ -539,7 +539,7 @@ export class ProductionLogger {
   }
 
   /**
-   * Destruir el logger de producción
+   * Destroy the production logger
    */
   destroy(): void {
     this.logger.close();

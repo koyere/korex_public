@@ -1,8 +1,8 @@
 /**
  * SupportTicketService
  *
- * Gestión de tickets de soporte interno: guild owners → equipo Korex.
- * Distinto del addon de tickets de Discord (que es guild members → staff del guild).
+ * Internal support ticket management: guild owners → Korex team.
+ * Different from the Discord tickets addon (which is guild members → guild staff).
  */
 
 import type { PrismaClient } from '@prisma/client';
@@ -15,7 +15,7 @@ const logger = createLogger('support-tickets');
 
 export interface CreateTicketInput {
   guildId:     string;
-  userId:      string;      // Discord ID del solicitante
+  userId:      string;      // Discord ID of the requester
   subject:     string;
   category:    string;
   description: string;
@@ -32,7 +32,7 @@ export interface CreateTicketInput {
 
 export interface ReplyTicketInput {
   ticketId:   string;
-  senderId:   string;      // admin_users.id o Discord user ID
+  senderId:   string;      // admin_users.id or Discord user ID
   content:    string;
   isStaff:    boolean;
   sendDm?:    boolean;
@@ -59,7 +59,7 @@ export class SupportTicketService {
     this.emailService     = emailService;
   }
 
-  // ─── Crear ticket (guild side) ──────────────────────────────────────────────
+  // ─── Create ticket (guild side) ──────────────────────────────────────────────
 
   async createTicket(input: CreateTicketInput) {
     const ticket = await this.db.supportTicket.create({
@@ -75,7 +75,7 @@ export class SupportTicketService {
       },
     });
 
-    // Guardar mensaje inicial
+    // Save initial message
     const message = await this.db.supportTicketMessage.create({
       data: {
         ticketId:  ticket.id,
@@ -85,7 +85,7 @@ export class SupportTicketService {
       },
     });
 
-    // Guardar adjuntos si los hay
+    // Save attachments if any
     if (input.attachments?.length) {
       await this.db.supportTicketAttachment.createMany({
         data: input.attachments.map(a => ({
@@ -100,13 +100,13 @@ export class SupportTicketService {
       });
     }
 
-    // Notificar al equipo
+    // Notify the team
     try {
       const guild = await this.db.guild.findUnique({ where: { id: input.guildId } });
       await this.teamNotification.notifyNewSupportTicket({
         ticketId:   ticket.id,
         guildId:    input.guildId,
-        guildName:  guild?.id || input.guildId, // El nombre real se obtiene via Discord API
+        guildName:  guild?.id || input.guildId, // The real name is obtained via the Discord API
         ownerName:  input.userId,
         subject:    input.subject,
         category:   input.category,
@@ -121,7 +121,7 @@ export class SupportTicketService {
     return ticket;
   }
 
-  // ─── Listar tickets (guild side) ───────────────────────────────────────────
+  // ─── List tickets (guild side) ────────────────────────────────────────────
 
   async getTicketsForGuild(guildId: string) {
     const tickets = await this.db.supportTicket.findMany({
@@ -149,11 +149,11 @@ export class SupportTicketService {
     return grouped;
   }
 
-  // ─── Detalle del ticket ─────────────────────────────────────────────────────
+  // ─── Ticket details ─────────────────────────────────────────────────────────
 
   /**
-   * Detalle del ticket. Con `guildId` el ticket debe pertenecer a ese servidor:
-   * si no, devuelve null SIN marcarlo como leído (antes se marcaba el de otro guild).
+   * Ticket details. With `guildId` the ticket must belong to that server:
+   * otherwise, returns null WITHOUT marking it as read (previously another guild's ticket was marked).
    */
   async getTicketDetail(ticketId: string, markReadForGuild = false, guildId?: string) {
     const ticket = await this.db.supportTicket.findUnique({
@@ -184,7 +184,7 @@ export class SupportTicketService {
     return ticket;
   }
 
-  // ─── Responder ticket ───────────────────────────────────────────────────────
+  // ─── Reply to ticket ───────────────────────────────────────────────────────
 
   async replyToTicket(input: ReplyTicketInput) {
     const ticket = await this.db.supportTicket.findUniqueOrThrow({
@@ -204,7 +204,7 @@ export class SupportTicketService {
       },
     });
 
-    // Guardar adjuntos
+    // Save attachments
     if (input.attachments?.length) {
       await this.db.supportTicketAttachment.createMany({
         data: input.attachments.map(a => ({
@@ -219,13 +219,13 @@ export class SupportTicketService {
       });
     }
 
-    // Actualizar estado y contadores
+    // Update status and counters
     const updates: any = {
       updatedAt: new Date(),
     };
 
     if (input.isStaff) {
-      // Staff responde → cambiar a waiting_customer, incrementar unreadGuild
+      // Staff replies → switch to waiting_customer, increment unreadGuild
       updates.status      = 'waiting_customer';
       updates.unreadGuild = { increment: 1 };
       if (!ticket.firstResponseAt) {
@@ -234,7 +234,7 @@ export class SupportTicketService {
         updates.firstResponseTime = firstResponseTime;
       }
     } else {
-      // Guild responde → cambiar a in_progress, incrementar unreadAdmin
+      // Guild replies → switch to in_progress, increment unreadAdmin
       updates.status      = 'in_progress';
       updates.unreadAdmin = { increment: 1 };
     }
@@ -244,7 +244,7 @@ export class SupportTicketService {
       data:  updates,
     });
 
-    // Notificar al guild si es respuesta del staff
+    // Notify the guild if it is a staff reply
     if (input.isStaff) {
       await this.notifyGuildOfReply(ticket, input.content, message.id);
     }
@@ -268,7 +268,7 @@ export class SupportTicketService {
 
       const preview = content.slice(0, 200) + (content.length > 200 ? '…' : '');
 
-      // Enviar email si tiene email guardado y preferencia activa
+      // Send an email if an email is stored and the preference is enabled
       if ((prefs?.supportEmail ?? true) && contact?.email) {
         await this.emailService.send(
           contact.email,
@@ -288,7 +288,7 @@ export class SupportTicketService {
     }
   }
 
-  // ─── Cerrar ticket ──────────────────────────────────────────────────────────
+  // ─── Close ticket ───────────────────────────────────────────────────────────
 
   async closeTicket(ticketId: string, closedBy: string): Promise<void> {
     const ticket = await this.db.supportTicket.findUniqueOrThrow({
@@ -311,7 +311,7 @@ export class SupportTicketService {
     logger.info(`Support ticket closed: ${ticketId} by ${closedBy}`);
   }
 
-  // ─── Unread count (para badge del sidebar) ─────────────────────────────────
+  // ─── Unread count (for the sidebar badge) ─────────────────────────────────
 
   async getUnreadCountForGuild(guildId: string): Promise<number> {
     const result = await this.db.supportTicket.aggregate({
@@ -321,7 +321,7 @@ export class SupportTicketService {
     return result._sum.unreadGuild ?? 0;
   }
 
-  // ─── Admin: lista con filtros ───────────────────────────────────────────────
+  // ─── Admin: filtered list ───────────────────────────────────────────────────
 
   async listTicketsAdmin(filters: {
     status?:    string;
@@ -366,7 +366,7 @@ export class SupportTicketService {
     return { tickets, total, page, totalPages: Math.ceil(total / limit) };
   }
 
-  // ─── Admin: asignar ticket ──────────────────────────────────────────────────
+  // ─── Admin: assign ticket ───────────────────────────────────────────────────
 
   async assignTicket(ticketId: string, operatorId: string | null): Promise<void> {
     await this.db.supportTicket.update({
@@ -375,7 +375,7 @@ export class SupportTicketService {
     });
   }
 
-  // ─── Admin: cambiar prioridad/estado ───────────────────────────────────────
+  // ─── Admin: change priority/status ────────────────────────────────────────
 
   async updateTicket(ticketId: string, data: { status?: string; priority?: string; assignedTo?: string }): Promise<void> {
     await this.db.supportTicket.update({
@@ -389,7 +389,7 @@ export class SupportTicketService {
     });
   }
 
-  // ─── Templates de respuesta ─────────────────────────────────────────────────
+  // ─── Reply templates ────────────────────────────────────────────────────────
 
   async getReplyTemplates() {
     return this.db.supportReplyTemplate.findMany({

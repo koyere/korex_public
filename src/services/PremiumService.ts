@@ -1,23 +1,23 @@
 import { KorexClient } from '../client/KorexClient';
 import { i18n } from '../utils/i18n';
 
-// ─── Tipos públicos ────────────────────────────────────────────────────────────
+// ─── Public types ──────────────────────────────────────────────────────────────
 
 export interface PremiumPlan {
   id: string;
   name: string;
   price: number;
-  duration: number; // días
+  duration: number; // days
   features: string[];
   limits: {
-    autoResponses: number;    // -1 = ilimitado
+    autoResponses: number;    // -1 = unlimited
     giveaways: number;
     polls: number;
     customCommands: number;
   };
 }
 
-/** Representación normalizada de una suscripción, compatible con los comandos existentes. */
+/** Normalized representation of a subscription, compatible with existing commands. */
 export interface PremiumSubscription {
   id: string;
   guildId: string;
@@ -34,20 +34,20 @@ export interface PremiumSubscription {
   };
 }
 
-// ─── Clave de caché Redis ──────────────────────────────────────────────────────
+// ─── Redis cache key ──────────────────────────────────────────────────────────
 
-const CACHE_TTL = 5 * 60; // 5 minutos
+const CACHE_TTL = 5 * 60; // 5 minutes
 
 function cacheKey(guildId: string): string {
   return `premium:guild:${guildId}`;
 }
 
-// ─── Servicio ──────────────────────────────────────────────────────────────────
+// ─── Service ───────────────────────────────────────────────────────────────────
 
 export class PremiumService {
   private client: KorexClient;
 
-  /** Planes definidos en código (precios, límites, features). */
+  /** Plans defined in code (prices, limits, features). */
   private readonly plans: Map<string, PremiumPlan> = new Map([
     ['demo', {
       id: 'demo',
@@ -100,23 +100,23 @@ export class PremiumService {
     this.client = client;
   }
 
-  // ─── Consultas ───────────────────────────────────────────────────────────────
+  // ─── Queries ─────────────────────────────────────────────────────────────────
 
   /**
-   * Retorna la suscripción activa de un guild desde la BD (con caché Redis).
-   * Devuelve null si no existe o si ha expirado/cancelado/suspendido.
+   * Returns the active subscription of a guild from the DB (with Redis cache).
+   * Returns null if it does not exist or has expired/been cancelled/suspended.
    */
   async getGuildSubscription(guildId: string): Promise<PremiumSubscription | null> {
-    // 1. Intentar caché
+    // 1. Try cache
     try {
       const cached = await this.client.redis.getClient().get(cacheKey(guildId));
       if (cached === 'null') return null;
       if (cached) return JSON.parse(cached) as PremiumSubscription;
     } catch {
-      // Si Redis falla, seguimos al fallback en BD
+      // If Redis fails, fall back to the DB
     }
 
-    // 2. Consultar BD
+    // 2. Query DB
     const row = await this.client.db.guildPremium.findUnique({
       where: { guildId },
     });
@@ -131,7 +131,7 @@ export class PremiumService {
     return sub;
   }
 
-  /** Comprueba si el guild tiene una suscripción activa y no vencida. */
+  /** Checks whether the guild has an active, non-expired subscription. */
   async hasActivePremium(guildId: string): Promise<boolean> {
     const sub = await this.getGuildSubscription(guildId);
     if (!sub) return false;
@@ -146,12 +146,12 @@ export class PremiumService {
     return this.plans.get(planId) ?? null;
   }
 
-  // ─── Activación ──────────────────────────────────────────────────────────────
+  // ─── Activation ──────────────────────────────────────────────────────────────
 
   /**
-   * Activa (o reactiva) una suscripción para el guild.
-   * Para planes de pago (basic/pro) la activación real viene del webhook PayPal;
-   * este método solo maneja el plan demo y activaciones administrativas.
+   * Activates (or reactivates) a subscription for the guild.
+   * For paid plans (basic/pro) the actual activation comes from the PayPal webhook;
+   * this method only handles the demo plan and administrative activations.
    */
   async activatePremium(
     guildId: string,
@@ -159,10 +159,10 @@ export class PremiumService {
     userId: string
   ): Promise<{ success: boolean; subscription?: PremiumSubscription; error?: string }> {
     const plan = this.getPlan(planId);
-    if (!plan) return { success: false, error: 'Plan inválido' };
+    if (!plan) return { success: false, error: 'Invalid plan' };
 
-    // La demo es de un solo uso por servidor: cualquier registro previo (demo, bundle,
-    // cortesía…) la bloquea, para que no pueda repetirse ni pisar un plan de pago.
+    // The demo is single-use per server: any previous record (demo, bundle,
+    // courtesy…) blocks it, so it cannot be repeated nor overwrite a paid plan.
     if (planId === 'demo') {
       const anyPrevious = await this.client.db.guildPremium.findUnique({ where: { guildId }, select: { id: true } });
       if (anyPrevious) return { success: false, error: 'demo_already_used' };
@@ -170,7 +170,7 @@ export class PremiumService {
 
     const existing = await this.getGuildSubscription(guildId);
     if (existing?.isActive && existing.endDate > new Date()) {
-      return { success: false, error: 'El servidor ya tiene una suscripción activa' };
+      return { success: false, error: 'The server already has an active subscription' };
     }
 
     const startedAt = new Date();
@@ -206,16 +206,16 @@ export class PremiumService {
     });
 
     await this.invalidateCache(guildId);
-    this.client.logger.info(`Premium activado: guild=${guildId} plan=${planId} user=${userId}`);
+    this.client.logger.info(`Premium activated: guild=${guildId} plan=${planId} user=${userId}`);
 
     return { success: true, subscription: this.mapRowToSubscription(row) };
   }
 
-  // ─── Cancelación ─────────────────────────────────────────────────────────────
+  // ─── Cancellation ───────────────────────────────────────────────────────────
 
   async cancelPremium(guildId: string): Promise<{ success: boolean; error?: string }> {
     const sub = await this.getGuildSubscription(guildId);
-    if (!sub?.isActive) return { success: false, error: 'No hay suscripción activa' };
+    if (!sub?.isActive) return { success: false, error: 'No active subscription' };
 
     await this.client.db.guildPremium.update({
       where: { guildId },
@@ -223,11 +223,11 @@ export class PremiumService {
     });
 
     await this.invalidateCache(guildId);
-    this.client.logger.info(`Premium cancelado: guild=${guildId}`);
+    this.client.logger.info(`Premium cancelled: guild=${guildId}`);
     return { success: true };
   }
 
-  // ─── Uso / Límites ────────────────────────────────────────────────────────────
+  // ─── Usage / Limits ──────────────────────────────────────────────────────────
 
   async getUsageStats(guildId: string): Promise<{
     subscription: PremiumSubscription | null;
@@ -308,7 +308,7 @@ export class PremiumService {
     await this.invalidateCache(guildId);
   }
 
-  // ─── Presentación ─────────────────────────────────────────────────────────────
+  // ─── Presentation ─────────────────────────────────────────────────────────────
 
   getPremiumBenefits(guildId: string): string[] {
     return [
@@ -330,9 +330,9 @@ export class PremiumService {
     return Math.max(0, Math.ceil((sub.endDate.getTime() - Date.now()) / (24 * 60 * 60 * 1000)));
   }
 
-  // ─── Helpers privados ─────────────────────────────────────────────────────────
+  // ─── Private helpers ───────────────────────────────────────────────────────
 
-  /** Convierte una fila de BD al formato PremiumSubscription que usan los comandos. */
+  /** Converts a DB row into the PremiumSubscription format used by commands. */
   private mapRowToSubscription(row: any): PremiumSubscription {
     return {
       id:        row.id,
@@ -355,22 +355,22 @@ export class PremiumService {
     try {
       const redis = this.client.redis.getClient();
       if (sub === null) {
-        // Cachear ausencia para evitar golpear la BD en cada comando
+        // Cache absence to avoid hitting the DB on every command
         await redis.setex(cacheKey(guildId), CACHE_TTL, 'null');
       } else {
         await redis.setex(cacheKey(guildId), CACHE_TTL, JSON.stringify(sub));
       }
     } catch {
-      // Error de Redis no es crítico
+      // Redis error is not critical
     }
   }
 
-  /** Borra la caché del guild. Llamar siempre tras modificar la suscripción. */
+  /** Clears the guild cache. Always call after modifying the subscription. */
   async invalidateCache(guildId: string): Promise<void> {
     try {
       await this.client.redis.getClient().del(cacheKey(guildId));
     } catch {
-      // Ignorar errores de Redis
+      // Ignore Redis errors
     }
   }
 }

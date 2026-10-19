@@ -1,9 +1,9 @@
 /**
- * setTimeout con delays de más de ~24,8 días.
+ * setTimeout with delays longer than ~24.8 days.
  *
- * Node convierte cualquier delay > 2^31-1 ms en 1 ms, así que un ban temporal de
- * 30 días o un sorteo largo se ejecutaban AL INSTANTE. Esta función encadena
- * timeouts parciales hasta llegar a la fecha objetivo.
+ * Node turns any delay > 2^31-1 ms into 1 ms, so a temporary ban of
+ * 30 days or a long giveaway would run INSTANTLY. This function chains
+ * partial timeouts until the target date is reached.
  */
 const MAX_DELAY = 2_147_483_647;
 

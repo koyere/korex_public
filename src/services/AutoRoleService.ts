@@ -43,7 +43,7 @@ export interface ReactionRole {
   requireRole?: string; // Role required to react
   maxUses?: number; // Max times this reaction role can be used
   currentUses?: number;
-  // Reaction roles sueltos (sin panel): toggle | add | remove | unique
+  // Standalone reaction roles (no panel): toggle | add | remove | unique
   type?: string;
 }
 
@@ -56,12 +56,12 @@ export interface ReactionRoleMessage {
   description: string;
   color: string;
   roles: ReactionRole[];
-  type: 'SINGLE' | 'MULTIPLE' | 'UNIQUE'; // SINGLE: un rol a la vez, MULTIPLE: varios, UNIQUE: elección permanente
+  type: 'SINGLE' | 'MULTIPLE' | 'UNIQUE'; // SINGLE: one role at a time, MULTIPLE: several, UNIQUE: permanent choice
 }
 
 export class AutoRoleService {
   private static instance: AutoRoleService;
-  // Clave en addon_configs donde se guardan ajustes extra del módulo (retrasos de entrada)
+  // Key in addon_configs where extra module settings are stored (join delays)
   private static readonly CORE_AUTOROLES_KEY = 'core-autoroles';
   private logger = logger;
   private db: DatabaseManager;
@@ -236,7 +236,7 @@ export class AutoRoleService {
 
       const role = message.guild.roles.cache.get(reactionRole.roleId);
 
-      // Revalidar en cada reacción: un rol con permisos de moderación no se reparte
+      // Revalidate on every reaction: a role with moderation permissions is never handed out
       if (!role || !this.canAssignRole(message.guild, role) || !checkSelfAssignableRole(message.guild, role.id).ok) {
         return;
       }
@@ -247,13 +247,13 @@ export class AutoRoleService {
       if (rrMessage) {
         await this.handleReactionRoleType(member, role, rrMessage, reactionRole, reaction);
       } else {
-        // Reaction role suelto (pestaña Roles de reacción de Bienvenida)
+        // Standalone reaction role (Welcome > Reaction roles tab)
         switch (reactionRole.type) {
           case 'remove':
             if (member.roles.cache.has(role.id)) await member.roles.remove(role, 'Reaction role (remove)');
             break;
           case 'unique': {
-            // Un solo rol entre los reaction roles de este mensaje
+            // Only one role among this message's reaction roles
             const siblings = await this.db.prisma.reactionRole.findMany({
               where: { guildId: message.guild.id, messageId: message.id, roleId: { not: role.id } },
               select: { roleId: true, emoji: true },
@@ -303,10 +303,10 @@ export class AutoRoleService {
 
       if (!role) return;
 
-      // UNIQUE = elección permanente: quitar la reacción no quita el rol.
+      // UNIQUE = permanent choice: removing the reaction does not remove the role.
       const rrMessage = await this.getReactionRoleMessage(message.guild.id, message.id);
       if (rrMessage?.type === 'UNIQUE') return;
-      // Reaction roles sueltos: 'add' y 'remove' no deshacen al quitar la reacción
+      // Standalone reaction roles: 'add' and 'remove' are not undone when the reaction is removed
       if (!rrMessage && (reactionRole.type === 'add' || reactionRole.type === 'remove')) return;
 
       if (member.roles.cache.has(role.id)) {
@@ -335,7 +335,7 @@ export class AutoRoleService {
 
     switch (rrMessage.type) {
       case 'SINGLE': {
-        // Solo un rol a la vez: quitar los demás roles del panel y sus reacciones
+        // Only one role at a time: remove the panel's other roles and their reactions
         const toRemove = otherRoleIds.filter((roleId) => member.roles.cache.has(roleId));
         if (toRemove.length > 0) {
           await member.roles.remove(toRemove, 'Single reaction role selection');
@@ -356,7 +356,7 @@ export class AutoRoleService {
       }
 
       case 'UNIQUE': {
-        // Elección permanente: si ya tiene un rol del panel, no puede cambiarlo
+        // Permanent choice: if they already have a role from the panel, they cannot change it
         if (otherRoleIds.some((roleId) => member.roles.cache.has(roleId))) {
           await reaction?.users.remove(member.id).catch(() => {});
           return;
@@ -584,8 +584,8 @@ export class AutoRoleService {
     emoji: { name: string | null; id: string | null; animated?: boolean | null }
   ): Promise<ReactionRole | null> {
     try {
-      // Los emojis se guardan tal como se pegaron: unicode ("🎮") o custom
-      // ("<:nombre:id>" / "<a:nombre:id>"); se buscan todas las formas posibles.
+      // Emojis are stored exactly as pasted: unicode ("🎮") or custom
+      // ("<:name:id>" / "<a:name:id>"); all possible forms are looked up.
       const candidates = [emoji.name, emoji.id].filter(Boolean) as string[];
       if (emoji.id) {
         candidates.push(`<:${emoji.name}:${emoji.id}>`, `<a:${emoji.name}:${emoji.id}>`);
@@ -715,9 +715,9 @@ export class AutoRoleService {
   }
 
   /**
-   * Retrasos (minutos) de los roles de entrada: { roleId: minutos }.
-   * Se guardan en addon_configs (addonName CORE_AUTOROLES_KEY) para no cambiar el
-   * formato de guild_configs.autoRoleJoinRoles (array de IDs que usa la web).
+   * Delays (minutes) of the join roles: { roleId: minutes }.
+   * Stored in addon_configs (addonName CORE_AUTOROLES_KEY) so as not to change the
+   * format of guild_configs.autoRoleJoinRoles (array of IDs used by the web dashboard).
    */
   public async getJoinRoleDelays(guildId: string): Promise<Record<string, number>> {
     try {
@@ -743,7 +743,7 @@ export class AutoRoleService {
     const delays = await this.getJoinRoleDelays(guildId);
     if (delay > 0) delays[roleId] = delay;
     else if (roleId in delays) delete delays[roleId];
-    else return; // nada que cambiar
+    else return; // nothing to change
 
     const row = await this.db.prisma.addonConfig.findUnique({
       where: { guildId_addonName: { guildId, addonName: AutoRoleService.CORE_AUTOROLES_KEY } },
@@ -757,10 +757,10 @@ export class AutoRoleService {
   }
 
   /**
-   * Programa la asignación retrasada de un rol de entrada. La asignación pendiente se
-   * guarda en `pending_join_roles` (sobrevive a reinicios) y un temporizador en memoria
-   * la ejecuta a su hora; si el bot se reinicia, la recoge `processDuePendingJoinRoles`.
-   * Sin la tabla (migración no aplicada) se mantiene el temporizador en memoria.
+   * Schedules the delayed assignment of a join role. The pending assignment is
+   * stored in `pending_join_roles` (survives restarts) and an in-memory timer
+   * runs it on time; if the bot restarts, `processDuePendingJoinRoles` picks it up.
+   * Without the table (migration not applied) only the in-memory timer is kept.
    */
   private scheduleDelayedJoinRole(member: GuildMember, roleId: string, minutes: number): void {
     const guild = member.guild;
@@ -781,25 +781,25 @@ export class AutoRoleService {
 
     setLongTimeout(async () => {
       const isPersisted = await persisted;
-      // Reclamar la fila antes de asignar: el temporizador y el barrido periódico no duplican
+      // Claim the row before assigning: the timer and the periodic sweep do not duplicate
       if (isPersisted && !(await this.claimPendingJoinRole(guild.id, userId, roleId))) return;
       await this.assignDelayedJoinRole(guild, userId, roleId, minutes);
     }, minutes * 60_000);
   }
 
-  /** Borra la fila pendiente; true si este proceso la ha reclamado. */
+  /** Deletes the pending row; true if this process claimed it. */
   private async claimPendingJoinRole(guildId: string, userId: string, roleId: string): Promise<boolean> {
     try {
       const res = await (this.db.prisma as any).pendingJoinRole.deleteMany({ where: { guildId, userId, roleId } });
       return res.count > 0;
     } catch {
-      return true; // sin tabla: el temporizador en memoria es la única fuente
+      return true; // no table: the in-memory timer is the only source
     }
   }
 
   private async assignDelayedJoinRole(guild: Guild, userId: string, roleId: string, minutes: number): Promise<void> {
     try {
-      // Revalidar al vencer: el miembro sigue, el módulo sigue activo y el rol sigue configurado
+      // Revalidate when due: the member is still there, the module is still enabled and the role is still configured
       const config = await this.getAutoRoleConfig(guild.id);
       if (!config.enabled || !config.joinRoles.includes(roleId)) return;
       const fresh = await guild.members.fetch(userId).catch(() => null);
@@ -813,9 +813,9 @@ export class AutoRoleService {
   }
 
   /**
-   * Barrido periódico de asignaciones retrasadas vencidas (p. ej. tras un reinicio).
-   * Solo atiende los servidores de este shard. Las de servidores que ya no están en la
-   * caché y llevan más de 7 días vencidas se descartan.
+   * Periodic sweep of overdue delayed assignments (e.g. after a restart).
+   * Only handles this shard's servers. Those for servers no longer in the
+   * cache that are more than 7 days overdue are discarded.
    */
   public async processDuePendingJoinRoles(client: Client): Promise<number> {
     const pending = (this.db.prisma as any).pendingJoinRole;
@@ -837,10 +837,10 @@ export class AutoRoleService {
         await this.assignDelayedJoinRole(guild, row.userId, row.roleId, minutes);
         done++;
       }
-      // Limpieza de filas huérfanas (servidor abandonado) muy antiguas
+      // Cleanup of very old orphaned rows (server left)
       await pending.deleteMany({ where: { dueAt: { lt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } } }).catch(() => {});
     } catch (error) {
-      // Tabla aún no creada u otro fallo transitorio: se reintenta en el siguiente ciclo
+      // Table not created yet or another transient failure: retried on the next cycle
       this.logger.debug?.('Pending join roles sweep skipped:', error);
     }
     return done;
@@ -848,7 +848,7 @@ export class AutoRoleService {
 
   private pendingWorker: NodeJS.Timeout | null = null;
 
-  /** Arranca el barrido de asignaciones retrasadas (cada 60 s). Idempotente. */
+  /** Starts the delayed-assignment sweep (every 60 s). Idempotent. */
   public startDelayedJoinRoleWorker(client: Client): void {
     if (this.pendingWorker) return;
     const run = () => {

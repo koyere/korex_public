@@ -12,20 +12,20 @@ export class CacheManager {
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // CONFIGURACIÓN DE GUILD
+  // GUILD CONFIGURATION
   // ═══════════════════════════════════════════════════════════════
 
   /**
-   * Obtener configuración de guild (con caché)
+   * Get guild configuration (cached)
    */
   async getGuildConfig(guildId: string) {
     const cacheKey = `guild:${guildId}:config`;
 
-    // Intentar obtener de caché
+    // Try to get from cache
     let config = await this.redis.get(cacheKey);
 
     if (!config) {
-      // Si no está en caché, obtener de DB
+      // If not cached, get from DB
       config = await this.client.db.guild.findUnique({
         where: { id: guildId },
         include: {
@@ -39,7 +39,7 @@ export class CacheManager {
       });
 
       if (config) {
-        // Guardar en caché
+        // Store in cache
         await this.redis.set(cacheKey, config, this.defaultTTL);
       }
     }
@@ -48,15 +48,15 @@ export class CacheManager {
   }
 
   /**
-   * Invalidar caché de configuración de guild
+   * Invalidate guild configuration cache
    */
   async invalidateGuildConfig(guildId: string): Promise<void> {
     await this.redis.del(`guild:${guildId}:config`);
-    this.client.logger.debug(`Caché de configuración invalidado para guild ${guildId}`);
+    this.client.logger.debug(`Configuration cache invalidated for guild ${guildId}`);
   }
 
   /**
-   * Actualizar configuración de guild en caché
+   * Update guild configuration in cache
    */
   async updateGuildConfig(guildId: string, config: any): Promise<void> {
     const cacheKey = `guild:${guildId}:config`;
@@ -69,7 +69,7 @@ export class CacheManager {
   // ═══════════════════════════════════════════════════════════════
 
   /**
-   * Obtener usuario en guild (con caché)
+   * Get user in guild (cached)
    */
   async getGuildUser(guildId: string, userId: string) {
     const cacheKey = `guild:${guildId}:user:${userId}`;
@@ -84,7 +84,7 @@ export class CacheManager {
       });
 
       if (user) {
-        await this.redis.set(cacheKey, user, 60); // 1 minuto para datos de usuario
+        await this.redis.set(cacheKey, user, 60); // 1 minute for user data
       }
     }
 
@@ -92,14 +92,14 @@ export class CacheManager {
   }
 
   /**
-   * Invalidar caché de usuario en guild
+   * Invalidate guild user cache
    */
   async invalidateGuildUser(guildId: string, userId: string): Promise<void> {
     await this.redis.del(`guild:${guildId}:user:${userId}`);
   }
 
   /**
-   * Actualizar usuario en guild en caché
+   * Update guild user in cache
    */
   async updateGuildUser(guildId: string, userId: string, user: any): Promise<void> {
     const cacheKey = `guild:${guildId}:user:${userId}`;
@@ -112,7 +112,7 @@ export class CacheManager {
   // ═══════════════════════════════════════════════════════════════
 
   /**
-   * Obtener cooldown
+   * Get cooldown
    */
   async getCooldown(type: string, userId: string): Promise<number | null> {
     const cacheKey = `cooldown:${type}:${userId}`;
@@ -154,25 +154,25 @@ export class CacheManager {
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // SESIONES DE MÚSICA
+  // MUSIC SESSIONS
   // ═══════════════════════════════════════════════════════════════
 
   /**
-   * Obtener sesión de música
+   * Get music session
    */
   async getMusicSession(guildId: string) {
     return await this.redis.get(`music:${guildId}`);
   }
 
   /**
-   * Establecer sesión de música
+   * Set music session
    */
   async setMusicSession(guildId: string, session: any): Promise<void> {
     await this.redis.set(`music:${guildId}`, session, 3600); // 1 hora
   }
 
   /**
-   * Eliminar sesión de música
+   * Delete music session
    */
   async deleteMusicSession(guildId: string): Promise<void> {
     await this.redis.del(`music:${guildId}`);
@@ -183,21 +183,21 @@ export class CacheManager {
   // ═══════════════════════════════════════════════════════════════
 
   /**
-   * Guardar datos temporales
+   * Store temporary data
    */
   async setTempData(key: string, data: any, ttl: number = 300): Promise<void> {
     await this.redis.set(`temp:${key}`, data, ttl);
   }
 
   /**
-   * Obtener datos temporales
+   * Get temporary data
    */
   async getTempData<T>(key: string): Promise<T | null> {
     return await this.redis.get<T>(`temp:${key}`);
   }
 
   /**
-   * Eliminar datos temporales
+   * Delete temporary data
    */
   async deleteTempData(key: string): Promise<void> {
     await this.redis.del(`temp:${key}`);
@@ -208,7 +208,7 @@ export class CacheManager {
   // ═══════════════════════════════════════════════════════════════
 
   /**
-   * Verificar rate limit
+   * Check rate limit
    */
   async checkRateLimit(
     key: string,
@@ -219,7 +219,7 @@ export class CacheManager {
     const now = Date.now();
     const windowMs = windowSeconds * 1000;
 
-    // Obtener datos actuales
+    // Get current data
     const data = await this.redis.get<{ count: number; resetTime: number }>(cacheKey);
 
     if (!data || now >= data.resetTime) {
@@ -236,7 +236,7 @@ export class CacheManager {
     }
 
     if (data.count >= limit) {
-      // Límite alcanzado
+      // Limit reached
       return {
         allowed: false,
         remaining: 0,
@@ -261,7 +261,7 @@ export class CacheManager {
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // ESTADÍSTICAS Y ANALÍTICAS
+  // STATISTICS AND ANALYTICS
   // ═══════════════════════════════════════════════════════════════
 
   /**
@@ -271,7 +271,7 @@ export class CacheManager {
     const cacheKey = `counter:${key}`;
 
     try {
-      // Redis INCR es atómico
+      // Redis INCR is atomic
       const result = await this.redis.redis.incrby(cacheKey, amount);
 
       return result;
@@ -283,7 +283,7 @@ export class CacheManager {
   }
 
   /**
-   * Obtener contador
+   * Get counter
    */
   async getCounter(key: string): Promise<number> {
     const cacheKey = `counter:${key}`;
@@ -306,7 +306,7 @@ export class CacheManager {
   // ═══════════════════════════════════════════════════════════════
 
   /**
-   * Limpiar caché por patrón
+   * Clear cache by pattern
    */
   async clearPattern(pattern: string): Promise<number> {
     try {
@@ -318,18 +318,18 @@ export class CacheManager {
 
       const result = await this.redis.redis.del(...keys);
 
-      this.client.logger.debug(`${result} claves limpiadas con patrón: ${pattern}`);
+      this.client.logger.debug(`${result} keys cleared with pattern: ${pattern}`);
 
       return result;
     } catch (error) {
-      this.client.logger.error(`Error limpiando patrón ${pattern}:`, error);
+      this.client.logger.error(`Error clearing pattern ${pattern}:`, error);
 
       return 0;
     }
   }
 
   /**
-   * Obtener estadísticas del caché
+   * Get cache statistics
    */
   async getStats(): Promise<{
     connected: boolean;
@@ -356,7 +356,7 @@ export class CacheManager {
   }
 
   /**
-   * Limpiar todo el caché del bot
+   * Clear the whole bot cache
    */
   async flush(): Promise<number> {
     return await this.redis.flushBotData();

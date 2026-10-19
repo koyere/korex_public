@@ -31,7 +31,7 @@ export class RedisClient {
   }
 
   /**
-   * Configurar event handlers
+   * Set up event handlers
    */
   private setupEventHandlers(): void {
     this.redis.on('connect', () => {
@@ -40,17 +40,17 @@ export class RedisClient {
     });
 
     this.redis.on('ready', () => {
-      this.client.logger.debug('Redis listo para recibir comandos');
+      this.client.logger.debug('Redis ready to receive commands');
     });
 
     this.redis.on('error', (error) => {
       this.connected = false;
-      this.client.logger.error('Error de Redis:', error);
+      this.client.logger.error('Redis error:', error);
     });
 
     this.redis.on('close', () => {
       this.connected = false;
-      this.client.logger.warn('Conexión Redis cerrada');
+      this.client.logger.warn('Redis connection closed');
     });
 
     this.redis.on('reconnecting', () => {
@@ -72,7 +72,7 @@ export class RedisClient {
   }
 
   /**
-   * Desconectar de Redis
+   * Disconnect from Redis
    */
   async disconnect(): Promise<void> {
     try {
@@ -85,32 +85,32 @@ export class RedisClient {
   }
 
   /**
-   * Verificar si está conectado
+   * Check whether it is connected
    */
   isConnected(): boolean {
     return this.connected && this.redis.status === 'ready';
   }
 
   /**
-   * Obtener cliente Redis nativo
+   * Get the native Redis client
    */
   getClient(): Redis {
     return this.redis;
   }
 
   /**
-   * Generar clave con prefijo
+   * Build prefixed key
    */
   private key(key: string): string {
     return `${this.prefix}${key}`;
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // OPERACIONES BÁSICAS
+  // BASIC OPERATIONS
   // ═══════════════════════════════════════════════════════════════
 
   /**
-   * Obtener valor
+   * Get value
    */
   async get<T>(key: string): Promise<T | null> {
     try {
@@ -118,14 +118,14 @@ export class RedisClient {
 
       return data ? JSON.parse(data) : null;
     } catch (error) {
-      this.client.logger.error(`Error obteniendo clave ${key}:`, error);
+      this.client.logger.error(`Error getting key ${key}:`, error);
 
       return null;
     }
   }
 
   /**
-   * Establecer valor
+   * Set value
    */
   async set(key: string, value: any, ttl?: number): Promise<boolean> {
     try {
@@ -139,14 +139,14 @@ export class RedisClient {
 
       return true;
     } catch (error) {
-      this.client.logger.error(`Error estableciendo clave ${key}:`, error);
+      this.client.logger.error(`Error setting key ${key}:`, error);
 
       return false;
     }
   }
 
   /**
-   * Eliminar clave
+   * Delete key
    */
   async del(key: string): Promise<boolean> {
     try {
@@ -154,14 +154,14 @@ export class RedisClient {
 
       return result > 0;
     } catch (error) {
-      this.client.logger.error(`Error eliminando clave ${key}:`, error);
+      this.client.logger.error(`Error deleting key ${key}:`, error);
 
       return false;
     }
   }
 
   /**
-   * Verificar si existe
+   * Check whether it exists
    */
   async exists(key: string): Promise<boolean> {
     try {
@@ -169,7 +169,7 @@ export class RedisClient {
 
       return result === 1;
     } catch (error) {
-      this.client.logger.error(`Error verificando existencia de ${key}:`, error);
+      this.client.logger.error(`Error checking existence of ${key}:`, error);
 
       // Fail closed for security-sensitive keys (token blacklist).
       // If Redis is down we cannot verify revocation, so treat as revoked.
@@ -188,7 +188,7 @@ export class RedisClient {
 
       return result === 1;
     } catch (error) {
-      this.client.logger.error(`Error estableciendo TTL para ${key}:`, error);
+      this.client.logger.error(`Error setting TTL for ${key}:`, error);
 
       return false;
     }
@@ -199,7 +199,7 @@ export class RedisClient {
   // ═══════════════════════════════════════════════════════════════
 
   /**
-   * Obtener campo de hash
+   * Get hash field
    */
   async hget<T>(hash: string, field: string): Promise<T | null> {
     try {
@@ -207,14 +207,14 @@ export class RedisClient {
 
       return data ? JSON.parse(data) : null;
     } catch (error) {
-      this.client.logger.error(`Error obteniendo campo ${field} de hash ${hash}:`, error);
+      this.client.logger.error(`Error getting field ${field} from hash ${hash}:`, error);
 
       return null;
     }
   }
 
   /**
-   * Establecer campo de hash
+   * Set hash field
    */
   async hset(hash: string, field: string, value: any): Promise<boolean> {
     try {
@@ -222,14 +222,14 @@ export class RedisClient {
 
       return true;
     } catch (error) {
-      this.client.logger.error(`Error estableciendo campo ${field} en hash ${hash}:`, error);
+      this.client.logger.error(`Error setting field ${field} in hash ${hash}:`, error);
 
       return false;
     }
   }
 
   /**
-   * Obtener todo el hash
+   * Get the whole hash
    */
   async hgetall<T>(hash: string): Promise<Record<string, T>> {
     try {
@@ -249,7 +249,7 @@ export class RedisClient {
   }
 
   /**
-   * Eliminar campo de hash
+   * Delete hash field
    */
   async hdel(hash: string, field: string): Promise<boolean> {
     try {
@@ -257,7 +257,7 @@ export class RedisClient {
 
       return result > 0;
     } catch (error) {
-      this.client.logger.error(`Error eliminando campo ${field} de hash ${hash}:`, error);
+      this.client.logger.error(`Error deleting field ${field} from hash ${hash}:`, error);
 
       return false;
     }
@@ -268,7 +268,7 @@ export class RedisClient {
   // ═══════════════════════════════════════════════════════════════
 
   /**
-   * Agregar al inicio de la lista
+   * Push to the start of the list
    */
   async lpush(key: string, value: any): Promise<number> {
     try {
@@ -281,7 +281,7 @@ export class RedisClient {
   }
 
   /**
-   * Remover del final de la lista
+   * Pop from the end of the list
    */
   async rpop<T>(key: string): Promise<T | null> {
     try {
@@ -289,20 +289,20 @@ export class RedisClient {
 
       return data ? JSON.parse(data) : null;
     } catch (error) {
-      this.client.logger.error(`Error removiendo de lista ${key}:`, error);
+      this.client.logger.error(`Error popping from list ${key}:`, error);
 
       return null;
     }
   }
 
   /**
-   * Obtener longitud de lista
+   * Get list length
    */
   async llen(key: string): Promise<number> {
     try {
       return await this.redis.llen(this.key(key));
     } catch (error) {
-      this.client.logger.error(`Error obteniendo longitud de lista ${key}:`, error);
+      this.client.logger.error(`Error getting length of list ${key}:`, error);
 
       return 0;
     }
@@ -313,20 +313,20 @@ export class RedisClient {
   // ═══════════════════════════════════════════════════════════════
 
   /**
-   * Publicar mensaje
+   * Publish message
    */
   async publish(channel: string, message: any): Promise<number> {
     try {
       return await this.redis.publish(channel, JSON.stringify(message));
     } catch (error) {
-      this.client.logger.error(`Error publicando en canal ${channel}:`, error);
+      this.client.logger.error(`Error publishing to channel ${channel}:`, error);
 
       return 0;
     }
   }
 
   /**
-   * Suscribirse a canal
+   * Subscribe to channel
    */
   subscribe(channel: string, callback: (message: any) => void): void {
     const subscriber = this.redis.duplicate();
@@ -337,7 +337,7 @@ export class RedisClient {
         try {
           callback(JSON.parse(message));
         } catch (error) {
-          this.client.logger.error(`Error procesando mensaje de ${channel}:`, error);
+          this.client.logger.error(`Error processing message from ${channel}:`, error);
         }
       }
     });
@@ -348,7 +348,7 @@ export class RedisClient {
   // ═══════════════════════════════════════════════════════════════
 
   /**
-   * Verificar salud de Redis
+   * Check Redis health
    */
   async healthCheck(): Promise<{ healthy: boolean; latency?: number; error?: string }> {
     try {
@@ -367,7 +367,7 @@ export class RedisClient {
   }
 
   /**
-   * Obtener información de Redis
+   * Get Redis info
    */
   async getInfo(): Promise<{
     version: string;
@@ -392,7 +392,7 @@ export class RedisClient {
         keyspace: getField('db0') || '0',
       };
     } catch (error) {
-      this.client.logger.error('Error obteniendo info de Redis:', error);
+      this.client.logger.error('Error getting Redis info:', error);
 
       return {
         version: 'unknown',
@@ -404,7 +404,7 @@ export class RedisClient {
   }
 
   /**
-   * Limpiar todas las claves con el prefijo del bot
+   * Clear all keys with the bot prefix
    */
   async flushBotData(): Promise<number> {
     try {
@@ -416,11 +416,11 @@ export class RedisClient {
 
       const result = await this.redis.del(...keys);
 
-      this.client.logger.info(`${result} claves de Redis limpiadas`);
+      this.client.logger.info(`${result} Redis keys cleared`);
 
       return result;
     } catch (error) {
-      this.client.logger.error('Error limpiando datos de Redis:', error);
+      this.client.logger.error('Error clearing Redis data:', error);
 
       return 0;
     }

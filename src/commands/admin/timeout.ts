@@ -140,7 +140,7 @@ export default class TimeoutCommand extends Command {
       // Perform the timeout
       await member.timeout(duration * 60 * 1000, reason);
 
-      // Registrar el caso para el historial (/modlogs y dashboard)
+      // Record the case for the history (/modlogs and dashboard)
       await this.client.moderation.createCase({
         guildId, action: 'TIMEOUT', targetId: user.id, moderatorId: interaction.user.id,
         reason, duration, expiresAt: timeoutEnd, active: true,
