@@ -7,9 +7,12 @@
  * - translationKey allows translating the name/description in the bot and web
  */
 
+import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 
-const prisma = new PrismaClient();
+// Prisma 7: connect through the pg driver adapter
+const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
 
 const CATALOG = [
   { translationKey: 'pizza',        name: 'Porción de Pizza',              emoji: '🍕', price: 50,    type: 'cosmetic',   stock: -1 },

@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { createPrismaClient } from '../../database/prismaClient';
 import { KorexClient } from '../KorexClient';
 import { STARTING_BALANCE } from '../../services/EconomyService';
 
@@ -9,9 +10,10 @@ export class DatabaseManager {
 
   constructor(client: KorexClient) {
     this.client = client;
-    this.prisma = new PrismaClient({
+    this.prisma = createPrismaClient({
       log: process.env.NODE_ENV === 'development' ? ['query', 'info', 'warn', 'error'] : ['error'],
       errorFormat: 'pretty',
+      onPoolError: (error) => this.client.logger.warn(`Idle PostgreSQL connection closed with error: ${error.message}`),
     });
   }
 

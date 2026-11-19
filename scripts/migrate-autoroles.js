@@ -12,8 +12,10 @@
  * 4. Clear autoRoles from WelcomeConfig (will be removed from schema later)
  */
 Object.defineProperty(exports, "__esModule", { value: true });
+require("dotenv/config");
 const client_1 = require("@prisma/client");
-const prisma = new client_1.PrismaClient();
+const adapter_pg_1 = require("@prisma/adapter-pg");
+const prisma = new client_1.PrismaClient({ adapter: new adapter_pg_1.PrismaPg({ connectionString: process.env.DATABASE_URL }) });
 async function migrateAutoRoles() {
     const stats = {
         total: 0,

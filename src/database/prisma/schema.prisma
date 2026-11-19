@@ -5,7 +5,8 @@ generator client {
 
 datasource db {
   provider = "postgresql" // Use postgresql by default
-  url      = env("DATABASE_URL")
+  // Prisma 7: the URL no longer lives in the schema. The CLI takes it from prisma.config.ts and
+  // the client connects through the pg driver adapter (src/database/prismaClient.ts).
 }
 
 // ═══════════════════════════════════════════════════════════════

@@ -4,7 +4,8 @@
  * Runs DB optimizations to improve performance
  */
 
-import { PrismaClient } from '@prisma/client';
+import 'dotenv/config';
+import { createPrismaClient } from '../src/database/prismaClient';
 import { DatabaseOptimizer } from '../src/database/optimization/DatabaseOptimizer';
 import { createLogger } from '../src/utils/Logger';
 
@@ -13,7 +14,7 @@ const logger = createLogger('db-optimizer');
 async function optimizeDatabase() {
   logger.info('🔧 Starting database optimization...');
 
-  const prisma = new PrismaClient();
+  const prisma = createPrismaClient();
   const optimizer = new DatabaseOptimizer(prisma);
 
   try {

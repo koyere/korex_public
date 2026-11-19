@@ -62,7 +62,7 @@ Premium add-ons extend the core and are sold as subscriptions at [korex.dev](htt
 |---|---|
 | Runtime | Node.js 20.19+ (22 LTS recommended) + TypeScript |
 | Discord | Discord.js v14 |
-| Database | PostgreSQL 15 + Prisma ORM 6 |
+| Database | PostgreSQL 15 + Prisma ORM 7 (pg driver adapter) |
 | Cache / locks | Redis 7 |
 | Music | discord-player v7 |
 | Tests | Jest + ts-jest |

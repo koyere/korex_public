@@ -5,6 +5,7 @@ import {
   PermissionFlagsBits,
 } from 'discord.js';
 import { Prisma, PrismaClient } from '@prisma/client';
+import { uniqueViolationTarget } from '../database/prismaErrors';
 import { KorexClient } from '../client/KorexClient';
 import { i18n } from '../utils/i18n';
 import { logger } from '../utils/Logger';
@@ -190,7 +191,7 @@ export class InviteRewardService {
     } catch (error) {
       // Race with another request: the unique keys (threshold / role) decide
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-        const target = String((error.meta as any)?.target ?? '');
+        const target = uniqueViolationTarget(error);
         return { ok: false, reason: target.includes('roleId') ? 'duplicate_role' : 'duplicate_count' };
       }
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2034') {

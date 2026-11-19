@@ -11,9 +11,10 @@
  * 4. Clear autoRoles from WelcomeConfig (will be removed from schema later)
  */
 
-import { PrismaClient } from '@prisma/client';
+import 'dotenv/config';
+import { createPrismaClient } from '../src/database/prismaClient';
 
-const prisma = new PrismaClient();
+const prisma = createPrismaClient();
 
 interface MigrationStats {
   total: number;
