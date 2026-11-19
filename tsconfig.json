@@ -26,15 +26,14 @@
     "allowUnreachableCode": false,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"],
-      "@/commands/*": ["src/commands/*"],
-      "@/events/*": ["src/events/*"],
-      "@/services/*": ["src/services/*"],
-      "@/utils/*": ["src/utils/*"],
-      "@/types/*": ["src/types/*"],
-      "@/config/*": ["src/config/*"]
+      "@/*": ["./src/*"],
+      "@/commands/*": ["./src/commands/*"],
+      "@/events/*": ["./src/events/*"],
+      "@/services/*": ["./src/services/*"],
+      "@/utils/*": ["./src/utils/*"],
+      "@/types/*": ["./src/types/*"],
+      "@/config/*": ["./src/config/*"]
     }
   },
   "include": [
