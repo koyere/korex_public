@@ -394,7 +394,7 @@ export class ProductionLogger {
     // Send webhook if configured
     if (this.alertConfig.webhookUrl) {
       try {
-        const fetch = (await import('node-fetch')).default;
+        // Native Node fetch (>= 18): no node-fetch dependency needed
 
         await fetch(this.alertConfig.webhookUrl, {
           method: 'POST',
