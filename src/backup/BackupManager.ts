@@ -149,7 +149,7 @@ export class BackupManager {
    */
   private scheduleBackups(): void {
     // Daily full backup
-    const dailyJob = cron.schedule(this.config.schedule, async () => {
+    const dailyJob = cron.createTask(this.config.schedule, async () => {
       this.logger.info('Starting scheduled backup...');
       try {
         await this.createFullBackup();
@@ -158,12 +158,11 @@ export class BackupManager {
         this.logger.error('❌ Scheduled backup failed:', error);
       }
     }, {
-      scheduled: false,
       timezone: process.env.TZ || 'UTC'
     });
 
     // Database backup every 6 hours
-    const dbJob = cron.schedule('0 */6 * * *', async () => {
+    const dbJob = cron.createTask('0 */6 * * *', async () => {
       this.logger.info('Starting scheduled database backup...');
       try {
         await this.createDatabaseBackup();
@@ -172,12 +171,11 @@ export class BackupManager {
         this.logger.error('❌ Scheduled database backup failed:', error);
       }
     }, {
-      scheduled: false,
       timezone: process.env.TZ || 'UTC'
     });
 
     // Weekly cleanup
-    const cleanupJob = cron.schedule('0 3 * * 0', async () => {
+    const cleanupJob = cron.createTask('0 3 * * 0', async () => {
       this.logger.info('Starting scheduled cleanup...');
       try {
         await this.cleanupOldBackups();
@@ -186,7 +184,6 @@ export class BackupManager {
         this.logger.error('❌ Scheduled cleanup failed:', error);
       }
     }, {
-      scheduled: false,
       timezone: process.env.TZ || 'UTC'
     });
 
