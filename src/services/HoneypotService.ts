@@ -9,7 +9,7 @@ import {
   GuildVerificationLevel,
 } from 'discord.js';
 import { KorexClient } from '../client/KorexClient';
-import { HoneypotConfig } from '@prisma/client';
+import { HoneypotConfig } from '../generated/prisma/client';
 import { i18n } from '../utils/i18n';
 import { claimJoinAction } from '../utils/joinActionClaim';
 

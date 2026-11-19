@@ -34,3 +34,6 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+
+# Generated Prisma client (prisma generate creates it before build and tests)
+src/generated/

@@ -6,7 +6,7 @@ import {
   EmbedBuilder,
   Colors
 } from 'discord.js';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '../generated/prisma/client';
 import { logger } from '../utils/Logger';
 import { DatabaseManager } from '../client/managers/DatabaseManager';
 import { i18n } from '../utils/i18n';

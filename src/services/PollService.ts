@@ -10,7 +10,7 @@ import {
   StringSelectMenuOptionBuilder,
   User
 } from 'discord.js';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../generated/prisma/client';
 import { KorexClient } from '../client/KorexClient';
 import { i18n } from '../utils/i18n';
 import { logger } from '../utils/Logger';

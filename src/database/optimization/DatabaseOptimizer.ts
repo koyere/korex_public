@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../../generated/prisma/client';
 import { createLogger } from '../../utils/Logger';
 
 export interface OptimizationResult {

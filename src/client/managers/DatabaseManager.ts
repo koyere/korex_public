@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../../generated/prisma/client';
 import { createPrismaClient } from '../../database/prismaClient';
 import { KorexClient } from '../KorexClient';
 import { STARTING_BALANCE } from '../../services/EconomyService';

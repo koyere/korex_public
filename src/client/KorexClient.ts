@@ -1,5 +1,5 @@
 import { Client, ClientOptions, Collection } from 'discord.js';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../generated/prisma/client';
 
 // Managers
 import { CommandManager } from './managers/CommandManager';

@@ -9,7 +9,7 @@ import {
   PermissionFlagsBits,
   PermissionsBitField,
 } from 'discord.js';
-import type { ModerationRaidState } from '@prisma/client';
+import type { ModerationRaidState } from '../generated/prisma/client';
 import { KorexClient } from '../client/KorexClient';
 import { i18n } from '../utils/i18n';
 import { isCoreModuleEnabled } from '../config/coreModules';

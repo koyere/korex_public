@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import { Prisma } from '../../src/generated/prisma/client';
 import { uniqueViolationTarget } from '../../src/database/prismaErrors';
 
 const p2002 = (meta: Record<string, unknown>) =>

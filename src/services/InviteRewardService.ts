@@ -4,7 +4,7 @@ import {
   EmbedBuilder,
   PermissionFlagsBits,
 } from 'discord.js';
-import { Prisma, PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '../generated/prisma/client';
 import { uniqueViolationTarget } from '../database/prismaErrors';
 import { KorexClient } from '../client/KorexClient';
 import { i18n } from '../utils/i18n';

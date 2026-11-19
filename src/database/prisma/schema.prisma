@@ -1,6 +1,11 @@
 // Korex Database Schema
 generator client {
-  provider = "prisma-client-js"
+  // Prisma 7 generator (prisma-client-js is deprecated ahead of Prisma 8). It emits the
+  // client as TypeScript under src/, so tsc compiles it into dist/ together with the bot.
+  provider     = "prisma-client"
+  output       = "../../generated/prisma"
+  moduleFormat = "cjs"
+  runtime      = "nodejs"
 }
 
 datasource db {

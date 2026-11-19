@@ -1,5 +1,5 @@
 import { availableParallelism } from 'os';
-import { PrismaClient, Prisma } from '@prisma/client';
+import { PrismaClient, Prisma } from '../generated/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 
 /**

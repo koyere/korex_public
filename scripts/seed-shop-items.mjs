@@ -8,7 +8,7 @@
  */
 
 import 'dotenv/config';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../dist/generated/prisma/client.js';
 import { PrismaPg } from '@prisma/adapter-pg';
 
 // Prisma 7: connect through the pg driver adapter

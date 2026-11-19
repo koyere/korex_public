@@ -14,7 +14,7 @@ import { DatabaseManager } from '../client/managers/DatabaseManager';
 import { i18n } from '../utils/i18n';
 import { WelcomeImageService } from './WelcomeImageService';
 import { isCoreModuleEnabled } from '../config/coreModules';
-import type { WelcomeConfig as WelcomeConfigRow } from '@prisma/client';
+import type { WelcomeConfig as WelcomeConfigRow } from '../generated/prisma/client';
 
 export interface WelcomeConfig {
   guildId: string;

@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import { Prisma } from '../generated/prisma/client';
 
 /**
  * Columns or index of the violated unique constraint in a P2002 error.

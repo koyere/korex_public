@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../generated/prisma/client';
 import { KorexClient } from '../client/KorexClient';
 
 export class AnalyticsService {

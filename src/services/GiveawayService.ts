@@ -8,7 +8,7 @@ import {
   ButtonStyle,
   User
 } from 'discord.js';
-import { Prisma, PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '../generated/prisma/client';
 import { KorexClient } from '../client/KorexClient';
 import { i18n } from '../utils/i18n';
 import { randomInt } from 'crypto';
