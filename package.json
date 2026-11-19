@@ -53,7 +53,7 @@
     "discord.js": "^14.28.1",
     "dotenv": "^16.6.1",
     "figlet": "^1.12.0",
-    "ioredis": "^5.11.1",
+    "ioredis": "^6.0.0",
     "mediaplex": "^1.0.0",
     "node-cron": "^4.6.0",
     "prisma": "^6.19.3",

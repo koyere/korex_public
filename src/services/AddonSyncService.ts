@@ -31,7 +31,8 @@ export class AddonSyncService {
     this.client = client;
     this.redis = client.redis.getClient();
 
-    const subscriberOptions: any = {};
+    // RESP2 as with ioredis 5 (ioredis 6 defaults to RESP3)
+    const subscriberOptions: any = { protocol: 2 };
     if (process.env.REDIS_PASSWORD) {
       subscriberOptions.password = process.env.REDIS_PASSWORD;
     }

@@ -147,7 +147,8 @@ export class HoneypotService {
       await redis.zadd(key, now, userId);
       await redis.zremrangebyscore(key, 0, now - windowSecs * 1000);
       await redis.expire(key, windowSecs * 2);
-      const recentIds: string[] = await redis.zrange(key, 0, -1);
+      // '-1' as a string: ioredis 6 types do not accept a number for stop (identical on the wire)
+      const recentIds: string[] = await redis.zrange(key, 0, '-1');
 
       // While the raid is active, every new join also counts as raid
       const alreadyActive = (await redis.exists(activeKey)) === 1;

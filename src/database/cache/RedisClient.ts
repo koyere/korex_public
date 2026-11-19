@@ -12,6 +12,10 @@ export class RedisClient {
     this.prefix = process.env.REDIS_PREFIX || 'korex:';
 
     const redisOptions: any = {
+      // ioredis 6 defaults to RESP3; pin RESP2 to keep the same protocol and
+      // reply format as ioredis 5 (connections created with duplicate()
+      // inherit it).
+      protocol: 2,
       maxRetriesPerRequest: 3,
       lazyConnect: true,
       reconnectOnError: (err: Error) => {
