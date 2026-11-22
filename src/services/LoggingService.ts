@@ -1,3 +1,4 @@
+import { channelScopeIds } from '../utils/channelScope';
 import {
   GuildMember,
   TextChannel,
@@ -84,7 +85,7 @@ export class LoggingService {
       const config = await this.getLoggingConfig(message.guild.id);
 
       if (!config.enabled || !config.events.messageDelete || !config.channels.messageLog
-          || this.isIgnored(config, message.channel.id, message.author?.id)) {
+          || this.isIgnored(config, channelScopeIds(message.channel as any), message.author?.id)) {
         return;
       }
 
@@ -157,7 +158,7 @@ export class LoggingService {
       const config = await this.getLoggingConfig(newMessage.guild.id);
 
       if (!config.enabled || !config.events.messageEdit || !config.channels.messageLog
-          || this.isIgnored(config, newMessage.channel.id, newMessage.author?.id)) {
+          || this.isIgnored(config, channelScopeIds(newMessage.channel as any), newMessage.author?.id)) {
         return;
       }
 
@@ -570,8 +571,10 @@ export class LoggingService {
   }
 
   /** Ignored channel or ignored user according to the configuration. */
-  private isIgnored(config: { ignoredChannels: string[]; ignoredUsers: string[] }, channelId?: string | null, userId?: string | null): boolean {
-    return (!!channelId && config.ignoredChannels.includes(channelId)) || (!!userId && config.ignoredUsers.includes(userId));
+  /** Ignored channel (also through its parent channel for threads) or ignored user. */
+  private isIgnored(config: { ignoredChannels: string[]; ignoredUsers: string[] }, channel?: string | string[] | null, userId?: string | null): boolean {
+    const ids = Array.isArray(channel) ? channel : channel ? [channel] : [];
+    return ids.some(id => config.ignoredChannels.includes(id)) || (!!userId && config.ignoredUsers.includes(userId));
   }
 
   /** Embed fields allow at most 1024 characters. */

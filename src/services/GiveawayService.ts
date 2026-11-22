@@ -1,3 +1,4 @@
+import { coalesceUpdate, cancelCoalescedUpdate } from '../utils/componentThrottle';
 import { 
   Guild, 
   GuildMember, 
@@ -500,8 +501,8 @@ export class GiveawayService {
       // Update database
       await this.updateGiveaway(giveaway);
 
-      // Update message
-      await this.updateGiveawayMessage(giveaway);
+      // Message: grouped edits while people join and leave
+      coalesceUpdate(`giveaway:${giveaway.id}`, () => this.updateGiveawayMessage(giveaway));
 
       return { success: true, entries };
 
@@ -555,8 +556,8 @@ export class GiveawayService {
       // Update database
       await this.updateGiveaway(giveaway);
 
-      // Update message
-      await this.updateGiveawayMessage(giveaway);
+      // Message: grouped edits while people join and leave
+      coalesceUpdate(`giveaway:${giveaway.id}`, () => this.updateGiveawayMessage(giveaway));
 
       return { success: true };
 
@@ -1073,6 +1074,8 @@ export class GiveawayService {
   }
 
   private async updateGiveawayMessage(giveaway: GiveawayData, ended: boolean = false): Promise<void> {
+    // A direct edit (closing) drops the pending grouped one so it can't overwrite it
+    cancelCoalescedUpdate(`giveaway:${giveaway.id}`);
     try {
       const guild = this.client.guilds.cache.get(giveaway.guildId);
 

@@ -1,3 +1,4 @@
+import { coalesceUpdate, cancelCoalescedUpdate } from '../utils/componentThrottle';
 import { 
   Guild, 
   TextChannel, 
@@ -395,7 +396,9 @@ export class SuggestionService {
       }
 
       await this.persist(suggestion);
-      await this.updateSuggestionMessage(interaction.guild!, suggestion);
+      // Grouped edits: a burst of votes doesn't flood the Discord API
+      const guild = interaction.guild!;
+      coalesceUpdate(`suggestion:${suggestion.id}`, () => this.updateSuggestionMessage(guild, suggestion));
       return { removed: alreadyThere };
     });
 
@@ -484,6 +487,7 @@ export class SuggestionService {
   }
 
   private async updateSuggestionMessage(guild: Guild, suggestion: Suggestion): Promise<void> {
+    cancelCoalescedUpdate(`suggestion:${suggestion.id}`);
     // Channel where it was posted (even if the suggestions channel was changed later)
     const config = await this.getConfig(guild.id);
     const channelId = suggestion.channelId || config.channelId;

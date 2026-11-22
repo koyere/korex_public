@@ -39,6 +39,7 @@
       "menu_expired": "❌ This menu is no longer available.",
       "form_expired": "❌ This form is no longer available.",
       "component_error": "❌ An error occurred while processing this component.",
+      "too_fast": "⏳ You are going too fast. Wait a few seconds and try again.",
       "generic": "An unexpected error occurred.",
       "service_unavailable": "The service is currently unavailable.",
       "invalid_value": "Invalid value: {field}"

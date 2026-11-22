@@ -1,3 +1,4 @@
+import { allowComponentClick } from '../../utils/componentThrottle';
 import {
   ButtonInteraction,
   StringSelectMenuInteraction,
@@ -115,6 +116,14 @@ export abstract class Component {
         interaction.guildId || undefined,
         interaction.memberPermissions?.bitfield ?? undefined
       );
+
+      // Per-user, per-component click limit; modal submissions don't count
+      if (this.type !== 'modal' && !allowComponentClick(interaction.user.id, this.customId)) {
+        const msg = i18n.t('common.errors.too_fast', interaction.guildId || undefined);
+        if (interaction.replied || interaction.deferred) await interaction.followUp({ content: msg, flags: MessageFlags.Ephemeral }).catch(() => undefined);
+        else await interaction.reply({ content: msg, flags: MessageFlags.Ephemeral }).catch(() => undefined);
+        return;
+      }
 
       if (!canExecute.canExecute) {
         const errorMessage = canExecute.reason || 'You cannot use this component';

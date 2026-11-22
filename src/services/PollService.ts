@@ -1,3 +1,4 @@
+import { coalesceUpdate, cancelCoalescedUpdate } from '../utils/componentThrottle';
 import { 
   Guild, 
   GuildMember, 
@@ -281,8 +282,8 @@ export class PollService {
       // Update database
       await this.updatePoll(poll);
 
-      // Update message
-      await this.updatePollMessage(poll);
+      // Message: grouped edits while voting
+      coalesceUpdate(`poll:${poll.id}`, () => this.updatePollMessage(poll));
 
       // Return results if configured to show after vote
       const results = poll.settings.showResults === 'after_vote' || poll.settings.showResults === 'always' 
@@ -914,6 +915,8 @@ export class PollService {
   }
 
   private async updatePollMessage(poll: PollData, ended: boolean = false): Promise<void> {
+    // A direct edit (closing) drops the pending grouped one so it can't overwrite it
+    cancelCoalescedUpdate(`poll:${poll.id}`);
     try {
       if (!poll.messageId) return;
       const guild = this.client.guilds.cache.get(poll.guildId);

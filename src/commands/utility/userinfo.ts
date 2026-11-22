@@ -94,7 +94,8 @@ export default class UserInfoCommand extends Command {
         });
       }
 
-      // Status and activities
+      // Status and activity: without the presences intent `presence` is empty
+      // and this block is skipped
       const presence = member.presence;
 
       if (presence) {

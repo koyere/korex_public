@@ -11,13 +11,13 @@ export const botConfig = {
     GatewayIntentBits.GuildWebhooks,
     GatewayIntentBits.GuildInvites,
     GatewayIntentBits.GuildVoiceStates,
-    GatewayIntentBits.GuildPresences,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.GuildMessageReactions,
-    GatewayIntentBits.GuildMessageTyping,
-    GatewayIntentBits.DirectMessages,
-    GatewayIntentBits.DirectMessageReactions,
     GatewayIntentBits.MessageContent,
+    // Not requested: GuildPresences (privileged, expensive and hard to justify in
+    // Discord's verification; /userinfo simply omits status/activity without it),
+    // GuildMessageTyping, DirectMessages and DirectMessageReactions (no consumers:
+    // DMs are ignored and buttons in DMs arrive as interactions, which don't need them).
   ],
 
   // Partials for incomplete events

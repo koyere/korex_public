@@ -1,3 +1,4 @@
+import { channelScopeIds, isChannelNsfw } from '../utils/channelScope';
 import {
   Guild,
   Message,
@@ -74,8 +75,9 @@ export class StarboardService {
     // Same filters when adding and removing stars
     if (message.channel.id === config.channelId) return;
     if (config.ignoreBots && message.author?.bot) return;
-    if (config.ignoreNsfw && (message.channel as TextChannel).nsfw) return;
-    if (config.ignoredChannels.includes(message.channel.id)) return;
+    // Threads and forum posts inherit NSFW and ignore rules from their parent channel
+    if (config.ignoreNsfw && isChannelNsfw(message.channel as any)) return;
+    if (channelScopeIds(message.channel as any).some(id => config.ignoredChannels.includes(id))) return;
 
     const count = await this.countReactions(reaction, config, message.author?.id ?? null);
     const existing = await this.client.db.starboardEntry.findUnique({ where: { originalMsgId: message.id } });
