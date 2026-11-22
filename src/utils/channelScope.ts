@@ -21,3 +21,17 @@ export function isChannelNsfw(channel: ChannelLike): boolean {
   if (channel.isThread?.()) return !!channel.parent?.nsfw;
   return !!channel.nsfw;
 }
+
+/**
+ * Can @everyone see it? For threads the parent channel is checked, and a private
+ * thread is never public.
+ */
+export function isVisibleToEveryone(channel: any, guild: any): boolean {
+  if (!channel || !guild?.roles?.everyone) return false;
+  if (channel.isThread?.()) {
+    if (channel.type === 12 /* ChannelType.PrivateThread */) return false;
+    channel = channel.parent;
+    if (!channel) return false;
+  }
+  return !!channel.permissionsFor?.(guild.roles.everyone)?.has?.(1024n /* ViewChannel */);
+}

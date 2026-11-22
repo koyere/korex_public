@@ -1,5 +1,5 @@
 import { allowComponentClick, coalesceUpdate, cancelCoalescedUpdate, CLICK_LIMIT, CLICK_WINDOW_MS } from '../../src/utils/componentThrottle';
-import { channelScopeIds, isChannelNsfw } from '../../src/utils/channelScope';
+import { channelScopeIds, isChannelNsfw, isVisibleToEveryone } from '../../src/utils/channelScope';
 
 // Component click limit and grouped edits; threads inherit their parent channel's rules.
 describe('click limit', () => {
@@ -43,5 +43,16 @@ describe('effective channel', () => {
     expect(channelScopeIds(thread)).toEqual(['t1', 'c1']);
     expect(isChannelNsfw({ id: 'c2', nsfw: false, isThread: () => false })).toBe(false);
     expect(channelScopeIds({ id: 'c2', isThread: () => false })).toEqual(['c2']);
+  });
+});
+
+describe('visibility for @everyone', () => {
+  const guild = { roles: { everyone: { id: 'g1' } } };
+  const chan = (visible: boolean) => ({ id: 'c', isThread: () => false, permissionsFor: () => ({ has: () => visible }) });
+  it('public channel yes, private no; a private thread never', () => {
+    expect(isVisibleToEveryone(chan(true), guild)).toBe(true);
+    expect(isVisibleToEveryone(chan(false), guild)).toBe(false);
+    expect(isVisibleToEveryone({ id: 't', type: 12, isThread: () => true, parent: chan(true) }, guild)).toBe(false);
+    expect(isVisibleToEveryone({ id: 't', type: 11, isThread: () => true, parent: chan(false) }, guild)).toBe(false);
   });
 });

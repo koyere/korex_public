@@ -1,4 +1,4 @@
-import { channelScopeIds, isChannelNsfw } from '../utils/channelScope';
+import { channelScopeIds, isChannelNsfw, isVisibleToEveryone } from '../utils/channelScope';
 import {
   Guild,
   Message,
@@ -78,6 +78,9 @@ export class StarboardService {
     // Threads and forum posts inherit NSFW and ignore rules from their parent channel
     if (config.ignoreNsfw && isChannelNsfw(message.channel as any)) return;
     if (channelScopeIds(message.channel as any).some(id => config.ignoredChannels.includes(id))) return;
+    // A message from a private channel is never copied to a starboard the whole server can see
+    const board = guild.channels.cache.get(config.channelId);
+    if (board && isVisibleToEveryone(board, guild) && !isVisibleToEveryone(message.channel, guild)) return;
 
     const count = await this.countReactions(reaction, config, message.author?.id ?? null);
     const existing = await this.client.db.starboardEntry.findUnique({ where: { originalMsgId: message.id } });
