@@ -204,6 +204,12 @@ export class PollComponents extends Component {
 
     await interaction.deferReply({ ephemeral: true });
 
+    const allowed = await this.client.pollService.canSeeResults(pollId, interaction.user.id);
+    if (allowed === 'after_end' || allowed === 'after_vote') {
+      await interaction.editReply({ content: i18n.t(`polls.results.${allowed}`, guildId) });
+      return;
+    }
+
     const results = await this.client.pollService.getPollResults(pollId);
 
     if (!results) {

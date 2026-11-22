@@ -16,12 +16,42 @@ import { claimJoinAction } from '../utils/joinActionClaim';
 const CACHE_TTL = 300; // 5 min
 const RAID_KEY  = (guildId: string) => `honeypot:raid:${guildId}`;
 
+/** Persisted anti-raid lockdown: { previous, restoreAt } per server. */
+const LOCKDOWN_KEY_PREFIX = 'honeypot:lockdown:';
+const LOCKDOWN_MS = 10 * 60_000;
+/** The key outlives the lockdown: if the bot is down, the sweep restores it when it comes back */
+const LOCKDOWN_TTL_SECONDS = 7 * 24 * 60 * 60;
+
 export class HoneypotService {
   private client: KorexClient;
   private configCache = new Map<string, { data: HoneypotConfig | null; exp: number }>();
 
   constructor(client: KorexClient) {
     this.client = client;
+    // Lockdowns are restored from a sweep, which survives restarts
+    setInterval(() => { this.restoreExpiredLockdowns().catch(() => undefined); }, 60_000).unref();
+  }
+
+  /** Restores expired lockdowns, only if the level is still the one the bot set. */
+  async restoreExpiredLockdowns(now = Date.now()): Promise<void> {
+    if (!this.client.isReady?.()) return;
+    const redis = this.client.redis.getClient();
+    let cursor = '0';
+    do {
+      const [next, keys] = await redis.scan(cursor, 'MATCH', `${LOCKDOWN_KEY_PREFIX}*`, 'COUNT', 100);
+      cursor = next;
+      for (const key of keys) {
+        const raw = await redis.get(key);
+        if (!raw) continue;
+        const state = JSON.parse(raw) as { previous: number; restoreAt: number };
+        if (state.restoreAt > now) continue;
+        const guild = this.client.guilds.cache.get(key.slice(LOCKDOWN_KEY_PREFIX.length));
+        if (guild && guild.verificationLevel === GuildVerificationLevel.VeryHigh) {
+          await guild.setVerificationLevel(state.previous, 'Honeypot anti-raid finished').catch(() => null);
+        }
+        await redis.del(key);
+      }
+    } while (cursor !== '0');
   }
 
   // ─── Config ───────────────────────────────────────────────────────────────
@@ -193,19 +223,32 @@ export class HoneypotService {
     return false;
   }
 
-  /** Raises verification to the maximum and restores it after 10 minutes. */
+  /**
+   * Raises verification to the maximum for 10 minutes. The previous level and the
+   * restore time are stored in Redis; a second trigger only extends the deadline and
+   * never captures the level the bot itself set as "previous".
+   */
   private async startLockdown(guild: GuildMember['guild'], config: HoneypotConfig): Promise<void> {
+    const redis = this.client.redis.getClient();
+    const key = `${LOCKDOWN_KEY_PREFIX}${guild.id}`;
+    const restoreAt = Date.now() + LOCKDOWN_MS;
+    const existing = await redis.get(key).catch(() => null);
+    if (existing) {
+      const state = JSON.parse(existing);
+      await redis.set(key, JSON.stringify({ ...state, restoreAt }), 'EX', LOCKDOWN_TTL_SECONDS).catch(() => undefined);
+      return;
+    }
     const previous = guild.verificationLevel;
+    if (previous === GuildVerificationLevel.VeryHigh) return; // already at the maximum: nothing to restore
     try {
       await guild.setVerificationLevel(GuildVerificationLevel.VeryHigh, 'Honeypot anti-raid');
     } catch {
       this.client.logger.warn(`[HoneypotService] Missing permission to raise verification level in ${guild.id}`);
       return;
     }
-    setTimeout(() => {
-      guild.setVerificationLevel(previous, 'Honeypot anti-raid finished').catch(() => null);
-    }, 10 * 60_000).unref();
+    await redis.set(key, JSON.stringify({ previous, restoreAt }), 'EX', LOCKDOWN_TTL_SECONDS).catch(() => undefined);
   }
+
 
   // ─── Action and log ───────────────────────────────────────────────────────
 

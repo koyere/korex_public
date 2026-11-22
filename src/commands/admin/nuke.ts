@@ -18,6 +18,7 @@ import { Command } from '../../client/structures/Command';
 import { KorexClient } from '../../client/KorexClient';
 import { i18n } from '../../utils/i18n';
 import { memberCanInChannel } from '../../utils/permissions';
+import { remapChannelReferences } from '../../services/ChannelReferenceRemap';
 
 export default class NukeCommand extends Command {
   constructor(client: KorexClient) {
@@ -198,81 +199,109 @@ export default class NukeCommand extends Command {
     });
   }
 
+  /**
+   * Recreates the channel: the new one is created first and the old one is deleted
+   * only if that succeeds (if deleting fails, the creation is undone); settings that
+   * pointed at the old channel are moved to the new one; the interaction is always
+   * answered and the action is recorded in the log channel.
+   */
   private async executeNuke(
     interaction: ChatInputCommandInteraction,
     targetChannel: TextChannel | VoiceChannel,
     reason: string
   ): Promise<void> {
-    const guildId = interaction.guild!.id;
+    const guild = interaction.guild!;
+    const guildId = guild.id;
+    const isCurrent = interaction.channelId === targetChannel.id;
+    const respond = async (content: string) => {
+      try {
+        if (interaction.replied || interaction.deferred) await interaction.editReply({ content, embeds: [], components: [] });
+        else await interaction.reply({ content, ephemeral: true });
+      } catch { /* the interaction may have expired or its channel may no longer exist */ }
+    };
+    if (!interaction.replied && !interaction.deferred) await interaction.deferReply({ ephemeral: true }).catch(() => undefined);
+
+    const createOptions: any = {
+      name: targetChannel.name,
+      type: targetChannel.type,
+      position: targetChannel.position,
+      parent: targetChannel.parent?.id || null,
+      permissionOverwrites: Array.from(targetChannel.permissionOverwrites.cache.values()).map(o => ({ id: o.id, type: o.type, allow: o.allow, deny: o.deny })),
+      reason: `Channel nuked by ${interaction.user.tag}: ${reason}`.slice(0, 500),
+    };
+    const kind = targetChannel.type as ChannelType;
+    if (kind === ChannelType.GuildText || kind === ChannelType.GuildAnnouncement) {
+      const text = targetChannel as TextChannel;
+      if (text.topic) createOptions.topic = text.topic;
+      createOptions.nsfw = text.nsfw || false;
+      if (text.rateLimitPerUser) createOptions.rateLimitPerUser = text.rateLimitPerUser;
+    } else if (kind === ChannelType.GuildVoice || kind === ChannelType.GuildStageVoice) {
+      const voice = targetChannel as VoiceChannel;
+      if (voice.bitrate) createOptions.bitrate = voice.bitrate;
+      if (voice.userLimit) createOptions.userLimit = voice.userLimit;
+    }
+
+    // 1) Create the new channel BEFORE deleting anything
+    let newChannel: any;
+    try {
+      newChannel = await guild.channels.create(createOptions);
+    } catch (error: any) {
+      this.client.logger.warn(`[nuke] No se pudo crear el canal de reemplazo en ${guildId}: ${error?.message}`);
+      await respond(i18n.t('nuke.recreate_failed', guildId, { error: String(error?.message ?? error).slice(0, 200) }));
+      return;
+    }
+
+    // 2) Delete the old one; if that fails, undo the creation
+    const oldId = targetChannel.id;
+    try {
+      await targetChannel.delete(reason.slice(0, 500));
+    } catch (error: any) {
+      await newChannel.delete('Nuke aborted: the original channel could not be deleted').catch(() => undefined);
+      await respond(i18n.t('nuke.delete_failed', guildId, { error: String(error?.message ?? error).slice(0, 200) }));
+      return;
+    }
+    await newChannel.setPosition(createOptions.position).catch(() => undefined);
+
+    // 3) Settings that pointed at the old channel → new channel
+    const remapped = await remapChannelReferences((this.client as any).db, guildId, oldId, newChannel.id).catch(() => 0);
+
+    // 4) Confirmation in the new channel, reply to the requester and log entry
+    if (newChannel.isTextBased?.()) {
+      const successEmbed = new EmbedBuilder()
+        .setColor(Colors.Green)
+        .setTitle(i18n.t('nuke.recreated.title', guildId))
+        .setDescription(i18n.t('nuke.recreated.description', guildId, { user: interaction.user.toString() }))
+        .addFields(
+          { name: i18n.t('moderation.log.reason', guildId), value: reason.slice(0, 1024), inline: true },
+          { name: i18n.t('moderation.log.time', guildId), value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: true }
+        )
+        .setFooter({ text: i18n.t('nuke.recreated.footer', guildId) })
+        .setTimestamp();
+      await newChannel.send({ embeds: [successEmbed], allowedMentions: { parse: [] } }).catch(() => undefined);
+    }
+    if (!isCurrent) await respond(i18n.t('nuke.done', guildId, { channel: `<#${newChannel.id}>`, count: String(remapped) }));
 
     try {
-      const channelInfo = {
-        name: targetChannel.name,
-        type: targetChannel.type as ChannelType,
-        topic: (targetChannel as TextChannel).topic || undefined,
-        nsfw: (targetChannel as TextChannel).nsfw || false,
-        bitrate: (targetChannel as VoiceChannel).bitrate || undefined,
-        userLimit: (targetChannel as VoiceChannel).userLimit || undefined,
-        rateLimitPerUser: (targetChannel as TextChannel).rateLimitPerUser || undefined,
-        position: targetChannel.position,
-        parent: targetChannel.parent,
-        permissionOverwrites: Array.from(targetChannel.permissionOverwrites.cache.values()).map(overwrite => ({
-          id: overwrite.id,
-          type: overwrite.type,
-          allow: overwrite.allow,
-          deny: overwrite.deny
-        }))
-      };
-
-      await targetChannel.delete(reason);
-
-      const createOptions: any = {
-        name: channelInfo.name,
-        type: channelInfo.type,
-        position: channelInfo.position,
-        parent: channelInfo.parent?.id || null,
-        permissionOverwrites: channelInfo.permissionOverwrites,
-        reason: `Channel nuked by ${interaction.user.tag}: ${reason}`
-      };
-
-      if (channelInfo.type === ChannelType.GuildText || channelInfo.type === ChannelType.GuildAnnouncement) {
-        if (channelInfo.topic) createOptions.topic = channelInfo.topic;
-        createOptions.nsfw = channelInfo.nsfw;
-        if (channelInfo.rateLimitPerUser) createOptions.rateLimitPerUser = channelInfo.rateLimitPerUser;
-      } else if (channelInfo.type === ChannelType.GuildVoice || channelInfo.type === ChannelType.GuildStageVoice) {
-        if (channelInfo.bitrate) createOptions.bitrate = channelInfo.bitrate;
-        if (channelInfo.userLimit) createOptions.userLimit = channelInfo.userLimit;
+      const cfg = await (this.client as any).db.loggingConfig.findUnique({ where: { guildId }, select: { moderationLogChannel: true } });
+      const logChannel = cfg?.moderationLogChannel ? guild.channels.cache.get(cfg.moderationLogChannel) as TextChannel | undefined : undefined;
+      if (logChannel?.isTextBased()) {
+        await logChannel.send({
+          embeds: [new EmbedBuilder()
+            .setColor(Colors.Orange)
+            .setTitle(i18n.t('nuke.log_title', guildId))
+            .setDescription(i18n.t('nuke.log_desc', guildId, {
+              user: interaction.user.toString(), channel: `<#${newChannel.id}>`, name: targetChannel.name, count: String(remapped),
+            }))
+            .addFields({ name: i18n.t('moderation.log.reason', guildId), value: reason.slice(0, 1024) })
+            .setTimestamp()],
+          allowedMentions: { parse: [] },
+        });
       }
+    } catch { /* el registro es best-effort */ }
 
-      const newChannel = await interaction.guild!.channels.create(createOptions);
-
-      if (newChannel && newChannel.isTextBased()) {
-        const successEmbed = new EmbedBuilder()
-          .setColor(Colors.Green)
-          .setTitle(i18n.t('nuke.recreated.title', interaction.guildId!))
-          .setDescription(i18n.t('nuke.recreated.description', interaction.guildId!, { user: interaction.user.toString() }))
-          .addFields(
-            { name: i18n.t('moderation.log.reason', interaction.guildId!), value: reason.slice(0, 1024), inline: true },
-            { name: i18n.t('moderation.log.time', interaction.guildId!), value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: true }
-          )
-          .setFooter({ text: i18n.t('nuke.recreated.footer', interaction.guildId!) })
-          .setTimestamp();
-
-        await (newChannel as TextChannel).send({ embeds: [successEmbed] });
-      }
-
-      this.client.logger.info(`Channel nuked: ${channelInfo.name} by ${interaction.user.tag}`);
-
-    } catch (error: any) {
-      this.client.logger.error('Error executing nuke command:', error);
-      
-      try {
-        await interaction.user.send(`❌ Error nuking channel: ${error.message}`);
-      } catch (dmError) {
-        this.client.logger.error('Could not send DM to user about nuke error');
-      }
-    }
+    this.client.logger.info(`Channel nuked: ${targetChannel.name} (${oldId} → ${newChannel.id}) by ${interaction.user.tag}; ${remapped} config references moved`);
   }
+
   private getChannelTypeName(type: ChannelType, guildId: string): string {
     switch (type) {
       case ChannelType.GuildText:

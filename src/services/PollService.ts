@@ -105,6 +105,11 @@ export class PollService {
    */
   private async initializeActivePolls(): Promise<void> {
     try {
+      // Wait for the Discord connection: polls that expired while the bot was
+      // down were closed without an announcement because the guild cache was still empty
+      if (!this.client.isReady()) {
+        await new Promise<void>(resolve => this.client.once('clientReady', () => resolve()));
+      }
       // Get all active polls from database
       const activePolls = await this.getActivePolls();
       
@@ -205,6 +210,15 @@ export class PollService {
   /**
    * Vote in a poll
    */
+  /** Serializes operations on a poll (votes and closing share the queue). */
+  private withPollLock<T>(pollId: string, fn: () => Promise<T>): Promise<T> {
+    const previous = this.voteLocks.get(pollId) ?? Promise.resolve();
+    const run = previous.catch(() => undefined).then(fn);
+    this.voteLocks.set(pollId, run);
+    run.finally(() => { if (this.voteLocks.get(pollId) === run) this.voteLocks.delete(pollId); }).catch(() => undefined);
+    return run;
+  }
+
   async vote(
     pollId: string,
     user: User,
@@ -212,11 +226,7 @@ export class PollService {
     optionIds: string[]
   ): Promise<{ success: boolean; reason?: string; results?: PollResults | null }> {
     // One vote at a time per poll: avoids losing votes or double-voting on rapid clicks
-    const previous = this.voteLocks.get(pollId) ?? Promise.resolve();
-    const run = previous.catch(() => undefined).then(() => this.voteLocked(pollId, user, member, optionIds));
-    this.voteLocks.set(pollId, run);
-    run.finally(() => { if (this.voteLocks.get(pollId) === run) this.voteLocks.delete(pollId); }).catch(() => undefined);
-    return run;
+    return this.withPollLock(pollId, () => this.voteLocked(pollId, user, member, optionIds));
   }
 
   private async voteLocked(
@@ -309,6 +319,12 @@ export class PollService {
   }
 
   async endPoll(pollId: string, force: boolean = false): Promise<boolean> {
+    // Closing goes through the same queue as votes: a vote in progress can't
+    // reopen the poll or get lost when it closes
+    return this.withPollLock(pollId, () => this.endPollLocked(pollId, force));
+  }
+
+  private async endPollLocked(pollId: string, force: boolean): Promise<boolean> {
     try {
       const poll = await this.getPoll(pollId);
 
@@ -349,6 +365,18 @@ export class PollService {
   /**
    * Get poll statistics and results
    */
+  /**
+   * Can this user see the results now? Same rule as after voting (the 📊
+   * button used to always show them, even when set to "after the end").
+   */
+  async canSeeResults(pollId: string, userId: string): Promise<'ok' | 'after_end' | 'after_vote' | 'not_found'> {
+    const poll = await this.getPoll(pollId);
+    if (!poll) return 'not_found';
+    if (poll.ended || poll.settings.showResults === 'always') return 'ok';
+    if (poll.settings.showResults === 'after_end') return 'after_end';
+    return poll.options.some(o => o.voters.includes(userId)) ? 'ok' : 'after_vote';
+  }
+
   async getPollResults(pollId: string): Promise<PollResults | null> {
     try {
       const poll = await this.getPoll(pollId);

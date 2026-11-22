@@ -25,6 +25,9 @@ import { SoundCloudExtractor, AttachmentExtractor } from '@discord-player/extrac
 import { isPublicHttpUrl, openPublicStream } from '../utils/safeUrl';
 import { i18n } from '../utils/i18n';
 
+/** Maximum simultaneous players in this process. */
+const MAX_CONCURRENT_PLAYERS = Number(process.env.MUSIC_MAX_PLAYERS) || 200;
+
 const DIRECT_AUDIO_RE = /\.(mp3|wav|ogg|flac|m4a|aac|opus)(\?.*)?$/i;
 
 // Playable content types (those of discord-player's AttachmentExtractor plus the
@@ -318,9 +321,19 @@ export class MusicService {
 
     if (limits?.maxTrackDuration && limits.maxTrackDuration > 0) {
       const durationSec = Math.floor((trackToPlay.durationMS ?? 0) / 1000);
+      // Unknown duration (radio, dripping stream): with a limit it isn't played,
+      // because the limit couldn't be enforced
+      if (durationSec <= 0 && (trackToPlay as any).source === 'arbitrary') {
+        throw new Error('TRACK_DURATION_UNKNOWN');
+      }
       if (durationSec > limits.maxTrackDuration) {
         throw new Error(`TRACK_TOO_LONG:${limits.maxTrackDuration}:${durationSec}`);
       }
+    }
+
+    // Global cap of simultaneous players: one process serves every server
+    if (!this.queueOf(guildId) && this.player.nodes.cache.size >= MAX_CONCURRENT_PLAYERS) {
+      throw new Error('MUSIC_CAPACITY_REACHED');
     }
 
     // If nothing was playing, /play already announces this track: avoid a double notice

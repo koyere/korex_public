@@ -99,6 +99,11 @@ export class GiveawayService {
    */
   private async initializeActiveGiveaways(): Promise<void> {
     try {
+      // Wait for the Discord connection: giveaways that expired while the bot was
+      // down were closed without an announcement because the guild cache was still empty
+      if (!this.client.isReady()) {
+        await new Promise<void>(resolve => this.client.once('clientReady', () => resolve()));
+      }
       // Get all active giveaways from database
       const activeGiveaways = await this.getActiveGiveaways();
       
@@ -214,53 +219,20 @@ export class GiveawayService {
   }
 
   /**
-   * Check if account is potentially alt/fake
+   * Account too new to join. Only the account age is checked, configurable per
+   * giveaway (minAccountAge, 0 = no limit). The default-avatar, recent-join and
+   * XP-message checks were removed: they excluded legitimate users (and everyone
+   * when the Levels module was disabled).
    */
-  private async isAltAccount(user: User, guild: Guild): Promise<{ isAlt: boolean; reason?: string }> {
-    const member = guild.members.cache.get(user.id);
-
-    if (!member) return { isAlt: false };
-
-    const accountAge = Date.now() - user.createdTimestamp;
-    const accountAgeDays = accountAge / (1000 * 60 * 60 * 24);
-
-    // Check account age (less than 7 days = suspicious)
-    if (accountAgeDays < 7) {
-      return { 
-        isAlt: true, 
-        reason: i18n.t('giveaways.alt_detection.new_account', guild.id, { days: Math.floor(accountAgeDays).toString() })
+  private async isAltAccount(user: User, guild: Guild, minAccountAgeDays = 7): Promise<{ isAlt: boolean; reason?: string }> {
+    if (!(minAccountAgeDays > 0)) return { isAlt: false };
+    const accountAgeDays = (Date.now() - user.createdTimestamp) / (1000 * 60 * 60 * 24);
+    if (accountAgeDays < minAccountAgeDays) {
+      return {
+        isAlt: true,
+        reason: i18n.t('giveaways.alt_detection.new_account', guild.id, { days: Math.floor(accountAgeDays).toString() }),
       };
     }
-
-    // Check join date (joined very recently)
-    const joinAge = Date.now() - (member.joinedTimestamp || 0);
-    const joinAgeDays = joinAge / (1000 * 60 * 60 * 24);
-
-    if (joinAgeDays < 1) {
-      return { 
-        isAlt: true, 
-        reason: i18n.t('giveaways.alt_detection.new_member', guild.id)
-      };
-    }
-
-    // Check if user has default avatar (suspicious)
-    if (!user.avatar) {
-      return { 
-        isAlt: true, 
-        reason: i18n.t('giveaways.alt_detection.default_avatar', guild.id)
-      };
-    }
-
-    // Check message count (very low activity)
-    const messageCount = await this.getUserMessageCount(user.id, guild.id);
-
-    if (messageCount < 5) {
-      return { 
-        isAlt: true, 
-        reason: i18n.t('giveaways.alt_detection.low_activity', guild.id)
-      };
-    }
-
     return { isAlt: false };
   }
 
@@ -411,7 +383,7 @@ export class GiveawayService {
         createdAt: new Date(),
         remindersSent: [],
         allowAltAccounts: data.allowAltAccounts || false,
-        minAccountAge: data.minAccountAge || 7
+        minAccountAge: data.minAccountAge ?? 7
       } as GiveawayData;
 
       // Create giveaway embed and message
@@ -476,7 +448,7 @@ export class GiveawayService {
 
       // Check for alt accounts if not allowed
       if (!giveaway.allowAltAccounts) {
-        const altCheck = await this.isAltAccount(user, member.guild);
+        const altCheck = await this.isAltAccount(user, member.guild, giveaway.minAccountAge);
 
         if (altCheck.isAlt) {
           return { success: false, reason: altCheck.reason || 'Alt account detected' };
@@ -1068,7 +1040,7 @@ export class GiveawayService {
       createdAt: prismaGiveaway.createdAt,
       remindersSent: parsedData.remindersSent || [],
       allowAltAccounts: parsedData.allowAltAccounts || false,
-      minAccountAge: parsedData.minAccountAge || 7,
+      minAccountAge: parsedData.minAccountAge ?? 7,
       participantEntries: parsedData.participantEntries || {}
     };
   }

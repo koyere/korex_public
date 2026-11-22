@@ -40,6 +40,9 @@ export default class GuildMemberAddEvent extends Event<'guildMemberAdd'> {
 
       if (removed) return;
 
+      // Active mute: re-applied before the welcome message and join roles
+      await step('mute-reapply', () => this.client.moderation.reapplyMuteOnJoin(member));
+
       // Handle welcome message
       await step('welcome', () => this.client.welcome.handleMemberJoin(member));
 

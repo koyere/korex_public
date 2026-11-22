@@ -104,6 +104,13 @@ export default class GiveawayCommand extends Command {
               .setMinValue(1)
               .setMaxValue(10000)
           )
+          .addIntegerOption(option =>
+            option
+              .setName('min_account_age')
+              .setDescription(i18n.t('commands.giveaway.create.options.min_account_age', 'global'))
+              .setMinValue(0)
+              .setMaxValue(365)
+          )
       )
       .addSubcommand(subcommand =>
         subcommand
@@ -308,7 +315,10 @@ export default class GiveawayCommand extends Command {
         title,
         requirements,
         bonusEntries: [],
-        hostId: interaction.user.id
+        hostId: interaction.user.id,
+        // Minimum account age in days; 0 = no limit
+        minAccountAge: (interaction.options.get('min_account_age')?.value as number | undefined) ?? 7,
+        allowAltAccounts: ((interaction.options.get('min_account_age')?.value as number | undefined) ?? 7) === 0,
       }, 300); // 5 minutes
 
     } catch (error) {

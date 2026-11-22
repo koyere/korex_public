@@ -578,6 +578,7 @@
       "create": {
         "description": "Create a new giveaway",
         "options": {
+          "min_account_age": "Minimum account age in days to join (0 = no limit, default 7)",
           "prize": "The prize to give away",
           "duration": "Duration in hours (1-168)",
           "channel": "Channel to post the giveaway in",
@@ -1068,6 +1069,8 @@
       "invalid_option": "Invalid vote option. Please try again."
     },
     "results": {
+      "after_vote": "🔒 Vote first to see this poll's results.",
+      "after_end": "🔒 This poll's results will be shown when it ends.",
       "description": "Here are the current poll results:",
       "options": "📊 Results",
       "total_votes": "Total Votes",
@@ -1318,6 +1321,7 @@
     }
   },
   "pay": {
+    "not_member": "❌ You can only pay members of this server.",
     "success_title": "💸 Payment Sent!",
     "success_description": "You successfully sent {amount} {symbol} to {user}",
     "your_new_balance": "💰 Your New Balance",
@@ -1785,6 +1789,8 @@
     }
   },
   "music": {
+    "capacity_reached": "⏳ Korex is playing music in many servers right now. Try again in a few minutes.",
+    "duration_unknown": "❌ This audio's length can't be determined (a radio or live stream?), so it can't be played with this server's duration limit.",
     "disabled": "🚫 Music is disabled on this server.",
     "node_unavailable": "❌ Music node is unavailable. Verify Lavalink is running and reachable.",
     "not_in_voice": "❌ You need to be in a voice channel to use music commands.",
@@ -2458,6 +2464,11 @@
     }
   },
   "nuke": {
+    "log_desc": "{user} recreated **#{name}** → {channel}. Configuration references moved: {count}. Threads, pins, webhooks and followers of the old channel are lost.",
+    "log_title": "💥 Channel recreated with /nuke",
+    "done": "✅ Channel recreated: {channel}. {count} configuration references were moved to the new channel.",
+    "delete_failed": "❌ The original channel couldn't be deleted; the new one was removed again. Details: {error}",
+    "recreate_failed": "❌ The replacement channel couldn't be created, so nothing was deleted. Check the bot's permissions (create channels and grant those permissions) and the channel limit. Details: {error}",
     "default_reason": "Channel nuked by administrator",
     "invalid_channel": "❌ Invalid channel type for nuke operation.",
     "no_permission": "❌ You don't have permission to manage this channel.",

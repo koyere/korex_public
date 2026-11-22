@@ -578,6 +578,7 @@
       "create": {
         "description": "Crear un nuevo sorteo",
         "options": {
+          "min_account_age": "Días mínimos de antigüedad de la cuenta para participar (0 = sin límite, por defecto 7)",
           "prize": "El premio a sortear",
           "duration": "Duración en horas (1-168)",
           "channel": "Canal donde publicar el sorteo",
@@ -1187,6 +1188,7 @@
     }
   },
   "pay": {
+    "not_member": "❌ Solo puedes pagar a miembros de este servidor.",
     "success_title": "💸 ¡Pago Enviado!",
     "success_description": "Enviaste exitosamente {amount} {symbol} a {user}",
     "your_new_balance": "💰 Tu Nuevo Balance",
@@ -1654,6 +1656,8 @@
     }
   },
   "music": {
+    "capacity_reached": "⏳ Korex está reproduciendo música en muchos servidores ahora mismo. Inténtalo de nuevo en unos minutos.",
+    "duration_unknown": "❌ No se puede saber cuánto dura este audio (¿una radio o un stream en directo?), así que no se puede reproducir con el límite de duración de este servidor.",
     "disabled": "🚫 La música está deshabilitada en este servidor.",
     "node_unavailable": "❌ El nodo de música no está disponible. Verifica que Lavalink esté activo y accesible.",
     "not_in_voice": "❌ Necesitas estar en un canal de voz para usar comandos de música.",
@@ -1902,6 +1906,8 @@
       "invalid_option": "Opción de voto inválida. Por favor intenta de nuevo."
     },
     "results": {
+      "after_vote": "🔒 Vota primero para ver los resultados de esta encuesta.",
+      "after_end": "🔒 Los resultados de esta encuesta se mostrarán cuando termine.",
       "description": "Aquí están los resultados actuales de la encuesta:",
       "options": "📊 Resultados",
       "total_votes": "Votos Totales",
@@ -2458,6 +2464,11 @@
     }
   },
   "nuke": {
+    "log_desc": "{user} recreó **#{name}** → {channel}. Referencias de configuración trasladadas: {count}. Se pierden hilos, fijados, webhooks y seguidores del canal anterior.",
+    "log_title": "💥 Canal recreado con /nuke",
+    "done": "✅ Canal recreado: {channel}. Se han trasladado {count} referencias de configuración al canal nuevo.",
+    "delete_failed": "❌ No se pudo borrar el canal original; se ha deshecho la creación del nuevo. Detalle: {error}",
+    "recreate_failed": "❌ No se pudo crear el canal de reemplazo, así que no se ha borrado nada. Revisa los permisos del bot (crear canales y asignar esos permisos) y el límite de canales. Detalle: {error}",
     "default_reason": "Canal eliminado por administrador",
     "invalid_channel": "❌ Tipo de canal inválido para la operación de eliminación.",
     "no_permission": "❌ No tienes permisos para gestionar este canal.",

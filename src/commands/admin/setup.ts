@@ -252,11 +252,14 @@ export default class SetupCommand extends Command {
     }
 
     // 2. Create or find log channel
+    // Only a text channel with an exact name that @everyone can't see (previously
+    // public #changelogs or #vlogs, or a category, matched, and #mod-logs was created public)
+    const LOG_NAMES = ['mod-logs', 'mod-log', 'moderacion', 'moderación', 'moderation-logs'];
     let logChannel = guild.channels.cache.find(
       (channel: any) =>
-        channel.name.includes('mod-log') ||
-        channel.name.includes('moderacion') ||
-        channel.name.includes('logs')
+        channel.type === ChannelType.GuildText &&
+        LOG_NAMES.includes(String(channel.name).toLowerCase()) &&
+        !channel.permissionsFor(guild.roles.everyone)?.has(PermissionFlagsBits.ViewChannel)
     );
 
     if (!logChannel) {
@@ -266,6 +269,11 @@ export default class SetupCommand extends Command {
           type: ChannelType.GuildText,
           topic: i18n.t('commands.setup.moderation.log_channel_topic', guild.id),
           reason: 'Log channel created by KOREX',
+          // Private: only the bot and members with admin permissions can see it
+          permissionOverwrites: [
+            { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
+            { id: guild.members.me!.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks] },
+          ],
         });
       } catch (error) {
         embed.addFields({

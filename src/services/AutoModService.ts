@@ -1,3 +1,5 @@
+import { containsFilteredWord, hasDisallowedLink, duplicateCountInWindow } from '../utils/automodMatchers';
+import { channelScopeIds } from '../utils/channelScope';
 import { Message, EmbedBuilder, TextChannel, Colors } from 'discord.js';
 import { KorexClient } from '../client/KorexClient';
 import { i18n } from '../utils/i18n';
@@ -8,6 +10,7 @@ interface SpamTracker {
   messages: number[];
   lastContent: string;
   duplicateCount: number;
+  duplicateTimes?: number[];
 }
 
 interface AttachmentTracker {
@@ -65,14 +68,18 @@ export class AutoModService {
     }, 10 * 60_000).unref();
   }
 
-  async processMessage(message: Message): Promise<boolean> {
+  /**
+   * Checks a message. With `edit: true` (edited message) only content filters are
+   * applied: anti-spam and attachments were already evaluated when it was sent.
+   */
+  async processMessage(message: Message, opts: { edit?: boolean } = {}): Promise<boolean> {
     if (!message.guild || message.author.bot) return false;
 
     const config = await this.getConfig(message.guild.id);
     if (!config?.autoModEnabled) return false;
 
     // Skip ignored channels / roles
-    if (config.ignoredChannels?.includes(message.channel.id)) return false;
+    if (channelScopeIds(message.channel as any).some(id => config.ignoredChannels?.includes(id))) return false;
     if (message.member?.roles.cache.some(r => config.ignoredRoles?.includes(r.id))) return false;
 
     // Skip staff (admins and moderators) unless configured otherwise
@@ -81,13 +88,13 @@ export class AutoModService {
     if (isStaff && !config.applyToModerators) return false;
 
     // ── 1. Anti-Spam (text frequency + duplicate content) ─────────────────
-    if (config.antiSpam && this.checkSpam(message, config)) {
+    if (!opts.edit && config.antiSpam && this.checkSpam(message, config)) {
       await this.handleViolation(message, 'spam', config);
       return true;
     }
 
     // ── 2. Attachment checks ───────────────────────────────────────────────
-    if (message.attachments.size > 0) {
+    if (!opts.edit && message.attachments.size > 0) {
       // 2a. Block all attachments (nuclear option during active attack)
       if (config.blockAllAttachments) {
         await this.handleViolation(message, 'attachment_spam', config);
@@ -182,12 +189,9 @@ export class AutoModService {
     tracker.messages = tracker.messages.filter(t => now - t < interval);
     tracker.messages.push(now);
 
-    if (message.content === tracker.lastContent) {
-      tracker.duplicateCount++;
-    } else {
-      tracker.duplicateCount = 0;
-      tracker.lastContent    = message.content;
-    }
+    // Duplicates only within a window (3 × the interval) and never messages without
+    // text (three images over several minutes used to count as spam)
+    tracker.duplicateCount = duplicateCountInWindow(tracker, message.content, now, interval * 3);
 
     return tracker.messages.length >= threshold || tracker.duplicateCount >= 3;
   }
@@ -225,19 +229,11 @@ export class AutoModService {
   }
 
   private checkWords(content: string, filteredWords: string[]): boolean {
-    const lower = content.toLowerCase();
-    return filteredWords.some(word => lower.includes(word.toLowerCase()));
+    return containsFilteredWord(content, filteredWords);
   }
 
   private checkLinks(content: string, allowedLinks: string[]): boolean {
-    const urlRegex = /https?:\/\/[^\s]+/gi;
-    const links    = content.match(urlRegex);
-    if (!links) return false;
-
-    return links.some(link => {
-      if (allowedLinks.length === 0) return true;
-      return !allowedLinks.some(allowed => link.includes(allowed));
-    });
+    return hasDisallowedLink(content, allowedLinks);
   }
 
   private checkCaps(content: string, threshold: number): boolean {

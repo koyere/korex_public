@@ -214,6 +214,26 @@ export class ModerationService {
   }
 
   /**
+   * Re-applies the mute role to someone who rejoins with an active, unexpired mute
+   * (leaving and rejoining used to remove it). Returns whether it was re-applied.
+   */
+  public async reapplyMuteOnJoin(member: GuildMember): Promise<boolean> {
+    const active = await this.db.prisma.moderationActionLog.findFirst({
+      where: {
+        guildId: member.guild.id, userId: member.id, type: 'MUTE', isActive: true,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+      },
+      select: { id: true },
+    });
+    if (!active) return false;
+    const config = await this.getModerationConfig(member.guild.id);
+    const role = config.muteRoleId ? member.guild.roles.cache.get(config.muteRoleId) : null;
+    if (!role) return false;
+    await member.roles.add(role, 'Active mute re-applied on rejoin').catch(() => undefined);
+    return true;
+  }
+
+  /**
    * Unmutes a user
    */
   public async unmuteUser(
@@ -615,6 +635,8 @@ export class ModerationService {
       const user = await this.db.client.users.fetch(action.userId).catch(() => null);
 
       if (!user) {
+        // Account no longer exists: the action can no longer have any effect
+        await this.db.prisma.moderationActionLog.updateMany({ where: { id: actionId, isActive: true }, data: { isActive: false } }).catch(() => undefined);
         return;
       }
 
@@ -628,6 +650,13 @@ export class ModerationService {
       } else if (action.type === 'BAN') {
         await this.unbanUser(guild, user, this.db.client.user!, 'Automatic unban (expired)');
       }
+
+      // Expired even if the member is gone (or the ban was lifted manually): close it so
+      // it doesn't stay active forever and get rescheduled on every start
+      await this.db.prisma.moderationActionLog.updateMany({
+        where: { id: actionId, isActive: true },
+        data: { isActive: false },
+      }).catch(() => undefined);
 
       this.logger.info(`Auto-undo executed for action ${actionId}`);
     } catch (error) {

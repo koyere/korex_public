@@ -4,6 +4,7 @@ import {
   EmbedBuilder,
   Colors,
   User,
+  escapeMarkdown,
 } from 'discord.js';
 import { Command } from '../../client/structures/Command';
 import { KorexClient } from '../../client/KorexClient';
@@ -53,6 +54,14 @@ export default class PayCommand extends Command {
           ephemeral: true,
         });
 
+        return;
+      }
+
+      // Members of this server only (any ID used to be accepted and the bot sent
+      // them a DM, a spam channel towards users of other servers)
+      const recipientMember = await interaction.guild!.members.fetch(toUser.id).catch(() => null);
+      if (!recipientMember) {
+        await interaction.reply({ content: i18n.t('pay.not_member', lang), ephemeral: true });
         return;
       }
 
@@ -112,8 +121,11 @@ export default class PayCommand extends Command {
 
       await interaction.reply({ embeds: [embed] });
 
-      // Try to notify the recipient
-      try {
+      // Recipient notice: at most one every 10 minutes per recipient and
+      // server, with the server name stripped of formatting
+      const dmKey = `pay:dm:${guildId}:${toUser.id}`;
+      const allowDm = await (this.client as any).redis.getClient().set(dmKey, '1', 'EX', 600, 'NX').catch(() => 'OK');
+      if (allowDm === 'OK') try {
         const recipientEmbed = new EmbedBuilder()
           .setTitle(i18n.t('pay.received_title', lang))
           .setColor(Colors.Gold)
@@ -121,7 +133,7 @@ export default class PayCommand extends Command {
             i18n.t('pay.received_description', lang, { symbol: currencySymbol,
               amount: amount.toString(),
               user: interaction.user.toString(),
-              server: interaction.guild!.name,
+              server: escapeMarkdown(interaction.guild!.name).replace(/\]\(|https?:\/\//gi, ''),
             })
           )
           .setTimestamp();

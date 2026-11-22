@@ -130,6 +130,10 @@ export default class PlayCommand extends Command {
         // The query is user-written: truncated and without formatting (I·COM-09)
         const shown = query.replace(/[`*_~|>]/g, '').replace(/@/g, '@\u200b').slice(0, 100);
         localized = i18n.t('music.no_results', interaction.guildId!, { query: shown });
+      } else if (errorMessage === 'TRACK_DURATION_UNKNOWN') {
+        localized = i18n.t('music.duration_unknown', interaction.guildId!);
+      } else if (errorMessage === 'MUSIC_CAPACITY_REACHED') {
+        localized = i18n.t('music.capacity_reached', interaction.guildId!);
       } else if (errorMessage === 'MUSIC_NOT_IN_VOICE') {
         localized = i18n.t('music.not_in_voice', interaction.guildId!);
       } else if (errorMessage === 'MUSIC_UNSUPPORTED_SOURCE') {
