@@ -22,6 +22,8 @@ import {
 import { Command } from '../../client/structures/Command';
 import { KorexClient } from '../../client/KorexClient';
 import { i18n } from '../../utils/i18n';
+import { checkAutoRole, isGuildAdministrator } from '../../utils/roleSafety';
+import { awaitOwnModal } from '../../utils/awaitOwnModal';
 
 export default class AutoRolesCommand extends Command {
   constructor(client: KorexClient) {
@@ -327,6 +329,25 @@ export default class AutoRolesCommand extends Command {
     }
   }
 
+  /**
+   * Validates an automatic role before saving it (audit 2026-11-21, G·BOT-01):
+   * non-Administrators cannot configure roles with permissions or above their
+   * highest role; nobody can configure a role with Administrator.
+   * If it is not valid it replies with the reason and returns true.
+   */
+  private async rejectUnsafeAutoRole(
+    interaction: { guild: import('discord.js').Guild | null; user: { id: string } },
+    roleId: string,
+    reply: (content: string) => Promise<unknown>,
+  ): Promise<boolean> {
+    const guild = interaction.guild!;
+    const actor = await guild.members.fetch(interaction.user.id).catch(() => null);
+    const check = checkAutoRole(guild, roleId, actor, isGuildAdministrator(actor));
+    if (check.ok) return false;
+    await reply(i18n.t(`autorole.wizard.role_${check.problem}`, guild.id, { role: `<@&${roleId}>` }));
+    return true;
+  }
+
   private async handleJoinRoles(interaction: ChatInputCommandInteraction, client: KorexClient): Promise<void> {
     const role = interaction.options.getRole('role', true) as Role;
     const action = interaction.options.getString('action', true);
@@ -346,6 +367,7 @@ export default class AutoRolesCommand extends Command {
 
     try {
       if (action === 'add') {
+        if (await this.rejectUnsafeAutoRole(interaction, role.id, (content) => interaction.reply({ content, ephemeral: true }))) return;
         await autoRoleService.addJoinRole(guildId, role.id, delay);
         await interaction.reply({
           content: i18n.t('autoroles.join.added', guildId, {
@@ -389,6 +411,7 @@ export default class AutoRolesCommand extends Command {
 
     try {
       if (action === 'add') {
+        if (await this.rejectUnsafeAutoRole(interaction, role.id, (content) => interaction.reply({ content, ephemeral: true }))) return;
         await autoRoleService.addLevelRole(guildId, level, role.id, removeOthers);
         await interaction.reply({
           content: i18n.t('autoroles.level.added', guildId, { 
@@ -431,6 +454,7 @@ export default class AutoRolesCommand extends Command {
 
     try {
       if (action === 'add') {
+        if (await this.rejectUnsafeAutoRole(interaction, role.id, (content) => interaction.reply({ content, ephemeral: true }))) return;
         await autoRoleService.addBoosterRole(guildId, role.id);
         await interaction.reply({
           content: i18n.t('autoroles.booster.added', guildId, { role: role.name }),
@@ -614,13 +638,9 @@ export default class AutoRolesCommand extends Command {
       ),
     );
 
-    await interaction.showModal(modal);
-
+    // Unique customId and filtered collector; the global dispatcher does not answer this modal (utils/awaitOwnModal)
     try {
-      const submit = await interaction.awaitModalSubmit({
-        time: 120_000,
-        filter: i => i.user.id === interaction.user.id,
-      });
+      const submit = await awaitOwnModal(client, interaction, modal, 'autoroles_join_setup_modal', 120_000);
 
       const roleRaw = submit.fields.getTextInputValue('role').trim();
       const delayRaw = submit.fields.getTextInputValue('delay').trim();
@@ -639,6 +659,7 @@ export default class AutoRolesCommand extends Command {
         return;
       }
 
+      if (await this.rejectUnsafeAutoRole(interaction, roleId, (content) => submit.reply({ content, ephemeral: true }))) return;
       await client.autoRole!.addJoinRole(guildId, roleId, delay);
       await submit.reply({
         content: i18n.t('autoroles.join.added', guildId, {
@@ -747,13 +768,9 @@ export default class AutoRolesCommand extends Command {
       ),
     );
 
-    await interaction.showModal(modal);
-
+    // Unique customId and filtered collector; the global dispatcher does not answer this modal (utils/awaitOwnModal)
     try {
-      const submit = await interaction.awaitModalSubmit({
-        time: 120_000,
-        filter: i => i.user.id === interaction.user.id,
-      });
+      const submit = await awaitOwnModal(client, interaction, modal, 'autoroles_level_setup_modal', 120_000);
 
       const levelRaw = submit.fields.getTextInputValue('level').trim();
       const roleRaw = submit.fields.getTextInputValue('role').trim();
@@ -780,6 +797,7 @@ export default class AutoRolesCommand extends Command {
 
       const yesWords = ['si', 'sí', 's', 'yes', 'y', i18n.t('common.yes', guildId).toLowerCase()];
       const removeOthers = yesWords.includes(removeOthersRaw);
+      if (await this.rejectUnsafeAutoRole(interaction, roleId, (content) => submit.reply({ content, ephemeral: true }))) return;
       await client.autoRole!.addLevelRole(guildId, level, roleId, removeOthers);
       await submit.reply({
         content: i18n.t('autoroles.level.added', guildId, {
@@ -813,13 +831,9 @@ export default class AutoRolesCommand extends Command {
       ),
     );
 
-    await interaction.showModal(modal);
-
+    // Unique customId and filtered collector; the global dispatcher does not answer this modal (utils/awaitOwnModal)
     try {
-      const submit = await interaction.awaitModalSubmit({
-        time: 120_000,
-        filter: i => i.user.id === interaction.user.id,
-      });
+      const submit = await awaitOwnModal(client, interaction, modal, 'autoroles_booster_setup_modal', 120_000);
 
       const roleRaw = submit.fields.getTextInputValue('role').trim();
       const guildId = interaction.guild!.id;
@@ -836,6 +850,7 @@ export default class AutoRolesCommand extends Command {
         return;
       }
 
+      if (await this.rejectUnsafeAutoRole(interaction, roleId, (content) => submit.reply({ content, ephemeral: true }))) return;
       await client.autoRole!.addBoosterRole(guildId, roleId);
       await submit.reply({
         content: i18n.t('autoroles.booster.added', guildId, { role: role.name }),

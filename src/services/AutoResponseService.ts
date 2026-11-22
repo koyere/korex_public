@@ -1,4 +1,5 @@
 import { Guild, Message, EmbedBuilder, TextChannel } from 'discord.js';
+import { isSafeUserRegex, testUserRegex } from '../utils/userRegex';
 import { KorexClient } from '../client/KorexClient';
 import { i18n } from '../utils/i18n';
 import { botConfig } from '../config/bot.config';
@@ -41,29 +42,13 @@ export class AutoResponseService {
   private cooldowns: Map<string, Map<string, number>> = new Map(); // guildId -> userId -> timestamp
   // Per-server cache: processMessage runs on every message
   private responseCache = new Map<string, { data: AutoResponseTrigger[]; expires: number }>();
-  private regexCache = new Map<string, RegExp | null>();
-
   /**
-   * Admin-provided regex evaluated on every message: patterns with nested
-   * quantifiers (e.g. (a+)+) that can hang the bot (ReDoS) are rejected.
+   * Admin-provided regex evaluated on every message. It is compiled with RE2
+   * (linear time): no pattern can block the shared process (ReDoS).
+   * See src/utils/userRegex.ts.
    */
   static isSafeRegex(pattern: string): boolean {
-    if (pattern.length > 200) return false;
-    if (/\((?:[^()\\]|\\.)*[+*}]\)\s*[+*{]/.test(pattern)) return false;
-    try {
-      new RegExp(pattern);
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  private getRegex(pattern: string, caseSensitive: boolean): RegExp | null {
-    const key = `${caseSensitive ? 's' : 'i'}:${pattern}`;
-    if (!this.regexCache.has(key)) {
-      this.regexCache.set(key, AutoResponseService.isSafeRegex(pattern) ? new RegExp(pattern, caseSensitive ? '' : 'i') : null);
-    }
-    return this.regexCache.get(key) ?? null;
+    return isSafeUserRegex(pattern);
   }
 
   private invalidateCache(guildId?: string): void {
@@ -143,8 +128,7 @@ export class AutoResponseService {
           break;
         case 'regex': {
           // Original pattern (not lowercased) and bounded text
-          const regex = this.getRegex(trigger, autoResponse.caseSensitive);
-          if (regex && regex.test(content.slice(0, 2000))) return true;
+          if (testUserRegex(trigger, autoResponse.caseSensitive, content)) return true;
           break;
         }
       }

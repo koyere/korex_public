@@ -65,11 +65,14 @@ export default class InteractionCreateEvent extends Event<'interactionCreate'> {
         if (svc) await svc.handleCaptchaModal(interaction).catch(() => {});
         return;
       }
-      // Addon-namespaced modals (e.g. paste:*, tickets:*) are handled by addon interactionCreate events
+      // Addon modals (ticket:*, form:*…) are handled by each addon's own
+      // interactionCreate. They are passed on by addon name or by its componentPrefixes
+      // (it used to be by name only, and the core answered "expired" to Tickets/Forms/Staff, H·BOT2-02).
       if (interaction.customId.includes(':')) {
         const prefix = interaction.customId.split(':')[0];
-        const addonNames = this.client.addons.getLoadedAddons().map((a: any) => a.config.name);
-        if (addonNames.includes(prefix)) return;
+        const owned = this.client.addons.getLoadedAddons().some((a: any) =>
+          a.config.name === prefix || (a.config.componentPrefixes ?? []).includes(prefix));
+        if (owned) return;
       }
       await this.client.components.handleModal(interaction);
       return;

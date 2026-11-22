@@ -16,7 +16,7 @@ import { Prisma } from '../generated/prisma/client';
 import { logger } from '../utils/Logger';
 import { DatabaseManager } from '../client/managers/DatabaseManager';
 import { i18n } from '../utils/i18n';
-import { checkSelfAssignableRole } from '../utils/roleSafety';
+import { checkSelfAssignableRole, canAutoAssignRole } from '../utils/roleSafety';
 import { setLongTimeout } from '../utils/longTimeout';
 
 export interface AutoRoleConfig {
@@ -468,11 +468,8 @@ export class AutoRoleService {
    * Check if bot can assign a role
    */
   private canAssignRole(guild: Guild, role: Role): boolean {
-    const botMember = guild.members.me;
-
-    if (!botMember) return false;
-
-    return role.position < botMember.roles.highest.position && !role.managed;
+    // Below the bot, not managed and never with Administrator (see roleSafety.canAutoAssignRole)
+    return canAutoAssignRole(guild, role);
   }
 
   /**

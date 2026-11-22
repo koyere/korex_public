@@ -21,6 +21,10 @@ export default class GuildCreateEvent extends Event<'guildCreate'> {
       const record = await this.client.database.getOrCreateGuild(guild.id, this.detectLanguage(guild));
       i18n.setGuildLanguage(guild.id, record.language);
 
+      // The bot is back: the server no longer counts as abandoned (leftAt used to be
+      // cleared only when there were licenses in kickout)
+      await this.client.db.guild.updateMany({ where: { id: guild.id, leftAt: { not: null } }, data: { leftAt: null } }).catch(() => null);
+
       // 2. Try to restore licenses in grace period (KICKOUT)
       const restored = await this.client.kickoutService.handleGuildRejoined(guild.id);
 

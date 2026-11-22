@@ -13,6 +13,7 @@ import {
 import { Command } from '../../client/structures/Command';
 import { KorexClient } from '../../client/KorexClient';
 import { i18n } from '../../utils/i18n';
+import { awaitOwnModal } from '../../utils/awaitOwnModal';
 import { botConfig } from '../../config/bot.config';
 
 export default class MassBanCommand extends Command {
@@ -57,8 +58,8 @@ export default class MassBanCommand extends Command {
     const deleteDays = interaction.options.getInteger('delete_days') || 0;
 
     // Show modal to input user IDs
+    // Unique customId and filtered collector: see utils/awaitOwnModal (G·BOT-04)
     const modal = new ModalBuilder()
-      .setCustomId('massban_users')
       .setTitle(i18n.t('commands.massban.modal_title', guildId));
 
     const userIdsInput = new TextInputBuilder()
@@ -71,11 +72,9 @@ export default class MassBanCommand extends Command {
 
     modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(userIdsInput));
 
-    await interaction.showModal(modal);
-
     // Wait for modal submission
     try {
-      const modalSubmission = await interaction.awaitModalSubmit({ time: 300000 }); // 5 minutes
+      const modalSubmission = await awaitOwnModal(this.client, interaction, modal, 'massban_users', 300000); // 5 minutes
 
       await modalSubmission.deferReply({ ephemeral: true });
 
@@ -106,6 +105,8 @@ export default class MassBanCommand extends Command {
         return;
       }
 
+      // The confirmation lists the IDs (it used to show only the count) so the moderator sees who will be banned
+      const idList = userIds.map((id) => `<@${id}> (${id})`).join('\n');
       // Show confirmation
       const confirmEmbed = new EmbedBuilder()
         .setColor(botConfig.colors.warning)
@@ -117,7 +118,8 @@ export default class MassBanCommand extends Command {
         .addFields(
           { name: i18n.t('commands.massban.user_count', guildId), value: userIds.length.toString(), inline: true },
           { name: i18n.t('commands.massban.delete_days', guildId), value: deleteDays.toString(), inline: true },
-          { name: i18n.t('commands.massban.reason', guildId), value: reason, inline: false }
+          { name: i18n.t('commands.massban.reason', guildId), value: reason.slice(0, 1024), inline: false },
+          { name: i18n.t('commands.massban.user_ids_label', guildId), value: idList.length > 1024 ? `${idList.slice(0, 1000)}\n…` : idList, inline: false }
         )
         .setTimestamp();
 
@@ -135,15 +137,15 @@ export default class MassBanCommand extends Command {
             .setEmoji('❌')
         );
 
-      await modalSubmission.editReply({ embeds: [confirmEmbed], components: [confirmRow] });
+      // A single confirmation message (a followUp used to be sent as well on the
+      // original interaction, already answered with the modal)
+      const confirmMessage = await modalSubmission.editReply({ embeds: [confirmEmbed], components: [confirmRow] });
 
       // Wait for confirmation
-      const confirmInteraction = await interaction.followUp({ 
-        embeds: [confirmEmbed], 
-        components: [confirmRow],
-        ephemeral: true,
-        fetchReply: true
-      }).then(msg => msg.awaitMessageComponent({ time: 60000 }));
+      const confirmInteraction = await confirmMessage.awaitMessageComponent({
+        time: 60000,
+        filter: (i) => i.user.id === interaction.user.id && (i.customId === 'massban_confirm' || i.customId === 'massban_cancel'),
+      });
 
       if (confirmInteraction.customId === 'massban_cancel') {
         const cancelEmbed = new EmbedBuilder()
@@ -195,6 +197,9 @@ export default class MassBanCommand extends Command {
 
       await modalSubmission.editReply({ embeds: [resultEmbed] });
 
+      // Moderation history + summary in the log channel
+      await this.client.moderation.recordMassBan(interaction.guild!, results.successful, interaction.user, reason);
+
       // Log the action
       this.client.logger.info(`Mass ban executed by ${interaction.user.tag} in ${interaction.guild!.name}: ${results.successful.length}/${userIds.length} successful`);
 
@@ -237,14 +242,19 @@ export default class MassBanCommand extends Command {
           continue;
         }
 
+        if (userId === moderator.id || userId === guild.client.user?.id) {
+          failed.push({ id: userId, reason: 'Cannot ban yourself or the bot' });
+          continue;
+        }
+
         // Check if user is in guild and hierarchy
         const member = await guild.members.fetch(userId).catch(() => null);
 
         if (member) {
-          // Check hierarchy
+          // Check hierarchy (the server owner may act even with a lower role)
           const moderatorMember = await guild.members.fetch(moderator.id);
 
-          if (member.roles.highest.position >= moderatorMember.roles.highest.position) {
+          if (moderator.id !== guild.ownerId && member.roles.highest.position >= moderatorMember.roles.highest.position) {
             failed.push({ id: userId, reason: 'Higher or equal role' });
             continue;
           }

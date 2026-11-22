@@ -127,7 +127,9 @@ export default class PlayCommand extends Command {
         const [, max, duration] = errorMessage.split(':');
         localized = i18n.t('music.track_too_long', interaction.guildId!, { max, duration });
       } else if (errorMessage === 'MUSIC_NO_RESULTS') {
-        localized = i18n.t('music.no_results', interaction.guildId!, { query });
+        // The query is user-written: truncated and without formatting (I·COM-09)
+        const shown = query.replace(/[`*_~|>]/g, '').replace(/@/g, '@\u200b').slice(0, 100);
+        localized = i18n.t('music.no_results', interaction.guildId!, { query: shown });
       } else if (errorMessage === 'MUSIC_NOT_IN_VOICE') {
         localized = i18n.t('music.not_in_voice', interaction.guildId!);
       } else if (errorMessage === 'MUSIC_UNSUPPORTED_SOURCE') {
@@ -137,7 +139,8 @@ export default class PlayCommand extends Command {
       }
 
       await interaction.editReply({
-        content: localized
+        content: localized,
+        allowedMentions: { parse: [] },
       });
     }
   }

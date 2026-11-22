@@ -352,6 +352,37 @@ export class ModerationService {
   }
 
   /**
+   * Records a mass ban that has already been carried out (/massban): one case per
+   * user in the moderation history and a single summary in the log channel, no DM.
+   * /massban used to leave no record at all (audit 2026-11-21, G·BOT-04).
+   */
+  public async recordMassBan(guild: Guild, userIds: string[], moderator: User, reason: string): Promise<void> {
+    for (const userId of userIds) {
+      await this.createModerationAction({ type: 'BAN', guildId: guild.id, userId, moderatorId: moderator.id, reason })
+        .catch((err) => this.logger.error(`Error recording mass ban case for ${userId}:`, err));
+    }
+    try {
+      const logChannel = await this.getModerationLogChannel(guild);
+      if (!logChannel || userIds.length === 0) return;
+      const t = (key: string, vars?: Record<string, string>) => i18n.t(key, guild.id, vars);
+      const list = userIds.map((id) => `<@${id}> (${id})`).join('\n');
+      const embed = new EmbedBuilder()
+        .setColor(this.getActionColor('BAN'))
+        .setTitle(`${this.getActionEmoji('BAN')} ${t('commands.massban.result_title')}`)
+        .addFields(
+          { name: t('moderation.log.moderator'), value: `${moderator.tag}`, inline: true },
+          { name: t('commands.massban.user_count'), value: String(userIds.length), inline: true },
+          { name: t('moderation.log.reason'), value: reason.slice(0, 1024), inline: false },
+          { name: t('moderation.log.user'), value: list.length > 1024 ? `${list.slice(0, 1000)}\n…` : list, inline: false },
+        )
+        .setTimestamp();
+      await logChannel.send({ embeds: [embed], allowedMentions: { parse: [] } });
+    } catch (error) {
+      this.logger.error('Error logging mass ban:', error);
+    }
+  }
+
+  /**
    * Unbans a user
    */
   public async unbanUser(

@@ -56,3 +56,49 @@ export function checkSelfAssignableRole(guild: Guild, roleId: string, actor?: Gu
   return { ok: true, role };
 }
 
+
+/** true if the member may configure roles with permissions (owner or Discord Administrator). */
+export function isGuildAdministrator(member: GuildMember | null | undefined): boolean {
+  if (!member) return false;
+  return member.id === member.guild.ownerId || member.permissions.has(PermissionFlagsBits.Administrator);
+}
+
+/**
+ * Roles the bot hands out automatically: on join, by level, by boost, by
+ * invites (audit 2026-11-21, G·BOT-01 and C·API-05).
+ *
+ * - A role with the Administrator permission is never handed out automatically.
+ * - A Discord Administrator (or the owner) may configure roles with moderation
+ *   permissions: they can already do so natively.
+ * - Anyone else (moderator with "Manage Roles", dashboard collaborator) only
+ *   roles without dangerous permissions and below their highest role, the same
+ *   rule Discord applies. No identifiable member: rejected.
+ */
+export function checkAutoRole(
+  guild: Guild,
+  roleId: string,
+  actor: GuildMember | null | undefined,
+  actorIsAdmin: boolean,
+): SelfAssignableRoleCheck {
+  const role = guild.roles.cache.get(roleId);
+  if (role && role.permissions.has(PermissionFlagsBits.Administrator, false)) {
+    return { ok: false, role, problem: 'dangerous' };
+  }
+  if (!actorIsAdmin && !actor) return { ok: false, role, problem: 'above_actor' };
+  const base = checkSelfAssignableRole(guild, roleId, actorIsAdmin ? null : actor);
+  if (base.ok) return base;
+  if (base.problem === 'dangerous' && actorIsAdmin) return { ok: true, role: base.role ?? role };
+  return base;
+}
+
+/**
+ * Check performed when HANDING OUT an automatic role (defense in depth: the
+ * role's permissions may have changed since it was configured). Never hands
+ * out a role with Administrator.
+ */
+export function canAutoAssignRole(guild: Guild, role: Role | null | undefined): boolean {
+  if (!role || role.id === guild.id || role.managed) return false;
+  if (role.permissions.has(PermissionFlagsBits.Administrator, false)) return false;
+  const botTop = guild.members.me?.roles.highest;
+  return !!botTop && role.comparePositionTo(botTop) < 0;
+}

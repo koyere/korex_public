@@ -72,9 +72,11 @@ export class LicenseExpiryJob {
     const now = new Date();
 
     // 1. Find all expired-but-still-ACTIVE licenses in a single DB query
+    // TRIAL included: DatabaseOptimizer used to expire it at startup without revoking
+    // access or notifying (audit 2026-11-21, H·BOT2-03); this job is now the only source
     const expired = await this.client.db.addonLicense.findMany({
       where: {
-        status: 'ACTIVE',
+        status: { in: ['ACTIVE', 'TRIAL'] },
         expiresAt: { lte: now },
       },
       select: {
@@ -96,13 +98,13 @@ export class LicenseExpiryJob {
     const expiredIds   = expired.filter(l => !l.cancelledAt).map(l => l.id);
     if (cancelledIds.length > 0) {
       await this.client.db.addonLicense.updateMany({
-        where: { id: { in: cancelledIds }, status: 'ACTIVE', expiresAt: { lte: now } },
+        where: { id: { in: cancelledIds }, status: { in: ['ACTIVE', 'TRIAL'] }, expiresAt: { lte: now } },
         data:  { status: 'CANCELLED' },
       });
     }
     if (expiredIds.length > 0) {
       await this.client.db.addonLicense.updateMany({
-        where: { id: { in: expiredIds }, status: 'ACTIVE', expiresAt: { lte: now } },
+        where: { id: { in: expiredIds }, status: { in: ['ACTIVE', 'TRIAL'] }, expiresAt: { lte: now } },
         data:  { status: 'EXPIRED' },
       });
     }

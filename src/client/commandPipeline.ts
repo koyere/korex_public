@@ -2,6 +2,7 @@ import { ChatInputCommandInteraction, MessageFlags } from 'discord.js';
 import { KorexClient } from './KorexClient';
 import { Command } from './structures/Command';
 import { i18n } from '../utils/i18n';
+import { getGuildPermissions } from '../utils/permissions';
 
 /**
  * Single execution pipeline for slash commands.
@@ -45,7 +46,8 @@ export async function runChatInputCommand(
     const canExecute = await command.canExecute(
       interaction.user.id,
       interaction.guildId || undefined,
-      interaction.memberPermissions?.bitfield || undefined
+      interaction.memberPermissions?.bitfield ?? undefined,
+      interaction.guildId ? await getGuildPermissions(interaction) : undefined
     );
 
     if (!canExecute.canExecute) {

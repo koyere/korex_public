@@ -8,6 +8,7 @@ import {
   MentionableSelectMenuInteraction,
   MessageFlags,
 } from 'discord.js';
+import { PermissionFlagsBits } from 'discord.js';
 import { KorexClient } from '../KorexClient';
 import { i18n } from '../../utils/i18n';
 
@@ -86,9 +87,15 @@ export abstract class Component {
       }
     }
 
-    // Check user permissions (using bigint bitwise operations)
-    if (this.permissions.length > 0 && memberPermissions) {
-      const missingPerms = this.permissions.filter((perm) => (memberPermissions & perm) !== perm);
+    // Check user permissions (in the channel of the component's message).
+    // Deny when no permissions are available: `0n`/undefined used to skip the
+    // check (audit 2026-11-21, G·BOT-26 / H·BOT2-09).
+    if (this.permissions.length > 0) {
+      if (memberPermissions === undefined || memberPermissions === null) {
+        return { canExecute: false, reason: 'You do not have the required permissions' };
+      }
+      const ADMIN = PermissionFlagsBits.Administrator;
+      const missingPerms = (memberPermissions & ADMIN) === ADMIN ? [] : this.permissions.filter((perm) => (memberPermissions & perm) !== perm);
 
       if (missingPerms.length > 0) {
         return { canExecute: false, reason: 'You do not have the required permissions' };
@@ -106,7 +113,7 @@ export abstract class Component {
       const canExecute = await this.canExecute(
         interaction.user.id,
         interaction.guildId || undefined,
-        interaction.memberPermissions?.bitfield || undefined
+        interaction.memberPermissions?.bitfield ?? undefined
       );
 
       if (!canExecute.canExecute) {

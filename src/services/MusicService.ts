@@ -19,57 +19,80 @@ import {
   EmbedBuilder,
   Colors,
 } from 'discord.js';
-import https from 'https';
-import http from 'http';
+import { Readable } from 'stream';
 import { Player, GuildQueue, Track, BaseExtractor, QueryType, Util } from 'discord-player';
 import { SoundCloudExtractor, AttachmentExtractor } from '@discord-player/extractor';
-import { isPublicHttpUrl } from '../utils/safeUrl';
+import { isPublicHttpUrl, openPublicStream } from '../utils/safeUrl';
 import { i18n } from '../utils/i18n';
 
 const DIRECT_AUDIO_RE = /\.(mp3|wav|ogg|flac|m4a|aac|opus)(\?.*)?$/i;
 
-function fetchStream(url: string): Promise<any> {
-  return new Promise((resolve, reject) => {
-    const lib = url.startsWith('http://') ? http : https;
-    lib.get(url, (res) => resolve(res)).once('error', reject);
-  });
-}
+// Playable content types (those of discord-player's AttachmentExtractor plus the
+// generic binary types S3 and some CDNs serve audio with).
+const PLAYABLE_TYPES = ['audio/', 'video/', 'application/ogg', 'raw/pcm', 'raw/opus', 'application/octet-stream', 'binary/octet-stream'];
+const isPlayableType = (ct: string) => PLAYABLE_TYPES.some((t) => ct.toLowerCase().startsWith(t));
 
-// Handles direct audio URLs (e.g. S3) that serve binary/octet-stream content-type,
-// which AttachmentExtractor rejects. Runs at higher priority so it intercepts first.
+/**
+ * Audio from a user-supplied URL (or a Music Pro AI track).
+ *
+ * Audit 2026-11-21 (I·COM-01): this extractor always opens the connection itself,
+ * to the validated and pinned IP (safeUrl.openPublicStream), revalidating every
+ * redirect, and ffmpeg receives the already-open stream. It used to receive the
+ * URL, and ffmpeg followed redirects and resolved DNS on its own, which made it
+ * possible to reach internal services on the VPS.
+ *
+ * It handles any arbitrary http(s) URL (not only those ending in .mp3…):
+ * discord-player's AttachmentExtractor stays registered but is excluded from
+ * URL searches (see play()).
+ */
 class DirectAudioExtractor extends BaseExtractor {
   static override identifier = 'com.korex.directaudio';
   priority = 1;
 
   async validate(query: string, type?: string | null): Promise<boolean> {
-    return type === (QueryType.ARBITRARY as string) && typeof query === 'string' && DIRECT_AUDIO_RE.test(query.split('?')[0]);
+    return type === (QueryType.ARBITRARY as string) && typeof query === 'string' && /^https?:\/\//i.test(query);
   }
 
   async handle(query: string, context: any) {
     let durationMs = 0;
+    let opened: Awaited<ReturnType<typeof openPublicStream>> | null = null;
 
     try {
-      const stream = await fetchStream(query);
+      opened = await openPublicStream(query, { connectTimeoutMs: 8000, idleTimeoutMs: 8000, acceptType: isPlayableType });
+    } catch {
+      // Internal, unplayable or unreachable URL: no results
+      return this.createResponse();
+    }
+
+    try {
       const mediaplex = require('mediaplex');
       const probeTimeout = this.context.player.options?.probeTimeout ?? 5000;
+      let timer: NodeJS.Timeout | undefined;
       const { result, stream: probeStream } = await Promise.race<any>([
-        mediaplex.probeStream(stream),
-        new Promise((_, r) => setTimeout(() => r(new Error('Timeout')), probeTimeout)),
-      ]);
+        mediaplex.probeStream(opened.stream),
+        new Promise((_, r) => { timer = setTimeout(() => r(new Error('Timeout')), probeTimeout); }),
+      ]).finally(() => clearTimeout(timer));
       if (result?.duration) durationMs = result.duration * 1000;
       probeStream?.destroy?.();
     } catch {
-      // probing failed — duration stays 0
+      // the duration could not be read: it stays at 0
+    } finally {
+      // The probe only needs the header: always close the connection
+      opened.stream.destroy();
     }
 
+    // AI tracks (Music Pro .mp3) keep their title; anything else uses the file name
+    const fileName = (query.split('?')[0].split('/').filter((x) => x.length).pop() ?? 'Audio').trim();
+    const title = DIRECT_AUDIO_RE.test(query.split('?')[0]) ? 'AI Generated Music' : decodeURIComponentSafe(fileName);
+
     const track = new Track(this.context.player, {
-      title: 'AI Generated Music',
+      title,
       url: query,
       duration: Util.buildTimeCode(Util.parseMS(durationMs)),
-      description: 'AI Generated Music',
+      description: title,
       thumbnail: 'https://upload.wikimedia.org/wikipedia/commons/2/2a/ITunes_12.2_logo.png',
       views: 0,
-      author: 'AI Music',
+      author: DIRECT_AUDIO_RE.test(query.split('?')[0]) ? 'AI Music' : 'Audio',
       requestedBy: context.requestedBy,
       source: 'arbitrary' as any,
       engine: query,
@@ -82,13 +105,19 @@ class DirectAudioExtractor extends BaseExtractor {
     return { playlist: null, tracks: [track] };
   }
 
-  async stream(track: Track): Promise<string> {
-    return track.url;
+  async stream(track: Track): Promise<Readable> {
+    // Stream opened here with the validated IP; ffmpeg reads it from stdin
+    const { stream } = await openPublicStream(track.url, { connectTimeoutMs: 10_000, idleTimeoutMs: 30_000, acceptType: isPlayableType });
+    return stream;
   }
 
   async getRelatedTracks() {
     return this.createResponse();
   }
+}
+
+function decodeURIComponentSafe(s: string): string {
+  try { return decodeURIComponent(s); } catch { return s; }
 }
 import { KorexClient } from '../client/KorexClient';
 import { createLogger } from '../utils/Logger';
@@ -258,6 +287,9 @@ export class MusicService {
     const searchResult = await this.player.search(resolvedQuery, {
       requestedBy: member.user,
       searchEngine: engine,
+      // Arbitrary URLs are handled only by DirectAudioExtractor (connection to the
+      // validated IP); AttachmentExtractor would let ffmpeg download the URL on its own.
+      ...(isUrl ? { blockExtractors: [AttachmentExtractor.identifier] } : {}),
     });
 
     // Filter out MONETIZE tracks (require SC OAuth to stream — will fail silently)

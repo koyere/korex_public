@@ -340,22 +340,9 @@ export class DatabaseOptimizer {
           return `Deleted ${deleted.count} resolved error logs`;
         }
       },
-      {
-        name: 'Clean expired addon licenses',
-        operation: async () => {
-          const now = new Date();
-          
-          // Use queryRaw to avoid issues with the model
-          const result = await this.prisma.$executeRaw`
-            UPDATE "addon_licenses" 
-            SET "status" = 'EXPIRED' 
-            WHERE "expiresAt" < ${now} 
-            AND "status" IN ('ACTIVE', 'TRIAL')
-          `;
-          
-          return `Expired ${result} addon licenses`;
-        }
-      },
+      // License expiry is handled only by LicenseExpiryJob (it tells cancelled
+      // licenses apart, revokes access, syncs commands and notifies the owner). This
+      // used to mark them EXPIRED at startup so the job never saw them (audit 2026-11-21, H·BOT2-03).
       {
         name: 'Clean old log entries',
         operation: async () => {

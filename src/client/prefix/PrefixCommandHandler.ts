@@ -556,7 +556,7 @@ export class PrefixCommandHandler {
       const json = this.getJson(command);
       if (!json) continue;
       if (!(await this.canUseInDiscord(message, command, json, perms.bitfield))) continue;
-      const check = await command.canExecute(message.author.id, message.guildId, perms.bitfield).catch(() => ({ canExecute: false }));
+      const check = await command.canExecute(message.author.id, message.guildId, perms.bitfield, member.permissions.bitfield).catch(() => ({ canExecute: false }));
       if (!check.canExecute) continue;
       result.push(command);
     }

@@ -37,6 +37,8 @@ export default class StickyCommand extends Command {
       description: 'Manage sticky messages in channels',
       category: 'admin',
       cooldown: 5,
+      // Acts on the invoking channel: the permission in that channel is enough (G·BOT-02)
+      permissionScope: 'channel',
       permissions: {
         user: [PermissionFlagsBits.ManageMessages],
         bot: [PermissionFlagsBits.ManageMessages, PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks]

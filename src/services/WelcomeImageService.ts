@@ -1,4 +1,5 @@
 import { createCanvas, loadImage, registerFont } from 'canvas';
+import { isSafeImageSize } from '../utils/imageDimensions';
 import { fetchPublicImage } from '../utils/safeUrl';
 import { GuildMember, AttachmentBuilder } from 'discord.js';
 import { i18n } from '../utils/i18n';
@@ -101,7 +102,10 @@ async function renderImage(member: GuildMember, kind: WelcomeImageKind, template
   let drewCustomBg = false;
   if (backgroundUrl) {
     try {
-      const bg = await loadImage(await fetchPublicImage(backgroundUrl));
+      const raw = await fetchPublicImage(backgroundUrl);
+      // Dimensions read from the header before decoding (decompression bomb)
+      if (!isSafeImageSize(raw)) throw new Error('Background image too large or unsupported');
+      const bg = await loadImage(raw);
 
       ctx.drawImage(bg, 0, 0, width, height);
       ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';

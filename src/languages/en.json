@@ -74,6 +74,7 @@
     "rate_limit": "⏳ You are going too fast. Try again in {retryAfter} seconds."
   },
   "commands": {
+    "scope_missing_notice": "⚠️ Korex: in server **{guild}** Discord won't let the bot register its commands (the application commands authorization is missing). Your licenses have not been touched. To fix it, authorize the commands with this link (it doesn't re-add the bot or change its permissions): {url}",
     "ping": {
       "description": "Shows bot latency and status",
       "response": "🏓 Pong! Latency: {latency}ms | API: {api}ms",
@@ -5721,7 +5722,7 @@
     "changed_description": "The server language is now **{language}**. Bot responses and the dashboard will use this language."
   },
   "autoresponse": {
-    "unsafe_regex": "❌ The regular expression is invalid or too complex (max 200 characters, no nested quantifiers like (a+)+)."
+    "unsafe_regex": "❌ The regular expression is invalid or uses unsupported syntax. Max 200 characters; backreferences (\\1) and lookahead/lookbehind ((?=…), (?<=…)) are not supported."
   },
   "prefix_commands": {
     "disabled_info": "👋 Prefix commands are disabled in this server. Type `/` to use my slash commands.",

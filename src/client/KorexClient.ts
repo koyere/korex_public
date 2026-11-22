@@ -151,6 +151,11 @@ export class KorexClient extends Client {
     super({
       intents: botConfig.intents,
       partials: botConfig.partials,
+      // Safe default (audit 2026-11-21, G·BOT-05 / I·COM-09): text written by users
+      // or operators never mentions @everyone, @here or roles. Notices that do need
+      // to mention roles (tickets, forms) set their own allowedMentions, which
+      // replaces this one.
+      allowedMentions: { parse: ['users'], repliedUser: true },
       ...options,
     });
 

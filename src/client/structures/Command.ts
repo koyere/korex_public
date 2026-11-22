@@ -25,6 +25,13 @@ export interface CommandOptions {
   nsfw?: boolean;
   enabled?: boolean;
   addon?: string | null; // If it belongs to an addon
+  /**
+   * Where `permissions.user` is enforced (audit 2026-11-21, G·BOT-02):
+   * - 'guild' (default): the member's server-level permissions.
+   * - 'channel': permissions in the invoking channel; the command must also check
+   *   the target channel when it acts on another one (utils/permissions.memberCanInChannel).
+   */
+  permissionScope?: 'guild' | 'channel';
 }
 
 export type CommandCategory =
@@ -56,6 +63,7 @@ export abstract class Command {
   public nsfw: boolean;
   public enabled: boolean;
   public addon: string | null;
+  public permissionScope: 'guild' | 'channel';
 
   constructor(client: KorexClient, options: CommandOptions) {
     this.client = client;
@@ -73,6 +81,7 @@ export abstract class Command {
     this.nsfw = options.nsfw ?? false;
     this.enabled = options.enabled ?? true;
     this.addon = options.addon ?? null;
+    this.permissionScope = options.permissionScope ?? 'guild';
   }
 
   /**
@@ -100,7 +109,8 @@ export abstract class Command {
   async canExecute(
     userId: string,
     guildId?: string,
-    memberPermissions?: Readonly<bigint>
+    memberPermissions?: Readonly<bigint>,
+    guildPermissions?: Readonly<bigint>
   ): Promise<{ canExecute: boolean; reason?: string }> {
     // Check whether the command is enabled
     if (!this.enabled) {
@@ -137,10 +147,17 @@ export abstract class Command {
       if (blocked) return { canExecute: false, reason: blocked };
     }
 
-    // Check user permissions (using bigint bitwise operations)
-    if (this.permissions.user.length > 0 && memberPermissions) {
-      const missingPerms = this.permissions.user.filter(
-        (perm) => (memberPermissions & perm) !== perm
+    // Check user permissions (using bigint bitwise operations).
+    // Default scope: server. No permissions available → deny (the check used to
+    // be skipped: G·BOT-26).
+    if (this.permissions.user.length > 0 && guildId) {
+      const perms = this.permissionScope === 'channel' ? memberPermissions : guildPermissions;
+      if (perms === undefined || perms === null) {
+        return { canExecute: false, reason: i18n.t('command_errors.missing_permissions', guildId) };
+      }
+      const ADMIN = PermissionFlagsBits.Administrator;
+      const missingPerms = (perms & ADMIN) === ADMIN ? [] : this.permissions.user.filter(
+        (perm) => (perms & perm) !== perm
       );
 
       if (missingPerms.length > 0) {

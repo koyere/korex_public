@@ -22,6 +22,8 @@ export default class ClearCommand extends Command {
         bot: [PermissionFlagsBits.ManageMessages],
       },
       cooldown: 5,
+      // Acts on the invoking channel: the permission in that channel is enough (G·BOT-02)
+      permissionScope: 'channel',
       guildOnly: true,
     });
   }

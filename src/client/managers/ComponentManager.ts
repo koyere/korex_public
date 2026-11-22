@@ -6,10 +6,23 @@ import { i18n } from '../../utils/i18n';
 export class ComponentManager {
   public client: KorexClient;
   public components: Collection<string, Component>;
+  /**
+   * Modals a collector (awaitModalSubmit) is currently waiting for: the global
+   * dispatcher must not answer them (see utils/awaitOwnModal).
+   */
+  private pendingModals = new Set<string>();
 
   constructor(client: KorexClient) {
     this.client = client;
     this.components = new Collection();
+  }
+
+  expectModal(customId: string): void {
+    this.pendingModals.add(customId);
+  }
+
+  releaseModal(customId: string): void {
+    this.pendingModals.delete(customId);
   }
 
   /**
@@ -103,6 +116,9 @@ export class ComponentManager {
     if (!interaction.isModalSubmit()) {
       return;
     }
+
+    // Handled by an active collector (wizards, /massban): do not answer here
+    if (this.pendingModals.has(interaction.customId)) return;
 
     const component = this.getComponent(interaction.customId, 'modal');
 

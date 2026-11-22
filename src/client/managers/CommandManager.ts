@@ -4,6 +4,7 @@ import { KorexClient } from '../KorexClient';
 import { readdirSync, existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { effectiveEnabledAddons, isCoreModule, normalizeStored } from '../../config/coreModules';
+import { i18n } from '../../utils/i18n';
 
 /**
  * Centralized (es) localization of slash command descriptions.
@@ -262,6 +263,15 @@ export class CommandManager {
       );
     } catch (error) {
       if (error instanceof DiscordAPIError && error.code === 50001) {
+        // 50001 also arrives when the bot IS in the server but was invited without the
+        // applications.commands scope: licenses and addons are left alone, only a notice
+        // is sent (audit 2026-11-21, G·BOT-14; they used to go to KICKOUT and the
+        // subscription was cancelled after 7 days).
+        if (this.client.guilds.cache.has(guildId)) {
+          this.client.logger.warn(`[CommandManager] Guild ${guildId}: the bot is in the server but the applications.commands scope is missing; licenses left untouched`);
+          await this.notifyMissingCommandsScope(guildId).catch(() => {});
+          return;
+        }
         this.client.logger.warn(
           `[CommandManager] Missing Access (50001) for guild ${guildId} — cleaning up guild addon state`
         );
@@ -292,6 +302,25 @@ export class CommandManager {
       }
       this.client.logger.error(`Error syncing addon commands for guild ${guildId}:`, error);
     }
+  }
+
+  /**
+   * Notifies the server owner (at most once a day per server) that the application
+   * commands are missing: the bot must be re-invited with a link that includes
+   * applications.commands. Licenses are left untouched (G·BOT-14).
+   */
+  private async notifyMissingCommandsScope(guildId: string): Promise<void> {
+    const redis = (this.client as any).redis?.getClient?.();
+    const key = `commands:scope-missing:notified:${guildId}`;
+    if (redis && !(await redis.set(key, '1', 'EX', 86_400, 'NX').catch(() => null))) return;
+    const guild = this.client.guilds.cache.get(guildId);
+    // Commands scope only: it does not re-add the bot or change its permissions
+    const inviteUrl = `https://discord.com/api/oauth2/authorize?client_id=${this.client.user?.id}&scope=applications.commands&guild_id=${guildId}&disable_guild_select=true`;
+    const owner = guild ? await guild.fetchOwner().catch(() => null) : null;
+    await owner?.send({
+      content: i18n.t('commands.scope_missing_notice', guildId, { guild: guild?.name ?? guildId, url: inviteUrl }),
+      allowedMentions: { parse: [] },
+    }).catch(() => null);
   }
 
   /**

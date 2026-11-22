@@ -154,15 +154,11 @@ export class DatabaseManager {
         },
       });
 
-      // Clean expired moderation cases
-      const deletedExpiredCases = await this.prisma.moderationCase.deleteMany({
-        where: {
-          active: false,
-          createdAt: {
-            lt: thirtyDaysAgo,
-          },
-        },
-      });
+      // Moderation history (warnings, kicks, closed sanctions) is kept: it used to be
+      // deleted after 30 days, so /modlogs, warning escalation and case numbering lost
+      // customer data (audit 2026-11-21, G·BOT-07). It is deleted together with the
+      // server's data.
+      const deletedExpiredCases = { count: 0 };
 
       // Clean old command usage (more than 30 days)
       const deletedLogs = await this.prisma.commandUsage.deleteMany({

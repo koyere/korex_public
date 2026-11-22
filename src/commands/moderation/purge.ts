@@ -18,6 +18,8 @@ export default class PurgeCommand extends Command {
       description: 'Advanced message purging with multiple filters',
       category: 'moderation',
       cooldown: 5,
+      // Acts on the invoking channel: the permission in that channel is enough (G·BOT-02)
+      permissionScope: 'channel',
       permissions: {
         user: [PermissionFlagsBits.ManageMessages],
         bot: [PermissionFlagsBits.ManageMessages, PermissionFlagsBits.ReadMessageHistory]

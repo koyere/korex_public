@@ -14,6 +14,8 @@ import {
 import { Command } from '../../client/structures/Command';
 import { KorexClient } from '../../client/KorexClient';
 import { i18n } from '../../utils/i18n';
+import { memberCanInChannel, memberHasGuildPermissions, resolveInvoker } from '../../utils/permissions';
+import { isGuildAdministrator } from '../../utils/roleSafety';
 
 export default class CloneCommand extends Command {
   constructor(client: KorexClient) {
@@ -22,6 +24,8 @@ export default class CloneCommand extends Command {
       description: 'Clone a channel or role with all its properties',
       category: 'admin',
       cooldown: 15,
+      // Channel: permissions in the source channel and where it is created; role: server level (G·BOT-02, G·BOT-11)
+      permissionScope: 'channel',
       permissions: {
         user: [PermissionFlagsBits.ManageChannels, PermissionFlagsBits.ManageRoles],
         bot: [PermissionFlagsBits.ManageChannels, PermissionFlagsBits.ManageRoles, PermissionFlagsBits.SendMessages]
@@ -115,6 +119,18 @@ export default class CloneCommand extends Command {
       // Validate permissions
       const guildChannel = sourceChannel as TextChannel | VoiceChannel | CategoryChannel;
 
+      // The user must be able to view and manage the source channel, and create
+      // channels where the copy will be created (its category or the server)
+      const parent = (guildChannel as any).parent ?? null;
+      const canSource = await memberCanInChannel(interaction, guildChannel as any, [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.ManageChannels]);
+      const canCreate = parent
+        ? await memberCanInChannel(interaction, parent, [PermissionFlagsBits.ManageChannels])
+        : await memberHasGuildPermissions(interaction, [PermissionFlagsBits.ManageChannels]);
+      if (!canSource || !canCreate) {
+        await interaction.editReply({ content: i18n.t('command_errors.missing_permissions', guildId) });
+        return;
+      }
+
       if (!guildChannel.permissionsFor || !guildChannel.permissionsFor(interaction.guild!.members.me!)?.has(PermissionFlagsBits.ViewChannel)) {
         await interaction.editReply({
           content: i18n.t('clone.channel.no_access', guildId)
@@ -203,6 +219,23 @@ export default class CloneCommand extends Command {
         });
 
         return;
+      }
+
+      // Creating roles is a server-level action; non-Administrators cannot clone a
+      // role equal to or above their own, or one with permissions they lack
+      // (Discord does not allow it natively either; G·BOT-11)
+      const actor = await resolveInvoker(interaction);
+      if (!actor || !(await memberHasGuildPermissions(interaction, [PermissionFlagsBits.ManageRoles]))) {
+        await interaction.editReply({ content: i18n.t('command_errors.missing_permissions', guildId) });
+        return;
+      }
+      if (!isGuildAdministrator(actor)) {
+        const aboveActor = sourceRole.comparePositionTo(actor.roles.highest) >= 0;
+        const extraPerms = sourceRole.permissions.remove(actor.permissions).bitfield !== 0n;
+        if (aboveActor || extraPerms) {
+          await interaction.editReply({ content: i18n.t('clone.role.hierarchy_error', guildId) });
+          return;
+        }
       }
 
       // Check hierarchy

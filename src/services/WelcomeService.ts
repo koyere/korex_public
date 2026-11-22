@@ -9,6 +9,7 @@ import {
   ButtonBuilder,
   ButtonStyle,
 } from 'discord.js';
+import { canAutoAssignRole, checkSelfAssignableRole } from '../utils/roleSafety';
 import { logger } from '../utils/Logger';
 import { DatabaseManager } from '../client/managers/DatabaseManager';
 import { i18n } from '../utils/i18n';
@@ -142,7 +143,7 @@ export class WelcomeService {
     kind: 'welcome' | 'goodbye',
     config: WelcomeConfigRow,
     opts: { test?: boolean } = {}
-  ): Promise<{ channel: TextChannel; options: { content?: string; embeds?: EmbedBuilder[]; files?: any[] } } | null> {
+  ): Promise<{ channel: TextChannel; options: { content?: string; embeds?: EmbedBuilder[]; files?: any[]; allowedMentions: { parse: []; users: string[] } } } | null> {
     const guildId = member.guild.id;
     const channelId = kind === 'welcome' ? config.welcomeChannelId : config.goodbyeChannelId;
     if (!channelId) return null;
@@ -157,7 +158,11 @@ export class WelcomeService {
     const embedData = ((kind === 'welcome' ? config.welcomeEmbed : config.goodbyeEmbed) ?? {}) as Record<string, any>;
     const testPrefix = opts.test ? `**${i18n.t('welcome.test_prefix', guildId)}**` : undefined;
 
-    const options: { content?: string; embeds?: EmbedBuilder[]; files?: any[] } = {};
+    // Only the member themselves is mentioned: the text is written by an operator and
+    // contains usernames, so never @everyone, @here or roles (C·API-04)
+    const options: { content?: string; embeds?: EmbedBuilder[]; files?: any[]; allowedMentions: { parse: []; users: string[] } } = {
+      allowedMentions: { parse: [], users: [member.id] },
+    };
 
     if (embedData.enabled) {
       const color = /^#[0-9a-fA-F]{6}$/.test(embedData.color ?? '')
@@ -223,9 +228,8 @@ export class WelcomeService {
     const botMember = member.guild.members.me;
     const assignable = roleIds
       .map((id) => member.guild.roles.cache.get(id))
-      .filter((role): role is NonNullable<typeof role> =>
-        !!role && !role.managed && !!botMember && role.comparePositionTo(botMember.roles.highest) < 0
-      );
+      // Below the bot, not managed and never with Administrator (roleSafety.canAutoAssignRole)
+      .filter((role): role is NonNullable<typeof role> => !!botMember && canAutoAssignRole(member.guild, role));
 
     if (assignable.length < roleIds.length) {
       this.logger.warn(`Some auto-roles in ${member.guild.name} are missing or above the bot`);
@@ -539,7 +543,10 @@ export class WelcomeService {
 
       switch (action) {
         case 'role':
-          const role = member.guild.roles.cache.get(data);
+          // Self-service button: the role comes from the customId, so only
+          // self-assignable roles are given (no permissions, below the bot).
+          const check = checkSelfAssignableRole(member.guild, String(data));
+          const role = check.ok ? check.role : undefined;
 
           if (role) {
             if (member.roles.cache.has(role.id)) {

@@ -1,4 +1,5 @@
 import { logger } from '../utils/Logger';
+import { canAutoAssignRole } from '../utils/roleSafety';
 import { DatabaseManager } from '../client/managers/DatabaseManager';
 import { Guild, GuildMember, TextChannel, EmbedBuilder, Colors, VoiceState } from 'discord.js';
 import { isCoreModuleEnabled } from '../config/coreModules';
@@ -554,7 +555,8 @@ export class LevelService {
         const toGrant = config.stackRoles ? earned : earned.slice(0, 1);
         for (const { roleId } of toGrant) {
           const role = guild.roles.cache.get(roleId);
-          if (!role || role.managed || (botTop && role.comparePositionTo(botTop) >= 0)) continue;
+          // Below the bot, not managed and never with Administrator (roleSafety.canAutoAssignRole)
+          if (!role || !botTop || !canAutoAssignRole(guild, role)) continue;
           if (!member.roles.cache.has(role.id)) {
             await member.roles.add(role, `Level up reward - Level ${newLevel}`);
             roleRewards.push(role.name);

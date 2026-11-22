@@ -15,6 +15,7 @@ import {
 import { Command } from '../../client/structures/Command';
 import { KorexClient } from '../../client/KorexClient';
 import { i18n } from '../../utils/i18n';
+import { memberCanInChannel } from '../../utils/permissions';
 import { botConfig } from '../../config/bot.config';
 import { buildTypeSelectRow } from '../../utils/pollHelpers';
 
@@ -25,6 +26,8 @@ export default class PollCommand extends Command {
       description: 'Create and manage polls',
       category: 'utility',
       cooldown: 10,
+      // Posting a poll requires being able to write in the target channel (G·BOT-02, I·COM-03)
+      permissionScope: 'channel',
       permissions: {
         user: [PermissionFlagsBits.SendMessages],
         bot: [PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks]
@@ -132,6 +135,11 @@ export default class PollCommand extends Command {
 
     if (!channel?.isTextBased()) {
       await interaction.reply({ content: i18n.t('commands.poll.create.errors.invalid_channel', guildId), flags: MessageFlags.Ephemeral });
+      return;
+    }
+
+    if (!(await memberCanInChannel(interaction, channel as any, [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages]))) {
+      await interaction.reply({ content: i18n.t('command_errors.missing_permissions', guildId), flags: MessageFlags.Ephemeral });
       return;
     }
 

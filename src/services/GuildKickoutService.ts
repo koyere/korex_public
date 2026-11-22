@@ -75,15 +75,17 @@ export class GuildKickoutService {
           data: { leftAt: now },
         }),
 
-        // Suspend all active addon licenses → KICKOUT
+        // Active licenses and also those suspended for non-payment (their subscription
+        // may keep charging once it recovers) → KICKOUT. When the bot returns they are
+        // restored to their state: suspendedAt means it was suspended (D·PAY-07).
         this.client.db.addonLicense.updateMany({
-          where: { guildId, status: 'ACTIVE' },
+          where: { guildId, status: { in: ['ACTIVE', 'SUSPENDED'] } },
           data: { status: 'KICKOUT', kickoutAt: now },
         }),
 
-        // Suspend active bundle premium → KICKOUT
+        // Active or suspended bundle → KICKOUT
         this.client.db.guildPremium.updateMany({
-          where: { guildId, status: 'ACTIVE' },
+          where: { guildId, status: { in: ['ACTIVE', 'SUSPENDED'] } },
           data: { status: 'KICKOUT', kickoutAt: now },
         }),
       ]);
@@ -99,6 +101,43 @@ export class GuildKickoutService {
       logger.error(`Error handling guild left for ${guildId}:`, error);
       throw error;
     }
+  }
+
+  // ─── Reconciliation (D·PAY-07) ────────────────────────────────────────────────────
+
+  /**
+   * Servers with paid access (active or suspended) where the bot no longer is and
+   * for which guildDelete never arrived (e.g. the bot was down when it was removed).
+   * Without this the license stayed ACTIVE and PayPal kept charging forever. It only
+   * acts when Discord confirms the bot is gone (Unknown Guild / Missing Access); on
+   * any other error nothing is done, so a customer is never kicked out by mistake.
+   * Returns how many servers were moved to KICKOUT.
+   */
+  async reconcileAbsentGuilds(): Promise<number> {
+    if (!this.client.isReady()) return 0;
+    if (this.client.shard) {
+      // With sharding the local cache only holds this shard's servers
+      logger.warn('Kickout reconciliation skipped: not supported with sharding yet');
+      return 0;
+    }
+    const [lics, prems] = await Promise.all([
+      this.client.db.addonLicense.findMany({ where: { status: { in: ['ACTIVE', 'SUSPENDED'] } }, select: { guildId: true }, distinct: ['guildId'] }),
+      this.client.db.guildPremium.findMany({ where: { status: { in: ['ACTIVE', 'SUSPENDED'] } }, select: { guildId: true }, distinct: ['guildId'] }),
+    ]);
+    const candidates = [...new Set([...lics, ...prems].map((r: any) => r.guildId as string))]
+      .filter((id) => !this.client.guilds.cache.has(id));
+    let kicked = 0;
+    for (const guildId of candidates) {
+      const present = await this.client.guilds.fetch({ guild: guildId, force: true })
+        .then(() => true)
+        .catch((err: any) => (err?.code === 10004 || err?.code === 50001 ? false : null));
+      if (present !== false) continue;
+      logger.warn(`Kickout reconciliation: bot absent from ${guildId} without guildDelete; applying kickout`);
+      await this.handleGuildLeft(guildId);
+      kicked++;
+    }
+    if (kicked > 0) logger.info(`Kickout reconciliation: ${kicked} server(s) marked as KICKOUT`);
+    return kicked;
   }
 
   // ─── Restore (bot re-added within grace period) ───────────────────────────────
@@ -150,26 +189,29 @@ export class GuildKickoutService {
       for (const lic of kickoutLicenses) {
         const expiresAt = resumeExpiry(lic);
         const alive = expiresAt > now;
+        // If it was suspended for non-payment before the removal, it goes back to suspended
+        const wasSuspended = !!lic.suspendedAt;
         await this.client.db.addonLicense.updateMany({
           where: { id: lic.id, status: 'KICKOUT' },
           data: alive
-            ? { status: 'ACTIVE', kickoutAt: null, expiresAt }
+            ? { status: wasSuspended ? 'SUSPENDED' : 'ACTIVE', kickoutAt: null, expiresAt }
             : { status: lic.cancelledAt ? 'CANCELLED' : 'EXPIRED', kickoutAt: null },
         });
-        if (alive) restoredLicenses.push(lic);
+        if (alive && !wasSuspended) restoredLicenses.push(lic);
       }
 
       const restoredPremium: typeof kickoutPremium = [];
       for (const premium of kickoutPremium) {
         const expiresAt = resumeExpiry(premium);
         const alive = expiresAt > now;
+        const wasSuspended = !!premium.suspendedAt;
         await this.client.db.guildPremium.updateMany({
           where: { id: premium.id, status: 'KICKOUT' },
           data: alive
-            ? { status: 'ACTIVE', kickoutAt: null, expiresAt }
+            ? { status: wasSuspended ? 'SUSPENDED' : 'ACTIVE', kickoutAt: null, expiresAt }
             : { status: premium.cancelledAt ? 'CANCELLED' : 'EXPIRED', kickoutAt: null },
         });
-        if (alive) restoredPremium.push(premium);
+        if (alive && !wasSuspended) restoredPremium.push(premium);
       }
 
       // Clear leftAt since bot is back
@@ -225,6 +267,8 @@ export class GuildKickoutService {
     logger.info(`Running kickout cleanup for records kicked before ${graceDeadline.toISOString()}`);
 
     try {
+      // First, servers that removed the bot without a guildDelete arriving
+      await this.reconcileAbsentGuilds().catch((err) => logger.error('Kickout reconciliation failed:', err));
       await Promise.all([
         this.processExpiredLicenses(graceDeadline),
         this.processExpiredPremium(graceDeadline),

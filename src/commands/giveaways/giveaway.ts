@@ -18,6 +18,7 @@ import {
 import { Command } from '../../client/structures/Command';
 import { KorexClient } from '../../client/KorexClient';
 import { i18n } from '../../utils/i18n';
+import { memberCanInChannel } from '../../utils/permissions';
 import { botConfig } from '../../config/bot.config';
 
 export default class GiveawayCommand extends Command {
@@ -27,6 +28,8 @@ export default class GiveawayCommand extends Command {
       description: 'Manage server giveaways',
       category: 'giveaways',
       cooldown: 10,
+      // The permission is required in the channel where the giveaway is posted (G·BOT-02)
+      permissionScope: 'channel',
       permissions: {
         user: [PermissionFlagsBits.ManageMessages],
         bot: [PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks]
@@ -179,6 +182,10 @@ export default class GiveawayCommand extends Command {
     const prize = interaction.options.get('prize')?.value as string;
     const duration = interaction.options.get('duration')?.value as number; // hours
     const channel = (interaction.options.get('channel')?.channel as TextChannel) || interaction.channel as TextChannel;
+    if (!(await memberCanInChannel(interaction, channel as any, [PermissionFlagsBits.ManageMessages, PermissionFlagsBits.SendMessages]))) {
+      await interaction.reply({ content: i18n.t('command_errors.missing_permissions', guildId), ephemeral: true });
+      return;
+    }
     const winners = (interaction.options.get('winners')?.value as number) || 1;
     const title = (interaction.options.get('title')?.value as string) || i18n.t('giveaways.default_title', guildId);
 

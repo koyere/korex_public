@@ -19,6 +19,13 @@ export interface AddonConfig {
   permissions: string[];
   dependencies: string[];
   
+  /**
+   * customId prefixes (before ':') of the modals handled by the addon itself,
+   * when they differ from its name. The core does not answer those modals
+   * (audit 2026-11-21, H·BOT2-02).
+   */
+  componentPrefixes?: string[];
+
   // Technical configuration
   enabled: boolean;
   beta: boolean;

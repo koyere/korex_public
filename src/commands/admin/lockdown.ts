@@ -19,6 +19,7 @@ import {
 import { Command } from '../../client/structures/Command';
 import { KorexClient } from '../../client/KorexClient';
 import { i18n } from '../../utils/i18n';
+import { memberCanInChannel, memberHasGuildPermissions } from '../../utils/permissions';
 
 interface LockdownData {
   channelId: string;
@@ -39,6 +40,8 @@ export default class LockdownCommand extends Command {
       description: 'Lock or unlock channels/server to prevent user activity',
       category: 'admin',
       cooldown: 10,
+      // 'channel' requires the permission in the target channel; 'server' requires it at server level (G·BOT-02)
+      permissionScope: 'channel',
       permissions: {
         user: [PermissionFlagsBits.ManageRoles],
         bot: [PermissionFlagsBits.ManageRoles, PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks]
@@ -156,6 +159,11 @@ export default class LockdownCommand extends Command {
 
     await interaction.deferReply({ ephemeral: true });
 
+    if (targetChannel && !(await memberCanInChannel(interaction, targetChannel as any, [PermissionFlagsBits.ManageRoles]))) {
+      await interaction.editReply({ content: i18n.t('command_errors.missing_permissions', guildId) });
+      return;
+    }
+
     if (!targetChannel || !('permissionOverwrites' in targetChannel)) {
       await interaction.editReply({
         content: i18n.t('lockdown.channel.invalid_channel', guildId)
@@ -183,6 +191,12 @@ export default class LockdownCommand extends Command {
     const reason = interaction.options.getString('reason') || i18n.t('lockdown.default_reason', interaction.guild!.id);
     const silent = interaction.options.getBoolean('silent') || false;
     const guildId = interaction.guild!.id;
+
+    // Locking the whole server requires the permission at server level, not in a channel
+    if (!(await memberHasGuildPermissions(interaction, [PermissionFlagsBits.ManageRoles]))) {
+      await interaction.reply({ content: i18n.t('command_errors.missing_permissions', guildId), ephemeral: true });
+      return;
+    }
 
     await interaction.deferReply({ ephemeral: true });
 

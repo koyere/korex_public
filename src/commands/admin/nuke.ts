@@ -17,6 +17,7 @@ import {
 import { Command } from '../../client/structures/Command';
 import { KorexClient } from '../../client/KorexClient';
 import { i18n } from '../../utils/i18n';
+import { memberCanInChannel } from '../../utils/permissions';
 
 export default class NukeCommand extends Command {
   constructor(client: KorexClient) {
@@ -25,6 +26,8 @@ export default class NukeCommand extends Command {
       description: 'Delete and recreate a channel (nuclear option)',
       category: 'admin',
       cooldown: 30,
+      // The permission is required in the channel being deleted, not the invoking one (G·BOT-02)
+      permissionScope: 'channel',
       permissions: {
         user: [PermissionFlagsBits.ManageChannels],
         bot: [PermissionFlagsBits.ManageChannels, PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks]
@@ -79,11 +82,10 @@ export default class NukeCommand extends Command {
       return;
     }
 
-    // Check if user has permission to manage this specific channel
-    const member = interaction.member as any;
-    const guildChannel = targetChannel as any;
+    // The user must be able to manage THAT channel (only the invoking one used to be checked)
+    const canManageTarget = await memberCanInChannel(interaction, targetChannel as any, [PermissionFlagsBits.ManageChannels]);
 
-    if (!member) {
+    if (!canManageTarget) {
       await interaction.reply({
         content: i18n.t('nuke.no_permission', guildId),
         ephemeral: true

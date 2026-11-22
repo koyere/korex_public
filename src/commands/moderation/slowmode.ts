@@ -10,6 +10,7 @@ import {
 import { Command } from '../../client/structures/Command';
 import { KorexClient } from '../../client/KorexClient';
 import { i18n } from '../../utils/i18n';
+import { memberCanInChannel } from '../../utils/permissions';
 import { botConfig } from '../../config/bot.config';
 
 export default class SlowmodeCommand extends Command {
@@ -19,6 +20,8 @@ export default class SlowmodeCommand extends Command {
       description: 'Set slowmode for a channel',
       category: 'moderation',
       cooldown: 3,
+      // The permission is required in the target channel (G·BOT-02)
+      permissionScope: 'channel',
       permissions: {
         user: [PermissionFlagsBits.ManageChannels],
         bot: [PermissionFlagsBits.ManageChannels]
@@ -74,6 +77,12 @@ export default class SlowmodeCommand extends Command {
     }
 
     const channel = targetChannel as TextChannel | NewsChannel | ThreadChannel;
+
+    // The user must be able to manage the target channel, not just the invoking one
+    if (!(await memberCanInChannel(interaction, channel as any, [PermissionFlagsBits.ManageChannels]))) {
+      await interaction.reply({ content: i18n.t('command_errors.missing_permissions', guildId), ephemeral: true });
+      return;
+    }
 
     try {
       // Set slowmode

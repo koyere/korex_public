@@ -74,6 +74,7 @@
     "rate_limit": "⏳ Vas demasiado rápido. Inténtalo de nuevo en {retryAfter} segundos."
   },
   "commands": {
+    "scope_missing_notice": "⚠️ Korex: en el servidor **{guild}** Discord no deja registrar los comandos del bot (falta la autorización de comandos de aplicación). Tus licencias no se han tocado. Para arreglarlo, autoriza los comandos con este enlace (no vuelve a añadir el bot ni cambia sus permisos): {url}",
     "ping": {
       "description": "Muestra la latencia y estado del bot",
       "response": "🏓 ¡Pong! Latencia: {latency}ms | API: {api}ms",
@@ -5748,7 +5749,7 @@
     "changed_description": "El idioma del servidor ahora es **{language}**. Las respuestas del bot y el panel usarán este idioma."
   },
   "autoresponse": {
-    "unsafe_regex": "❌ La expresión regular no es válida o es demasiado compleja (máx. 200 caracteres, sin cuantificadores anidados como (a+)+)."
+    "unsafe_regex": "❌ La expresión regular no es válida o usa una sintaxis no admitida. Máximo 200 caracteres; no se admiten retroreferencias (\\1) ni lookahead/lookbehind ((?=…), (?<=…))."
   },
   "prefix_commands": {
     "disabled_info": "👋 Los comandos con prefijo están desactivados en este servidor. Escribe `/` para usar mis comandos de barra.",
