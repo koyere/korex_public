@@ -5672,6 +5672,7 @@
   },
   "teamAccess": {
     "notify": {
+      "inviter_lost": {"title": "⚠️ Review your server's collaborators", "desc": "**{inviter}** is no longer an administrator of **{server}** ({reason}). Their pending invites have been cancelled ({invites}).\n\nCollaborators who joined through their invites and are still active:\n{list}\n\nIf any of them shouldn't have access, revoke it in Dashboard → Team Access.", "none": "none", "reason_left": "left the server", "reason_demoted": "lost the Administrator permission"},
       "accepted": {
         "title": "🔔 New collaborator on your server",
         "desc": "**{user}** accepted the invitation from **{inviter}** and now has access to the control panel of **{server}**.",

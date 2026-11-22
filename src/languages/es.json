@@ -5699,6 +5699,7 @@
   },
   "teamAccess": {
     "notify": {
+      "inviter_lost": {"title": "⚠️ Revisa los colaboradores de tu servidor", "desc": "**{inviter}** ya no es administrador de **{server}** ({reason}). Sus invitaciones pendientes se han anulado ({invites}).\n\nColaboradores que entraron con sus invitaciones y siguen activos:\n{list}\n\nSi alguno no debería tener acceso, revócalo en Panel → Accesos del Equipo.", "none": "ninguno", "reason_left": "ha salido del servidor", "reason_demoted": "ha perdido el permiso de Administrador"},
       "accepted": {
         "title": "🔔 Nuevo colaborador en tu servidor",
         "desc": "**{user}** ha aceptado la invitación de **{inviter}** y ahora tiene acceso al panel de control de **{server}**.",

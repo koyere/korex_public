@@ -1,6 +1,7 @@
 import { GuildMember } from 'discord.js';
 import { Event } from '../../client/structures/Event';
 import { KorexClient } from '../../client/KorexClient';
+import { reviewInviter } from '../../services/TeamAccessGuard';
 
 export default class GuildMemberRemoveEvent extends Event<'guildMemberRemove'> {
   constructor(client: KorexClient) {
@@ -31,6 +32,9 @@ export default class GuildMemberRemoveEvent extends Event<'guildMemberRemove'> {
 
       // Auto-revoke collaborator access if the member leaves the server
       await this.revokeOperatorOnLeave(member);
+
+      // If they had invited collaborators: cancel their invites and notify the owner
+      await reviewInviter(this.client, member.guild, member.id, 'left').catch(() => undefined);
     } catch (error) {
       this.client.logger.error('Error handling guild member remove event:', error);
     }
