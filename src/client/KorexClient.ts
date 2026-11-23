@@ -1,3 +1,4 @@
+import { internalShardOptions } from '../config/shards';
 import { Client, ClientOptions, Collection } from 'discord.js';
 import { PrismaClient } from '../generated/prisma/client';
 
@@ -156,6 +157,9 @@ export class KorexClient extends Client {
       // to mention roles (tickets, forms) set their own allowedMentions, which
       // replaces this one.
       allowedMentions: { parse: ['users'], repliedUser: true },
+      // Internal sharding: every shard in this process, so the API, scheduled jobs
+      // and timers exist once and see every guild
+      ...internalShardOptions(),
       ...options,
     });
 
@@ -628,6 +632,8 @@ export class KorexClient extends Client {
       if (this.licenseExpiryJob) {
         this.licenseExpiryJob.stop();
       }
+      // Analytics messages still waiting in the buffer
+      await this.analytics?.flushMessages().catch(() => undefined);
       if (this.kickoutService) {
         this.kickoutService.stop();
       }

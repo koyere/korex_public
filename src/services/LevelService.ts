@@ -222,7 +222,27 @@ export class LevelService {
   /**
    * Gets a server's leveling configuration
    */
+  /**
+   * Short-lived config cache (it was read from the database twice for every
+   * message of every server). The dashboard invalidates it when saving.
+   */
+  private configCache = new Map<string, { config: LevelConfig; expires: number }>();
+  private static readonly CONFIG_TTL_MS = 30_000;
+
+  public invalidateConfig(guildId: string): void {
+    this.configCache.delete(guildId);
+  }
+
   public async getConfig(guildId: string): Promise<LevelConfig> {
+    const hit = this.configCache.get(guildId);
+    if (hit && hit.expires > Date.now()) return hit.config;
+    const config = await this.loadConfig(guildId);
+    if (this.configCache.size > 20_000) this.configCache.clear();
+    this.configCache.set(guildId, { config, expires: Date.now() + LevelService.CONFIG_TTL_MS });
+    return config;
+  }
+
+  private async loadConfig(guildId: string): Promise<LevelConfig> {
     if (!this.db) {
       return this.getDefaultConfig(guildId);
     }

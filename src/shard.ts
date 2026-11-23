@@ -52,6 +52,19 @@ async function main(): Promise<void> {
       process.exit(1);
     }
 
+    // One process per shard would start the API, scheduled jobs, moderation timers
+    // and command registration in every process, and the API would only see the
+    // guilds of its own shard. By default discord.js internal sharding is used (all
+    // shards in this process); multi-process only with KOREX_MULTIPROCESS_SHARDING=1,
+    // once process roles (API/jobs vs gateway) are split.
+    if (process.env.KOREX_MULTIPROCESS_SHARDING !== '1') {
+      logger.info('🧩 Internal sharding: all shards run in this process (set KOREX_MULTIPROCESS_SHARDING=1 for one process per shard)');
+      process.env.ENABLE_SHARDING = 'true';
+      await import('./index');
+      return;
+    }
+    logger.warn('⚠️  Multi-process sharding: API, scheduled jobs and timers are not yet split by process role');
+
     // Create and configure the sharding manager
     const shardManager = new KorexShardingManager();
 
