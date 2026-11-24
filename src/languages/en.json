@@ -663,6 +663,7 @@
         "errors": {
           "invalid_channel": "❌ Invalid channel. Please select a text channel.",
           "no_permissions": "❌ I don't have permission to send messages in that channel.",
+          "user_limit_reached": "❌ You already have {limit} active polls. Close one before creating another.",
           "limit_reached": "❌ You have reached the maximum number of active polls ({limit}).",
           "min_options": "❌ Polls must have at least 2 options.",
           "max_options": "❌ Polls can have at most 25 options.",

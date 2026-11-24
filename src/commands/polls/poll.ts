@@ -1,4 +1,5 @@
 import {
+  GuildMember,
   SlashCommandBuilder,
   ChatInputCommandInteraction,
   PermissionFlagsBits,
@@ -152,6 +153,12 @@ export default class PollCommand extends Command {
     const activeCount = await this.client.pollService.getActivePollCount(guildId);
     if (activeCount >= botConfig.limits.polls) {
       await interaction.reply({ content: i18n.t('commands.poll.create.errors.limit_reached', guildId, { limit: botConfig.limits.polls.toString() }), flags: MessageFlags.Ephemeral });
+      return;
+    }
+    // Per-member cap
+    const userLimit = await this.client.pollService.userPollLimitReached(guildId, interaction.member as GuildMember);
+    if (userLimit) {
+      await interaction.reply({ content: i18n.t('commands.poll.create.errors.user_limit_reached', guildId, { limit: String(userLimit) }), flags: MessageFlags.Ephemeral });
       return;
     }
 

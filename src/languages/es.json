@@ -663,6 +663,7 @@
         "errors": {
           "invalid_channel": "❌ Canal inválido. Por favor selecciona un canal de texto.",
           "no_permissions": "❌ No tengo permisos para enviar mensajes en ese canal.",
+          "user_limit_reached": "❌ Ya tienes {limit} encuestas activas. Cierra alguna antes de crear otra.",
           "limit_reached": "❌ Has alcanzado el número máximo de encuestas activas ({limit}).",
           "min_options": "❌ Las encuestas deben tener al menos 2 opciones.",
           "max_options": "❌ Las encuestas pueden tener como máximo 25 opciones.",

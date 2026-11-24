@@ -1,5 +1,6 @@
 import { coalesceUpdate, cancelCoalescedUpdate } from '../utils/componentThrottle';
-import { 
+import {
+  PermissionFlagsBits, 
   Guild, 
   GuildMember, 
   TextChannel, 
@@ -139,6 +140,9 @@ export class PollService {
       const activeCount = await this.getActivePollCount(guild.id);
 
       if (activeCount >= botConfig.limits.polls) {
+        return null;
+      }
+      if (await this.userPollLimitReached(guild.id, host)) {
         return null;
       }
 
@@ -879,6 +883,23 @@ export class PollService {
 
   async getActivePollCount(guildId: string): Promise<number> {
     return this.prisma.poll.count({ where: { guildId, active: true } });
+  }
+
+  /**
+   * Active polls of a member (the per-server cap of 10 could be used up by a single
+   * member). Members who can manage messages are exempt.
+   */
+  async getActivePollCountForUser(guildId: string, userId: string): Promise<number> {
+    return this.prisma.poll.count({ where: { guildId, active: true, creatorId: userId } });
+  }
+
+  static readonly POLLS_PER_USER = Number(process.env.POLLS_PER_USER) || 3;
+
+  /** Can this member create another poll? null if so; otherwise the limit reached. */
+  async userPollLimitReached(guildId: string, member: GuildMember): Promise<number | null> {
+    if (member.permissions.has(PermissionFlagsBits.ManageMessages)) return null;
+    const mine = await this.getActivePollCountForUser(guildId, member.id);
+    return mine >= PollService.POLLS_PER_USER ? PollService.POLLS_PER_USER : null;
   }
 
   async getGuildPolls(guildId: string): Promise<PollData[]> {
