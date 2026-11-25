@@ -151,22 +151,20 @@ export class GuildKickoutService {
     const graceDeadline = new Date(Date.now() - KICKOUT_GRACE_DAYS * 24 * 60 * 60 * 1_000);
 
     try {
-      // Find KICKOUT records still within grace period
+      // Restorable records (D·PAY-12): KICKOUT ones (inside or past the grace period, if the
+      // daily job has not closed them yet) and those the job cancelled after the grace period
+      // that still have paid time left (CANCELLED with kickoutAt and a future expiresAt).
+      void graceDeadline;
+      const restorable = (now: Date) => ({
+        guildId,
+        OR: [
+          { status: 'KICKOUT' as const },
+          { status: 'CANCELLED' as const, kickoutAt: { not: null }, expiresAt: { gt: now } },
+        ],
+      });
       const [kickoutLicenses, kickoutPremium] = await Promise.all([
-        this.client.db.addonLicense.findMany({
-          where: {
-            guildId,
-            status: 'KICKOUT',
-            kickoutAt: { gte: graceDeadline },
-          },
-        }),
-        this.client.db.guildPremium.findMany({
-          where: {
-            guildId,
-            status: 'KICKOUT',
-            kickoutAt: { gte: graceDeadline },
-          },
-        }),
+        this.client.db.addonLicense.findMany({ where: restorable(new Date()) as any }),
+        this.client.db.guildPremium.findMany({ where: restorable(new Date()) as any }),
       ]);
 
       if (kickoutLicenses.length === 0 && kickoutPremium.length === 0) {
@@ -192,7 +190,7 @@ export class GuildKickoutService {
         // If it was suspended for non-payment before the removal, it goes back to suspended
         const wasSuspended = !!lic.suspendedAt;
         await this.client.db.addonLicense.updateMany({
-          where: { id: lic.id, status: 'KICKOUT' },
+          where: { id: lic.id, status: lic.status },
           data: alive
             ? { status: wasSuspended ? 'SUSPENDED' : 'ACTIVE', kickoutAt: null, expiresAt }
             : { status: lic.cancelledAt ? 'CANCELLED' : 'EXPIRED', kickoutAt: null },
@@ -206,7 +204,7 @@ export class GuildKickoutService {
         const alive = expiresAt > now;
         const wasSuspended = !!premium.suspendedAt;
         await this.client.db.guildPremium.updateMany({
-          where: { id: premium.id, status: 'KICKOUT' },
+          where: { id: premium.id, status: premium.status },
           data: alive
             ? { status: wasSuspended ? 'SUSPENDED' : 'ACTIVE', kickoutAt: null, expiresAt }
             : { status: premium.cancelledAt ? 'CANCELLED' : 'EXPIRED', kickoutAt: null },
@@ -299,6 +297,8 @@ export class GuildKickoutService {
 
         await this.client.db.addonLicense.update({
           where: { id: license.id },
+          // expiresAt and kickoutAt are kept: if the bot comes back before expiry,
+          // handleGuildRejoined restores it with the paid time left (D·PAY-12)
           data: { status: 'CANCELLED', cancelledAt: new Date() },
         });
 
@@ -330,6 +330,8 @@ export class GuildKickoutService {
 
         await this.client.db.guildPremium.update({
           where: { id: premium.id },
+          // expiresAt and kickoutAt are kept: if the bot comes back before expiry,
+          // handleGuildRejoined restores it with the paid time left (D·PAY-12)
           data: { status: 'CANCELLED', cancelledAt: new Date() },
         });
 

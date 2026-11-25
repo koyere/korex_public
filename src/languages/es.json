@@ -970,6 +970,15 @@
         "comparison": "Comparación",
         "comparison_value": "Free vs Premium"
       },
+      "catalog": {
+        "title": "💎 Addons premium",
+        "desc": "Información sobre los addons de pago:",
+        "open_panel": "Abrir el panel de addons",
+        "buy_title": "💳 Addons de pago",
+        "buy_desc": "Este comando no cobra nada.",
+        "manage_desc": "Las suscripciones se gestionan desde el panel de addons.",
+        "hosted": "Los addons de pago solo están disponibles en el Korex alojado (https://korex.dev); esta versión de código abierto incluye los módulos gratuitos."
+      },
       "benefits": {
         "title": "✨ Beneficios Premium",
         "benefits_description": "Todas las ventajas de ser premium.",

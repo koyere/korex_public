@@ -52,8 +52,8 @@ export default class PremiumCommand extends Command {
               .setRequired(true)
               .addChoices(
                 { name: 'Demo (7 days free)', value: 'demo' },
-                { name: 'Basic ($4.99/month)', value: 'basic' },
-                { name: 'Pro ($9.99/month)', value: 'pro' }
+                { name: 'Basic (see the panel)', value: 'basic' },
+                { name: 'Pro (see the panel)', value: 'pro' }
               )
           )
       )
@@ -116,19 +116,7 @@ export default class PremiumCommand extends Command {
         })
         .setTimestamp();
 
-      const row = new ActionRowBuilder<ButtonBuilder>()
-        .addComponents(
-          new ButtonBuilder()
-            .setCustomId('premium_view_plans')
-            .setLabel(i18n.t('commands.premium.info.view_plans', guildId))
-            .setStyle(ButtonStyle.Primary)
-            .setEmoji('💎'),
-          new ButtonBuilder()
-            .setCustomId('premium_try_demo')
-            .setLabel(i18n.t('commands.premium.info.try_demo', guildId))
-            .setStyle(ButtonStyle.Success)
-            .setEmoji('🆓')
-        );
+      const row = this.panelRow(guildId); // D·PAY-16: these buttons previously had no handler
 
       await interaction.reply({ embeds: [embed], components: [row] });
 
@@ -164,68 +152,20 @@ export default class PremiumCommand extends Command {
       )
       .setTimestamp();
 
-    const row = new ActionRowBuilder<ButtonBuilder>()
-      .addComponents(
-        new ButtonBuilder()
-          .setCustomId('premium_view_usage')
-          .setLabel(i18n.t('commands.premium.info.view_usage', guildId))
-          .setStyle(ButtonStyle.Secondary)
-          .setEmoji('📊'),
-        new ButtonBuilder()
-          .setCustomId('premium_manage')
-          .setLabel(i18n.t('commands.premium.info.manage_subscription', guildId))
-          .setStyle(ButtonStyle.Danger)
-          .setEmoji('⚙️')
-      );
+    const row = this.panelRow(guildId); // D·PAY-16: these buttons previously had no handler
 
     await interaction.reply({ embeds: [embed], components: [row] });
   }
 
   private async handlePlans(interaction: ChatInputCommandInteraction, guildId: string): Promise<void> {
-    const plans = this.client.premiumService.getAvailablePlans();
-
+    // No fictitious $4.99/$9.99 plans anymore (D·PAY-16)
     const embed = new EmbedBuilder()
       .setColor(botConfig.colors.primary)
-      .setTitle(`💎 ${i18n.t('commands.premium.plans.title', guildId)}`)
-      .setDescription(i18n.t('commands.premium.plans.plans_description', guildId))
+      .setTitle(i18n.t('commands.premium.catalog.title', guildId))
+      .setDescription(`${i18n.t('commands.premium.catalog.desc', guildId)}\n\n${await this.catalogText(guildId)}`)
       .setTimestamp();
 
-    // Add plan fields
-    for (const plan of plans) {
-      const priceText = plan.price === 0 ? 'FREE' : `${this.client.premiumService.formatPrice(plan.price)}/month`;
-      const featuresText = plan.features.map(f => i18n.t(`premium.benefits.${f}`, guildId)).join('\n');
-      
-      embed.addFields({
-        name: `${plan.name} - ${priceText}`,
-        value: `${i18n.t('commands.premium.plans.duration', guildId, { days: plan.duration.toString() })}\n\n${featuresText}`,
-        inline: true
-      });
-    }
-
-    embed.addFields({
-      name: i18n.t('commands.premium.plans.comparison', guildId),
-      value: i18n.t('commands.premium.plans.comparison_value', guildId),
-      inline: false
-    });
-
-    const row = new ActionRowBuilder<ButtonBuilder>()
-      .addComponents(
-        new ButtonBuilder()
-          .setCustomId('premium_activate_demo')
-          .setLabel('Demo (Free)')
-          .setStyle(ButtonStyle.Success)
-          .setEmoji('🆓'),
-        new ButtonBuilder()
-          .setCustomId('premium_activate_basic')
-          .setLabel('Basic ($4.99)')
-          .setStyle(ButtonStyle.Primary)
-          .setEmoji('💎'),
-        new ButtonBuilder()
-          .setCustomId('premium_activate_pro')
-          .setLabel('Pro ($9.99)')
-          .setStyle(ButtonStyle.Primary)
-          .setEmoji('👑')
-      );
+    const row = this.panelRow(guildId); // D·PAY-16: these buttons previously had no handler
 
     await interaction.reply({ embeds: [embed], components: [row] });
   }
@@ -298,45 +238,14 @@ export default class PremiumCommand extends Command {
     }
 
     // Handle paid plan activation
+    void plan;
     const embed = new EmbedBuilder()
       .setColor(botConfig.colors.info)
-      .setTitle(`💳 ${i18n.t('commands.premium.activate.payment_info', guildId)}`)
-      .setDescription(i18n.t('commands.premium.activate.payment_desc', guildId, {
-        plan: plan.name,
-        price: this.client.premiumService.formatPrice(plan.price)
-      }))
-      .addFields(
-        {
-          name: i18n.t('commands.premium.activate.plan_features', guildId),
-          value: plan.features.map(f => i18n.t(`premium.benefits.${f}`, guildId)).join('\n'),
-          inline: false
-        },
-        {
-          name: i18n.t('commands.premium.activate.payment_methods', guildId),
-          value: i18n.t('commands.premium.activate.payment_methods_value', guildId),
-          inline: false
-        },
-        {
-          name: i18n.t('commands.premium.activate.contact_info', guildId),
-          value: i18n.t('commands.premium.activate.contact_value', guildId),
-          inline: false
-        }
-      )
+      .setTitle(i18n.t('commands.premium.catalog.buy_title', guildId))
+      .setDescription(`${i18n.t('commands.premium.catalog.buy_desc', guildId)}\n\n${await this.catalogText(guildId)}`)
       .setTimestamp();
 
-    const row = new ActionRowBuilder<ButtonBuilder>()
-      .addComponents(
-        new ButtonBuilder()
-          .setCustomId('premium_contact_support')
-          .setLabel(i18n.t('commands.premium.activate.contact_support', guildId))
-          .setStyle(ButtonStyle.Primary)
-          .setEmoji('📞'),
-        new ButtonBuilder()
-          .setCustomId('premium_manual_activate')
-          .setLabel(i18n.t('commands.premium.activate.manual_activate', guildId))
-          .setStyle(ButtonStyle.Secondary)
-          .setEmoji('⚙️')
-      );
+    const row = this.panelRow(guildId); // D·PAY-16: these buttons previously had no handler
 
     await interaction.reply({ embeds: [embed], components: [row] });
   }
@@ -370,22 +279,14 @@ export default class PremiumCommand extends Command {
         name: i18n.t('commands.premium.cancel.what_happens', guildId),
         value: i18n.t('commands.premium.cancel.what_happens_value', guildId),
         inline: false
+      }, {
+        name: '\u200b',
+        value: i18n.t('commands.premium.catalog.manage_desc', guildId),
+        inline: false
       })
       .setTimestamp();
 
-    const row = new ActionRowBuilder<ButtonBuilder>()
-      .addComponents(
-        new ButtonBuilder()
-          .setCustomId('premium_confirm_cancel')
-          .setLabel(i18n.t('commands.premium.cancel.confirm_button', guildId))
-          .setStyle(ButtonStyle.Danger)
-          .setEmoji('❌'),
-        new ButtonBuilder()
-          .setCustomId('premium_keep_subscription')
-          .setLabel(i18n.t('commands.premium.cancel.keep_button', guildId))
-          .setStyle(ButtonStyle.Success)
-          .setEmoji('💎')
-      );
+    const row = this.panelRow(guildId); // D·PAY-16: these buttons previously had no handler
 
     await interaction.reply({ embeds: [embed], components: [row] });
   }
@@ -447,9 +348,6 @@ export default class PremiumCommand extends Command {
 
   private async handleBenefits(interaction: ChatInputCommandInteraction, guildId: string): Promise<void> {
     const benefits = this.client.premiumService.getPremiumBenefits(guildId);
-    const plans = this.client.premiumService.getAvailablePlans();
-    const basicPlan = plans.find(p => p.id === 'basic');
-    const proPlan = plans.find(p => p.id === 'pro');
 
     const embed = new EmbedBuilder()
       .setColor(botConfig.colors.primary)
@@ -463,32 +361,32 @@ export default class PremiumCommand extends Command {
         },
         {
           name: i18n.t('commands.premium.benefits.plan_comparison', guildId),
-          value: i18n.t('commands.premium.benefits.comparison_value', guildId, {
-            basic: basicPlan?.name || 'Basic',
-            basicPrice: basicPlan ? this.client.premiumService.formatPrice(basicPlan.price) : '$4.99',
-            pro: proPlan?.name || 'Pro',
-            proPrice: proPlan ? this.client.premiumService.formatPrice(proPlan.price) : '$9.99'
-          }),
+          value: await this.catalogText(guildId), // D·PAY-16
           inline: false
         }
       )
       .setTimestamp();
 
-    const row = new ActionRowBuilder<ButtonBuilder>()
-      .addComponents(
-        new ButtonBuilder()
-          .setCustomId('premium_view_plans_benefits')
-          .setLabel(i18n.t('commands.premium.benefits.view_plans', guildId))
-          .setStyle(ButtonStyle.Primary)
-          .setEmoji('💎'),
-        new ButtonBuilder()
-          .setCustomId('premium_start_trial_benefits')
-          .setLabel(i18n.t('commands.premium.benefits.start_trial', guildId))
-          .setStyle(ButtonStyle.Success)
-          .setEmoji('🆓')
-      );
+    const row = this.panelRow(guildId); // D·PAY-16: these buttons previously had no handler
 
     await interaction.reply({ embeds: [embed], components: [row] });
+  }
+
+  /** Link button to the server's add-ons page in the panel (D·PAY-16) */
+  private panelRow(guildId: string): ActionRowBuilder<ButtonBuilder> {
+    const url = `${process.env.PANEL_URL || 'https://panel.korex.dev'}/dashboard/${guildId}/addons`;
+    return new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setStyle(ButtonStyle.Link)
+        .setURL(url)
+        .setLabel(i18n.t('commands.premium.catalog.open_panel', guildId))
+        .setEmoji('💎'),
+    );
+  }
+
+  /** Paid add-ons are only sold on the hosted Korex; no fictitious plans or prices (D·PAY-16) */
+  private async catalogText(guildId: string): Promise<string> {
+    return i18n.t('commands.premium.catalog.hosted', guildId);
   }
 
   private formatUsage(usage: { used: number; limit: number; percentage: number }, guildId: string): string {

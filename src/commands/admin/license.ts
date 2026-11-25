@@ -190,6 +190,12 @@ export default class LicenseCommand extends Command {
     interaction: ChatInputCommandInteraction,
     lang: string
   ): Promise<void> {
+    // Bot owner only (D·PAY-16): these legacy licenses grant nothing and any server
+    // administrator could create them without limit
+    if (!this.client.isOwner(interaction.user.id)) {
+      await interaction.reply({ content: i18n.t('command_errors.owner_only', lang), ephemeral: true });
+      return;
+    }
     const addonId = interaction.options.getString('addon', true);
     const type = interaction.options.getString('type', true) as 'FREE' | 'PREMIUM' | 'ENTERPRISE';
     const featuresStr = interaction.options.getString('features', true);
