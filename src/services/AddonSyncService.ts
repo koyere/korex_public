@@ -21,6 +21,12 @@ export interface AddonEvent {
 /**
  * Addon synchronization service across shards via Redis Pub/Sub
  */
+/** Seconds of positive cache: at most `max`, and never past the expiry date (D·PAY-18). */
+export function ttlUntil(expiresAt: Date, max: number): number {
+  const left = Math.ceil((expiresAt.getTime() - Date.now()) / 1000);
+  return Math.max(1, Math.min(max, left));
+}
+
 export class AddonSyncService {
   private redis: Redis;
   private subscriber: Redis;
@@ -91,7 +97,8 @@ export class AddonSyncService {
     // Update local cache if needed
     const cacheKey = `addon:${event.addonName}:guild_${event.guildId}`;
 
-    this.redis.setex(cacheKey, 3600, 'true'); // 1 hour TTL
+    // Short TTL: the next lookup hits the DB and picks up the expiry date (D·PAY-18)
+    this.redis.setex(cacheKey, 60, 'true');
 
     this.logger.info(`Addon ${event.addonName} activated for guild ${event.guildId}`);
     
@@ -176,7 +183,9 @@ export class AddonSyncService {
         const bundleCached = await this.redis.get(bundleKey);
 
         if (bundleCached === 'true') {
-          await this.redis.setex(cacheKey, 3600, 'true');
+          // Never longer than what the bundle cache has left (D·PAY-18)
+          const left = await this.redis.ttl(bundleKey).catch(() => 60);
+          await this.redis.setex(cacheKey, left > 0 ? Math.min(left, 3600) : 60, 'true');
           return true;
         }
 
@@ -186,8 +195,9 @@ export class AddonSyncService {
             where: { guildId, planId: 'bundle', status: 'ACTIVE', expiresAt: { gt: new Date() } },
           });
           if (premium) {
-            await this.redis.setex(bundleKey, 3600, 'true');
-            await this.redis.setex(cacheKey, 3600, 'true');
+            const ttl = ttlUntil(premium.expiresAt, 3600);
+            await this.redis.setex(bundleKey, ttl, 'true');
+            await this.redis.setex(cacheKey, ttl, 'true');
             return true;
           }
           // Negative: short TTL (5 min) so future activations are not blocked
@@ -203,7 +213,8 @@ export class AddonSyncService {
       const isActive = !!license;
       // Negative with short TTL: a purchase/courtesy shows up within ≤ 60 s even if
       // the flow that created it does not invalidate the cache.
-      await this.redis.setex(cacheKey, isActive ? 600 : 60, String(isActive));
+      // Positive: up to 10 min, but never past the expiry date (D·PAY-18)
+      await this.redis.setex(cacheKey, isActive ? ttlUntil(license!.expiresAt, 600) : 60, String(isActive));
       return isActive;
     } catch (error) {
       this.logger.error(`Error checking addon status for ${addonName} in guild ${guildId}:`, error);
@@ -377,6 +388,7 @@ export class AddonSyncService {
           paymentFailures: 0,
           lastPaymentFailedAt: null,
           dataWarnedAt: null,
+          dataDeletedAt: null, // if it expires again, its data is cleaned up again (D·PAY-21)
           ...(pricing ? { price: pricing.price, currency: pricing.currency } : {}),
         },
         create: {

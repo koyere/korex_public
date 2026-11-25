@@ -283,6 +283,8 @@ export class BackupManager {
       }
 
       // Get file size
+      // No read access for other system users (A·INF-13)
+      await fs.chmod(finalPath, 0o660).catch(() => undefined);
       const stats = await fs.stat(finalPath);
       const duration = Date.now() - startTime;
 
@@ -361,6 +363,8 @@ export class BackupManager {
       }
 
       // Get file size
+      // No read access for other system users (A·INF-13)
+      await fs.chmod(finalPath, 0o660).catch(() => undefined);
       const stats = await fs.stat(finalPath);
       const duration = Date.now() - startTime;
 
@@ -755,9 +759,11 @@ export class BackupManager {
    */
   private async ensureBackupDirectory(): Promise<void> {
     try {
-      await fs.mkdir(this.config.destinations.local.path, { recursive: true });
-      await fs.mkdir(path.join(this.config.destinations.local.path, 'database'), { recursive: true });
-      await fs.mkdir(path.join(this.config.destinations.local.path, 'files'), { recursive: true });
+      // Directories without access for others (A·INF-13): previously 775 with 644 dumps
+      for (const dir of [this.config.destinations.local.path, path.join(this.config.destinations.local.path, 'database'), path.join(this.config.destinations.local.path, 'files')]) {
+        await fs.mkdir(dir, { recursive: true, mode: 0o770 });
+        await fs.chmod(dir, 0o770).catch(() => undefined);
+      }
     } catch (error) {
       this.logger.error('Failed to create backup directories:', error);
       throw error;

@@ -4,7 +4,7 @@ import { KorexClient } from '../KorexClient';
 import { AddonConfig } from '../../types/addon';
 import { readdirSync, existsSync } from 'fs';
 import { join } from 'path';
-import { isCoreModuleEnabled, withEntryAdded, withEntryRemoved } from '../../config/coreModules';
+import { isCoreModule, isCoreModuleEnabled, withEntryAdded, withEntryRemoved } from '../../config/coreModules';
 
 export class AddonManager {
   public client: KorexClient;
@@ -274,7 +274,9 @@ export class AddonManager {
 
     // Core modules: no row or empty array → enabled (see config/coreModules.ts)
     if (!addon) {
-      return isCoreModuleEnabled(enabledAddons, addonName);
+      // A paid addon that failed to load is not a core module: a leftover entry in
+      // enabledAddons must not unlock its API (D·PAY-17)
+      return isCoreModule(addonName) && isCoreModuleEnabled(enabledAddons, addonName);
     }
 
     // Paid addons: explicit opt-in AND a valid license (or bundle).
